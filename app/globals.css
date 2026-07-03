@@ -12,10 +12,10 @@ body {
   @apply text-slate-800 antialiased;
   min-height: 100vh;
   background:
-    radial-gradient(1100px 700px at 8% -8%, rgba(16,185,129,.28), transparent 55%),
-    radial-gradient(1000px 700px at 100% 0%, rgba(99,102,241,.22), transparent 50%),
-    radial-gradient(900px 800px at 50% 120%, rgba(20,184,166,.22), transparent 55%),
-    linear-gradient(180deg, #eaf3f1, #e6ecf6);
+    radial-gradient(1100px 700px at 8% -8%, rgba(16,185,129,.24), transparent 55%),
+    radial-gradient(1000px 700px at 100% 0%, rgba(20,184,166,.22), transparent 52%),
+    radial-gradient(900px 800px at 50% 120%, rgba(56,189,248,.20), transparent 55%),
+    linear-gradient(180deg, #e9f4f1, #e6f0f3);
   background-attachment: fixed;
 }
 /* 细点阵纹理层 */
@@ -54,7 +54,7 @@ body {
 @keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.4);} 70%{ box-shadow:0 0 0 12px rgba(16,185,129,0);} 100%{ box-shadow:0 0 0 0 rgba(16,185,129,0);} }
 .pulse-ring { animation: pulseRing 2s infinite; }
 
-.grad-hero { background: radial-gradient(1200px 600px at 20% -10%, #0d9488 0%, transparent 55%), radial-gradient(1000px 500px at 100% 0%, #6366f1 0%, transparent 45%), linear-gradient(180deg,#0b1120,#0f172a); }
+.grad-hero { background: radial-gradient(1200px 600px at 15% -10%, #0d9488 0%, transparent 55%), radial-gradient(1000px 520px at 100% 0%, #0891b2 0%, transparent 48%), linear-gradient(180deg,#06231f,#0b2a2e); }
 
 /* 页面切换过渡(约 0.8s) */
 @keyframes pageEnter {
