@@ -7,6 +7,7 @@ export async function POST(req) {
   if (!u || !verifyPassword(String(password || ""), u.salt, u.password_hash)) {
     return Response.json({ error: "用户名或密码不对" }, { status: 401 });
   }
+  if (u.deleted_at) return Response.json({ error: "该账号已被删除" }, { status: 403 });
   await setSessionCookie(createSession(u.id));
   return Response.json({ ok: true });
 }

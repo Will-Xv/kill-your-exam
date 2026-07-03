@@ -6,12 +6,16 @@ export default function Admin() {
   const t = useT();
   const [data, setData] = useState(null);
   const [denied, setDenied] = useState(false);
-  useEffect(() => {
-    fetch("/api/admin/usage").then(async (r) => {
-      if (!r.ok) { setDenied(true); return; }
-      setData(await r.json());
-    });
-  }, []);
+  const load = () => fetch("/api/admin/usage").then(async (r) => {
+    if (!r.ok) { setDenied(true); return; }
+    setData(await r.json());
+  });
+  useEffect(() => { load(); }, []);
+  async function act(action, userId) {
+    if (action === "delete" && !confirm(t("确定删除该账号?30 天内可恢复,30 天后永久清除。"))) return;
+    await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, userId }) });
+    load();
+  }
   if (denied) return <p className="mt-16 text-center text-stone-400">{t("这个页面只有管理员能看。")}</p>;
   if (!data) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
   return (
@@ -21,8 +25,15 @@ export default function Admin() {
       {data.users.map((u) => (
         <div key={u.id} className="card">
           <div className="flex items-center justify-between">
-            <p className="font-bold">{u.username} {u.isAdmin && <span className="badge-material">{t("管理员")}</span>}</p>
-            <p className="text-xs text-stone-400">{t("注册于")} {u.createdAt?.slice(0, 10)}</p>
+            <p className="font-bold">
+              {u.username} {u.isAdmin && <span className="badge-material">{t("管理员")}</span>}
+              {u.deletedAt && <span className="badge-model">{t("已删除")} · {Math.max(0, 30 - Math.floor((Date.now() - new Date(u.deletedAt + "Z")) / 86400000))} {t("天后永久清除")}</span>}
+            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-stone-400">{t("注册于")} {u.createdAt?.slice(0, 10)}</p>
+              {!u.isAdmin && !u.deletedAt && <button className="text-xs text-red-500 underline" onClick={() => act("delete", u.id)}>{t("删除账号")}</button>}
+              {u.deletedAt && <button className="text-xs text-emerald-600 underline" onClick={() => act("restore", u.id)}>{t("恢复账号")}</button>}
+            </div>
           </div>
           <div className="mt-2 grid grid-cols-4 gap-2 text-center text-sm">
             <div><b>{u.attempts}</b><div className="text-xs text-stone-400">{t("总做题")}</div></div>
