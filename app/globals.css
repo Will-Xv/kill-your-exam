@@ -8,18 +8,19 @@
 }
 
 html { scroll-behavior: smooth; }
-body { @apply text-slate-800 antialiased; background: #f6f8fb; }
-
-/* 应用内部氛围背景:柔和网格渐变 + 光晕,不影响可读性 */
-.app-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+body {
+  @apply text-slate-800 antialiased;
+  min-height: 100vh;
   background:
-    radial-gradient(900px 500px at 8% -5%, rgba(16,185,129,.12), transparent 55%),
-    radial-gradient(800px 500px at 100% 0%, rgba(99,102,241,.10), transparent 50%),
-    radial-gradient(700px 600px at 50% 110%, rgba(20,184,166,.10), transparent 55%),
-    linear-gradient(180deg, #f7faf9, #eef2f7);
+    radial-gradient(1100px 700px at 8% -8%, rgba(16,185,129,.28), transparent 55%),
+    radial-gradient(1000px 700px at 100% 0%, rgba(99,102,241,.22), transparent 50%),
+    radial-gradient(900px 800px at 50% 120%, rgba(20,184,166,.22), transparent 55%),
+    linear-gradient(180deg, #eaf3f1, #e6ecf6);
+  background-attachment: fixed;
 }
-.app-bg::before { content:""; position:absolute; inset:0;
-  background-image: radial-gradient(rgba(15,23,42,.035) 1px, transparent 1px);
+/* 细点阵纹理层 */
+.app-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(15,23,42,.05) 1px, transparent 1px);
   background-size: 22px 22px; }
 
 /* ---------- buttons ---------- */
@@ -64,3 +65,6 @@ body { @apply text-slate-800 antialiased; background: #f6f8fb; }
 .page-accent { position: fixed; top: 0; left: 0; right: 0; height: 220px; z-index: -1; pointer-events: none;
   animation: accentFade .9s ease both; }
 @keyframes accentFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+/* 让页面内容浮在背景纹理之上 */
+main, .page-enter { position: relative; z-index: 1; }
