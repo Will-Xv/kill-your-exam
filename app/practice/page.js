@@ -9,6 +9,7 @@ const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填�
 function PracticeInner() {
   const aiFetch = useAiFetch();
   const kpParam = useSearchParams().get("kp");
+  const mode = useSearchParams().get("mode");
   const [questions, setQuestions] = useState([]);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
@@ -20,8 +21,13 @@ function PracticeInner() {
   async function loadQuestions() {
     setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null);
     try {
-      const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) });
-      setQuestions(d.questions);
+      if (mode === "review") {
+        const d = await aiFetch("/api/review");
+        setQuestions(d.questions);
+      } else {
+        const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) });
+        setQuestions(d.questions);
+      }
     } catch {}
     setBusy(false);
   }
@@ -50,7 +56,9 @@ function PracticeInner() {
   }
 
   if (busy && !questions.length) return <p className="mt-16 text-center text-stone-400 animate-pulse">AI 正在准备题目…</p>;
-  if (!questions.length) return <p className="mt-16 text-center text-stone-400">暂时没有题目。先去<a className="underline" href="/onboarding">设置考试</a>或<a className="underline" href="/study">学习页</a>。</p>;
+  if (!questions.length) return mode === "review"
+    ? <div className="mt-16 text-center text-stone-400 space-y-3"><p>🎉 没有到期的错题,今天不用重练。</p><a className="btn" href="/practice">去做新题</a></div>
+    : <p className="mt-16 text-center text-stone-400">暂时没有题目。先去<a className="underline" href="/onboarding">设置考试</a>或<a className="underline" href="/study">学习页</a>。</p>;
 
   if (idx >= questions.length) {
     const right = done.filter(Boolean).length;
@@ -60,6 +68,7 @@ function PracticeInner() {
         <h1 className="text-2xl font-bold">本轮完成:{right} / {done.length}</h1>
         <div className="flex gap-2 justify-center">
           <button className="btn" onClick={loadQuestions}>再来一轮</button>
+          <a className="btn-ghost" href="/mistakes">错题本</a>
           <a className="btn-ghost" href="/">回首页</a>
         </div>
       </div>
@@ -74,7 +83,7 @@ function PracticeInner() {
   return (
     <div className="space-y-3 md:mt-14">
       <div className="flex items-center justify-between text-sm text-stone-500">
-        <span>第 {idx + 1} / {questions.length} 题 · {QTYPE[q.qtype]}</span>
+        <span>{mode === "review" ? "🔁 错题重练 · " : ""}第 {idx + 1} / {questions.length} 题 · {QTYPE[q.qtype]}</span>
         <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
       </div>
       <div className="card">

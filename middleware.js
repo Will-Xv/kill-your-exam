@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export function middleware(req) {
   const { pathname } = req.nextUrl;
-  if (pathname === "/login" || pathname.startsWith("/api/login") || pathname.startsWith("/_next") || pathname === "/favicon.ico") {
+  if (pathname === "/login" || pathname.startsWith("/api/login") || pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/manifest.webmanifest" || pathname === "/sw.js" || pathname.startsWith("/icon-")) {
     return NextResponse.next();
   }
   const ok = req.cookies.get("beikao_access")?.value === "1";

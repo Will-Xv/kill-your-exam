@@ -1,16 +1,28 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import SourceBadge from "@/components/SourceBadge";
 
-export default function Study() {
+function StudyInner() {
   const aiFetch = useAiFetch();
   const [tree, setTree] = useState(null);
   const [current, setCurrent] = useState(null); // {kp, explanation}
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { fetch("/api/kp").then((r) => r.json()).then((d) => setTree(d.tree)); }, []);
+  const kpParam = useSearchParams().get("kp");
+  useEffect(() => {
+    fetch("/api/kp").then((r) => r.json()).then((d) => {
+      setTree(d.tree);
+      if (kpParam) {
+        for (const ch of d.tree) {
+          const hit = ch.points.find((p) => p.id === Number(kpParam));
+          if (hit) { open(hit); break; }
+        }
+      }
+    });
+  }, []);
 
   async function open(kp, refresh = false) {
     setBusy(true); setCurrent({ kp, explanation: null });
@@ -70,4 +82,9 @@ export default function Study() {
       <p className="text-xs text-stone-400">🟢 有资料支撑 · 🟡 部分支撑 · ⚪ 无资料(讲解出题靠 AI 记忆,请谨慎)</p>
     </div>
   );
+}
+
+
+export default function Study() {
+  return <Suspense fallback={<p className="mt-16 text-center text-stone-400">加载中…</p>}><StudyInner /></Suspense>;
 }

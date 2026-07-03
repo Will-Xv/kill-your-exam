@@ -4,7 +4,11 @@ import Link from "next/link";
 
 export default function Home() {
   const [data, setData] = useState(null);
-  useEffect(() => { fetch("/api/exam").then((r) => r.json()).then(setData); }, []);
+  const [daily, setDaily] = useState(null);
+  useEffect(() => {
+    fetch("/api/exam").then((r) => r.json()).then(setData);
+    fetch("/api/daily").then((r) => r.json()).then(setDaily);
+  }, []);
   if (!data) return <p className="mt-16 text-center text-stone-400">加载中…</p>;
   if (!data.exam) {
     return (
@@ -19,30 +23,58 @@ export default function Home() {
   }
   const { exam, stats } = data;
   const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date) - Date.now()) / 86400000) : null;
-  const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
+  const items = daily?.plan?.items || [];
+  const allDone = items.length && items.every((it) => it.done);
+  const firstUndone = items.find((it) => !it.done);
+  const linkFor = (it) => (it.type === "review" ? "/practice?mode=review" : it.type === "kp" ? `/study?kp=${it.kpId}` : "/practice");
+  const labelFor = (it) =>
+    it.type === "review" ? `重练到期错题${it.due ? `(${it.due} 道)` : ""}` :
+    it.type === "kp" ? `学习:${it.chapter ? it.chapter + " · " : ""}${it.title}` :
+    `自由练习(今日 ${it.count}/${it.target} 题)`;
+
   return (
     <div className="space-y-4 md:mt-14">
       <div className="card bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0">
-        <h1 className="text-xl font-bold">{exam.name}</h1>
-        {days != null && <p className="mt-1 text-emerald-100">距离考试还有 <span className="text-3xl font-bold text-white">{days}</span> 天</p>}
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="text-xl font-bold">{exam.name}</h1>
+            {days != null && <p className="mt-1 text-emerald-100">距考试 <span className="text-3xl font-bold text-white">{days}</span> 天</p>}
+          </div>
+          {daily && <p className="text-emerald-100 text-sm">已学 {daily.activeDays} 天</p>}
+        </div>
       </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-bold">📋 今日任务</h2>
+          {allDone ? <span className="text-emerald-700 text-sm font-medium">全部完成 🎉</span> : null}
+        </div>
+        {!daily ? <p className="text-stone-400 text-sm">生成中…</p> : (
+          <div className="space-y-1">
+            {items.map((it, i) => (
+              <Link key={i} href={linkFor(it)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${it.done ? "text-stone-400" : "hover:bg-stone-50"}`}>
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${it.done ? "border-emerald-500 bg-emerald-500 text-white" : "border-stone-300"}`}>
+                  {it.done ? "✓" : i + 1}
+                </span>
+                <span className={it.done ? "line-through" : "font-medium"}>{labelFor(it)}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+        {firstUndone && <Link href={linkFor(firstUndone)} className="btn w-full mt-3">开始:{labelFor(firstUndone)}</Link>}
+      </div>
+
       <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="card"><div className="text-2xl font-bold">{stats.todayCount}</div><div className="text-xs text-stone-500">今日做题</div></div>
-        <div className="card"><div className="text-2xl font-bold">{acc == null ? "—" : acc + "%"}</div><div className="text-xs text-stone-500">总正确率</div></div>
-        <div className="card"><div className="text-2xl font-bold">{stats.matCount}</div><div className="text-xs text-stone-500">资料数</div></div>
+        <Link href="/knowledge" className="card hover:border-emerald-400 transition"><div className="text-lg">📊</div><div className="text-xs text-stone-500 mt-1">掌握度</div></Link>
+        <Link href="/mistakes" className="card hover:border-emerald-400 transition"><div className="text-lg">📕</div><div className="text-xs text-stone-500 mt-1">错题本</div></Link>
+        <Link href="/chat" className="card hover:border-emerald-400 transition"><div className="text-lg">💬</div><div className="text-xs text-stone-500 mt-1">找管家聊聊</div></Link>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/study" className="card hover:border-emerald-400 transition"><div className="text-2xl mb-1">📖</div><div className="font-semibold">学知识点</div><div className="text-xs text-stone-500">讲解 + 即时小题</div></Link>
-        <Link href="/practice" className="card hover:border-emerald-400 transition"><div className="text-2xl mb-1">✍️</div><div className="font-semibold">做练习</div><div className="text-xs text-stone-500">自动挑薄弱点出题</div></Link>
-      </div>
+
       {stats.matCount === 0 && (
         <Link href="/materials" className="card block border-amber-300 bg-amber-50">
-          <p className="text-sm text-amber-800">⚠️ 资料库还是空的。现在讲解和出题只能靠 AI 的记忆,准确性没有保障。<b>强烈建议先上传资料</b>(大纲、教材、规范文件都行)。</p>
+          <p className="text-sm text-amber-800">⚠️ 资料库还是空的,AI 只能凭记忆讲课,准确性没保障。<b>强烈建议先上传资料</b>。</p>
         </Link>
       )}
-      <Link href="/chat" className="card block hover:border-emerald-400 transition">
-        <p className="text-sm">💬 有任何想法直接说,比如:"我觉得第三章我很熟了""每天时间改成 40 分钟""帮我搜一下最新的考试公告"</p>
-      </Link>
     </div>
   );
 }

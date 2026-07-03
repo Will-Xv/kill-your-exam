@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 const items = [
   { href: "/", label: "今天", icon: "🏠" },
@@ -13,6 +14,7 @@ const items = [
 
 export default function Nav() {
   const path = usePathname();
+  useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => {}); }, []);
   if (path === "/login" || path.startsWith("/onboarding")) return null;
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur md:top-0 md:bottom-auto md:border-b md:border-t-0">

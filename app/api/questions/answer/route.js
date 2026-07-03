@@ -1,5 +1,6 @@
 import db, { getActiveExam } from "@/lib/db";
 import { generateJson } from "@/lib/gemini";
+import { updateReviewQueue } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
@@ -37,6 +38,7 @@ export async function POST(req) {
     }
     db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
       .run(questionId, exam.id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode);
+    updateReviewQueue(questionId, !!correct);
     return Response.json({ correct: !!correct, score, feedback, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs });
   } catch (e) {
     return aiErrorResponse(e);

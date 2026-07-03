@@ -4,8 +4,13 @@ import { AiErrorProvider } from "@/components/AiErrorDialog";
 
 export const metadata = {
   title: "AI 备考助手",
-  description: "你的私人备考管家"
+  description: "你的私人备考管家",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "备考助手" },
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" }
 };
+
+export const viewport = { themeColor: "#059669" };
 
 export default function RootLayout({ children }) {
   return (
