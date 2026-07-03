@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/components/I18n";
 import { createContext, useContext, useState, useCallback } from "react";
 
 const Ctx = createContext(null);
@@ -10,6 +11,7 @@ const TYPE_LABEL = {
 };
 
 export function AiErrorProvider({ children }) {
+  const t = useT();
   const [err, setErr] = useState(null);
   const show = useCallback((e) => setErr(e), []);
   return (
@@ -19,17 +21,17 @@ export function AiErrorProvider({ children }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setErr(null)}>
           <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="text-3xl mb-2">🔌</div>
-            <h2 className="text-lg font-bold mb-2">AI 服务出了点问题</h2>
-            <p className="text-stone-700 mb-1">{err.friendly}</p>
+            <h2 className="text-lg font-bold mb-2">{t("AI 服务出了点问题")}</h2>
+            <p className="text-stone-700 mb-1">{t(err.friendly)}</p>
             <p className="text-sm text-stone-500 mb-4">
-              这是 AI 服务(API)层面的问题,<b>不是你操作错了</b>,也不是网站坏了。
-              {err.type === "rate_limit" || err.type === "server" ? "通常几分钟后自动恢复,可以稍后再试。" : "请联系 Will 处理。"}
+              {t("这是 AI 服务(API)层面的问题,")}<b>{t("不是你操作错了")}</b>{t(",也不是网站坏了。")}
+              {err.type === "rate_limit" || err.type === "server" ? t("通常几分钟后自动恢复,可以稍后再试。") : t("请联系 Will 处理。")}
             </p>
             <div className="flex gap-2">
-              <a className="btn flex-1" href={`mailto:xuy413682@gmail.com?subject=${encodeURIComponent("备考网站 AI 服务故障:" + (TYPE_LABEL[err.type] || err.type))}&body=${encodeURIComponent("错误类型: " + err.type + "\n提示: " + err.friendly + "\n详情: " + (err.detail || "") + "\n时间: " + new Date().toLocaleString())}`}>
-                📧 联系 Will
+              <a className="btn flex-1" href={`mailto:xuy413682@gmail.com?subject=${encodeURIComponent("beikao-app AI error: " + err.type)}&body=${encodeURIComponent("错误类型: " + err.type + "\n提示: " + err.friendly + "\n详情: " + (err.detail || "") + "\n时间: " + new Date().toLocaleString())}`}>
+                {t("📧 联系 Will")}
               </a>
-              <button className="btn-ghost" onClick={() => setErr(null)}>关闭</button>
+              <button className="btn-ghost" onClick={() => setErr(null)}>{t("关闭")}</button>
             </div>
           </div>
         </div>

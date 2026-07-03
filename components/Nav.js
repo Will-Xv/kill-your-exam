@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useT } from "@/components/I18n";
 
 const items = [
   { href: "/", label: "今天", icon: "🏠" },
@@ -13,6 +14,7 @@ const items = [
 ];
 
 export default function Nav() {
+  const t = useT();
   const path = usePathname();
   useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => {}); }, []);
   if (path === "/login" || path.startsWith("/onboarding")) return null;
@@ -23,7 +25,7 @@ export default function Nav() {
           <Link key={it.href} href={it.href}
             className={`flex flex-col items-center gap-0.5 px-3 py-2 text-xs md:flex-row md:text-sm ${path === it.href ? "text-emerald-700 font-semibold" : "text-stone-500"}`}>
             <span className="text-lg md:text-base">{it.icon}</span>
-            {it.label}
+            {t(it.label)}
           </Link>
         ))}
       </div>

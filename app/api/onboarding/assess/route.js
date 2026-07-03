@@ -1,6 +1,6 @@
 import db, { upsertDocument } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
-import { searchWeb, generateJson } from "@/lib/gemini";
+import { searchWeb, generateJson, langInstruction } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
@@ -48,7 +48,7 @@ ${search.text || "(没有搜到有效信息)"}
 - unknown: 你完全不知道、必须靠用户提供资料的方面
 - risks: 使用 AI 备考这门考试的具体风险(例如编造不存在的真题、大纲版本过时等),用考生能听懂的话写
 - checklist: 建议考生收集上传的资料清单(6~10项),每项说明"有了它我能多做什么",priority 为 must 或 nice
-- dossier_md: 一份 Markdown 格式的"考试档案"初稿,包含考试名称、日期、已知的题型结构、大纲章节、信息来源(注明哪些来自搜索、哪些未经证实)。不知道的部分明确写"待补充"。`,
+- dossier_md: 一份 Markdown 格式的"考试档案"初稿,包含考试名称、日期、已知的题型结构、大纲章节、信息来源(注明哪些来自搜索、哪些未经证实)。不知道的部分明确写"待补充"。` + langInstruction(user.lang),
       schema
     );
     const info = db.prepare("INSERT INTO exams(name, exam_date, daily_minutes, self_assessment, checklist, user_id) VALUES(?,?,?,?,?,?)").run(

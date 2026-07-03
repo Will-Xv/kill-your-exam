@@ -1,6 +1,6 @@
 import db, { getDocument, upsertDocument } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generateJson, embed, cosine } from "@/lib/gemini";
+import { generateJson, embed, cosine, langInstruction } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
@@ -35,10 +35,10 @@ export async function POST(req) {
     };
     const tree = await generateJson(
       `根据以下考试档案${sampleText ? "和用户上传资料的目录摘要" : ""},生成「${exam.name}」的知识点树(章 → 知识点)。
-优先依据档案中的大纲;资料摘要可帮助细化。每章 3~10 个知识点,知识点要具体可学(不要太宽泛)。
+优先依据档案中的大纲;资料摘要可帮助细化。每章 3~10 个知识点,知识点要具体可学(不要太宽泛)。知识点标题使用考生的语言(见文末语言要求),但资料本身是什么语言就贴近什么语言的术语。
 考试档案:
 ${dossier.slice(0, 8000)}
-${sampleText ? "资料摘要:\n" + sampleText : ""}`,
+${sampleText ? "资料摘要:\n" + sampleText : ""}` + langInstruction(user.lang),
       treeSchema
     );
 
@@ -72,7 +72,7 @@ ${sampleText ? "资料摘要:\n" + sampleText : ""}`,
     const st = await generateJson(
       `为「${exam.name}」制定备考策略(Markdown)。剩余天数:${days ?? "未知"};每天可用 ${exam.daily_minutes} 分钟。
 基于知识点树:${JSON.stringify(tree).slice(0, 4000)}
-包含:阶段划分(打基础/强化/冲刺)、每周目标、每日安排建议、复习原则。语气平实,不要空话。`,
+包含:阶段划分(打基础/强化/冲刺)、每周目标、每日安排建议、复习原则。语气平实,不要空话。` + langInstruction(user.lang),
       strategySchema
     );
     upsertDocument(examId, "strategy", st.strategy_md);

@@ -1,7 +1,7 @@
 import db, { getDocument } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { retrieve, ragBlock } from "@/lib/rag";
-import { generateJson } from "@/lib/gemini";
+import { generateJson, langInstruction } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 
 const schema = {
@@ -54,7 +54,7 @@ export async function POST(req) {
 题型混合(single单选/multi多选/judge判断/fill填空/short简答),以客观题为主。
 ${hits.length ? "必须依据以下资料出题,不得超出资料范围编造细节:\n" + ragBlock(hits) : "⚠️ 没有资料支撑,只能凭训练知识出题,题目要保守、考基本概念,不要编造具体数字或条款。"}
 考试档案摘要:${dossier.slice(0, 2000)}
-要求:single/multi 提供 4 个选项,answer 写选项字母(多选如 "AC");judge 的 answer 写 "对" 或 "错";fill 的 answer 写标准填空内容;short 的 answer 写评分要点。explanation 解释为什么。difficulty 1~3。`,
+要求:single/multi 提供 4 个选项,answer 写选项字母(多选如 "AC");judge 的 answer 必须写 "对" 或 "错"(这两个字保持中文,不翻译);fill 的 answer 写标准填空内容;short 的 answer 写评分要点。explanation 解释为什么。difficulty 1~3。` + langInstruction(user.lang),
       schema
     );
     const refs = JSON.stringify(hits.map((h) => ({ chunk_id: h.id, filename: h.filename, heading: h.heading_path })));

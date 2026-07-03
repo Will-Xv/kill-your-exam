@@ -1,6 +1,6 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generateJson } from "@/lib/gemini";
+import { generateJson, langInstruction } from "@/lib/gemini";
 import { updateReviewQueue } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -19,7 +19,7 @@ export async function POST(req) {
         `你是阅卷老师。题目:${JSON.parse(q.body).stem}
 评分要点:${ans.answer}
 考生答案:${userAnswer || "(未作答)"}
-按要点给 0~100 分,并指出答对了什么、缺了什么。`,
+按要点给 0~100 分,并指出答对了什么、缺了什么。` + langInstruction(user.lang),
         {
           type: "object",
           properties: { score: { type: "integer" }, feedback: { type: "string" } },

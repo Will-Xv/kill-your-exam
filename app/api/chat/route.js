@@ -1,6 +1,6 @@
 import db, { getDocument, upsertDocument } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
-import { generate, searchWeb } from "@/lib/gemini";
+import { generate, searchWeb, LANG_NAMES } from "@/lib/gemini";
 import { retrieve, ragBlock } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -96,7 +96,7 @@ export async function POST(req) {
 1. 讲解知识必须先用 query_knowledge_base 检索资料;资料没有的内容要明确说明"这是我的训练知识,资料库未覆盖,建议核实"。
 2. 考生表达对计划/进度/重点的想法时,主动用 read_document + update_document 更新对应文档。
 3. 每次修改文档后,必须用一两句话向考生复述你改了什么。
-4. 语气平实友善,像靠谱的助手,不用敬语堆砌,不讲空话。用中文。`;
+4. 语气平实友善,像靠谱的助手,不用敬语堆砌,不讲空话。\n5. 回复语言:默认使用考生界面语言(${LANG_NAMES[user.lang] || "中文"});但如果考生用别的语言提问,就跟随考生的语言。`;
 
     const toolNotes = [];
     let response = await generate(null, { contents, system, tools: [{ functionDeclarations }] });

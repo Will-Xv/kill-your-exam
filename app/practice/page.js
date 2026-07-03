@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/components/I18n";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -7,6 +8,7 @@ import SourceBadge from "@/components/SourceBadge";
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 
 function PracticeInner() {
+  const t = useT();
   const aiFetch = useAiFetch();
   const kpParam = useSearchParams().get("kp");
   const mode = useSearchParams().get("mode");
@@ -51,25 +53,25 @@ function PracticeInner() {
   }
   async function flag() {
     await fetch("/api/questions/flag", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id }) });
-    alert("已标记,这道题不会再出现。Will 会看到反馈。");
+    alert(t("已标记,这道题不会再出现。Will 会看到反馈。"));
     result ? next() : setQuestions((qs) => qs.filter((_, i) => i !== idx));
   }
 
-  if (busy && !questions.length) return <p className="mt-16 text-center text-stone-400 animate-pulse">AI 正在准备题目…</p>;
+  if (busy && !questions.length) return <p className="mt-16 text-center text-stone-400 animate-pulse">{t("AI 正在准备题目…")}</p>;
   if (!questions.length) return mode === "review"
-    ? <div className="mt-16 text-center text-stone-400 space-y-3"><p>🎉 没有到期的错题,今天不用重练。</p><a className="btn" href="/practice">去做新题</a></div>
-    : <p className="mt-16 text-center text-stone-400">暂时没有题目。先去<a className="underline" href="/onboarding">设置考试</a>或<a className="underline" href="/study">学习页</a>。</p>;
+    ? <div className="mt-16 text-center text-stone-400 space-y-3"><p>{t("🎉 没有到期的错题,今天不用重练。")}</p><a className="btn" href="/practice">{t("去做新题")}</a></div>
+    : <p className="mt-16 text-center text-stone-400">{t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</p>;
 
   if (idx >= questions.length) {
     const right = done.filter(Boolean).length;
     return (
       <div className="mt-16 text-center space-y-4">
         <div className="text-5xl">{right === done.length ? "🎉" : "💪"}</div>
-        <h1 className="text-2xl font-bold">本轮完成:{right} / {done.length}</h1>
+        <h1 className="text-2xl font-bold">{t("本轮完成:")}{right} / {done.length}</h1>
         <div className="flex gap-2 justify-center">
-          <button className="btn" onClick={loadQuestions}>再来一轮</button>
-          <a className="btn-ghost" href="/mistakes">错题本</a>
-          <a className="btn-ghost" href="/">回首页</a>
+          <button className="btn" onClick={loadQuestions}>{t("再来一轮")}</button>
+          <a className="btn-ghost" href="/mistakes">{t("错题本")}</a>
+          <a className="btn-ghost" href="/">{t("回首页")}</a>
         </div>
       </div>
     );
@@ -83,7 +85,7 @@ function PracticeInner() {
   return (
     <div className="space-y-3 md:mt-14">
       <div className="flex items-center justify-between text-sm text-stone-500">
-        <span>{mode === "review" ? "🔁 错题重练 · " : ""}第 {idx + 1} / {questions.length} 题 · {QTYPE[q.qtype]}</span>
+        <span>{mode === "review" ? t("🔁 错题重练 · ") : ""}{idx + 1} / {questions.length} · {t(QTYPE[q.qtype])}</span>
         <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
       </div>
       <div className="card">
@@ -97,40 +99,41 @@ function PracticeInner() {
                 <button key={i} disabled={!!result}
                   onClick={() => setSel(q.qtype === "multi" ? (active ? sel.filter((x) => x !== v) : [...sel, v]) : [v])}
                   className={`block w-full rounded-xl border px-4 py-3 text-left text-sm transition ${active ? "border-emerald-500 bg-emerald-50" : "border-stone-200 hover:bg-stone-50"}`}>
-                  {q.qtype !== "judge" && <b className="mr-2">{letters[i]}.</b>}{op}
+                  {q.qtype !== "judge" && <b className="mr-2">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : op}
                 </button>
               );
             })}
           </div>
         )}
         {!isChoice && (
-          <textarea className="input mt-3" rows={q.qtype === "short" ? 5 : 2} placeholder={q.qtype === "short" ? "写下你的回答(口语化也行)" : "填写答案"} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />
+          <textarea className="input mt-3" rows={q.qtype === "short" ? 5 : 2} placeholder={q.qtype === "short" ? t("写下你的回答(口语化也行)") : t("填写答案")} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />
         )}
       </div>
 
       {result && (
         <div className={`card ${result.correct ? "border-emerald-300 bg-emerald-50" : "border-red-300 bg-red-50"}`}>
-          <p className="font-bold">{result.correct ? "✓ 答对了" : "✗ 不对"}{q.qtype === "short" && ` · ${result.score} 分`}</p>
-          <p className="text-sm mt-1"><b>参考答案:</b>{result.answer}</p>
-          {result.feedback && <p className="text-sm mt-1"><b>点评:</b>{result.feedback}</p>}
-          <p className="text-sm mt-1 text-stone-600"><b>解析:</b>{result.explanation}</p>
+          <p className="font-bold">{result.correct ? t("✓ 答对了") : t("✗ 不对")}{q.qtype === "short" && ` · ${result.score}${t("分")}`}</p>
+          <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{t(result.answer)}</p>
+          {result.feedback && <p className="text-sm mt-1"><b>{t("点评:")}</b>{result.feedback}</p>}
+          <p className="text-sm mt-1 text-stone-600"><b>{t("解析:")}</b>{result.explanation}</p>
         </div>
       )}
 
       <div className="flex gap-2">
         {!result ? (
           <button className="btn flex-1" onClick={submit} disabled={busy || (isChoice ? !sel.length : !text.trim() && q.qtype !== "short")}>
-            {busy ? "批改中…" : "提交答案"}
+            {busy ? t("批改中…") : t("提交答案")}
           </button>
         ) : (
-          <button className="btn flex-1" onClick={next}>下一题 →</button>
+          <button className="btn flex-1" onClick={next}>{t("下一题 →")}</button>
         )}
-        <button className="btn-ghost text-xs" onClick={flag} title="题目有错误或不合理">⚠️ 这题有问题</button>
+        <button className="btn-ghost text-xs" onClick={flag} title={t("题目有错误或不合理")}>{t("⚠️ 这题有问题")}</button>
       </div>
     </div>
   );
 }
 
 export default function Practice() {
-  return <Suspense fallback={<p className="mt-16 text-center text-stone-400">加载中…</p>}><PracticeInner /></Suspense>;
+  const t = useT();
+  return <Suspense fallback={<p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>}><PracticeInner /></Suspense>;
 }
