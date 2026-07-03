@@ -1,6 +1,7 @@
 import db from "@/lib/db";
 import { generate } from "@/lib/gemini";
-import { getSessionUser, getActiveExam } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { getActiveExam } from "@/lib/db";
 
 const DOC_TYPES = ["dossier","strategy","progress"];
 const fns = [
