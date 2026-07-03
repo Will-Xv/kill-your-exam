@@ -8,7 +8,19 @@
 }
 
 html { scroll-behavior: smooth; }
-body { @apply bg-slate-50 text-slate-800 antialiased; }
+body { @apply text-slate-800 antialiased; background: #f6f8fb; }
+
+/* 应用内部氛围背景:柔和网格渐变 + 光晕,不影响可读性 */
+.app-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(900px 500px at 8% -5%, rgba(16,185,129,.12), transparent 55%),
+    radial-gradient(800px 500px at 100% 0%, rgba(99,102,241,.10), transparent 50%),
+    radial-gradient(700px 600px at 50% 110%, rgba(20,184,166,.10), transparent 55%),
+    linear-gradient(180deg, #f7faf9, #eef2f7);
+}
+.app-bg::before { content:""; position:absolute; inset:0;
+  background-image: radial-gradient(rgba(15,23,42,.035) 1px, transparent 1px);
+  background-size: 22px 22px; }
 
 /* ---------- buttons ---------- */
 .btn { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 px-5 py-3 text-white font-semibold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none; }
