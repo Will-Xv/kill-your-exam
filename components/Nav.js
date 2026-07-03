@@ -7,10 +7,10 @@ import { useT } from "@/components/I18n";
 const items = [
   { href: "/", label: "今天", icon: "🏠" },
   { href: "/study", label: "学习", icon: "📖" },
-  { href: "/practice", label: "练习", icon: "✍️" },
+  { href: "/practice", label: "自由练习", icon: "✍️" },
   { href: "/mock", label: "模拟考", icon: "📝" },
   { href: "/materials", label: "资料", icon: "📚" },
-  { href: "/chat", label: "聊天", icon: "💬" },
+  { href: "/chat", label: "问问AI", icon: "💬" },
   { href: "/settings", label: "设置", icon: "⚙️" }
 ];
 

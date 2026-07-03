@@ -21,6 +21,8 @@ export function I18nProvider({ children }) {
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    const titles = { zh: "AI 备考助手", en: "ExamPrep AI", fr: "ExamPrep IA", es: "ExamPrep IA", ru: "ExamPrep AI", ar: "مساعد الامتحان", id: "ExamPrep AI" };
+    document.title = titles[lang] || "ExamPrep AI";
   }, [lang]);
   const t = useCallback((s) => (lang === "zh" ? s : DICTS[lang]?.[s] ?? s), [lang]);
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;

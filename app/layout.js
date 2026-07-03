@@ -4,10 +4,10 @@ import { AiErrorProvider } from "@/components/AiErrorDialog";
 import { I18nProvider } from "@/components/I18n";
 
 export const metadata = {
-  title: "AI 备考助手",
+  title: "ExamPrep AI",
   description: "你的私人备考管家",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "备考助手" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "ExamPrep" },
   icons: { icon: "/icon-192.png", apple: "/icon-192.png" }
 };
 
