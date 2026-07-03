@@ -5,7 +5,7 @@ import { DICTS } from "@/lib/translations";
 const Ctx = createContext({ lang: "zh", setLang: () => {}, t: (s) => s });
 
 export function I18nProvider({ children }) {
-  const [lang, setLangState] = useState("zh");
+  const [lang, setLangState] = useState("en");
   useEffect(() => {
     const local = typeof localStorage !== "undefined" && localStorage.getItem("beikao_lang");
     if (local) setLangState(local);

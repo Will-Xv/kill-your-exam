@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
       <body>
         <I18nProvider>
         <AiErrorProvider>
-          <div className="mx-auto max-w-3xl px-4 pb-24 pt-4 md:pb-8 md:pt-6">{children}</div>
+          <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20">{children}</div>
           <Nav />
         </AiErrorProvider>
         </I18nProvider>

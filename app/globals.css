@@ -2,11 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-stone-50 text-stone-800; }
-.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-white font-medium hover:bg-emerald-700 active:scale-95 transition disabled:opacity-50 disabled:pointer-events-none; }
-.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 px-5 py-3 text-stone-700 font-medium hover:bg-stone-100 active:scale-95 transition disabled:opacity-50; }
-.card { @apply rounded-2xl bg-white border border-stone-200 p-5 shadow-sm; }
-.input { @apply w-full rounded-xl border border-stone-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white; }
-.badge-material { @apply inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-medium; }
-.badge-model { @apply inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2.5 py-0.5 text-xs font-medium; }
-.prose-zh { @apply leading-relaxed [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:mt-3 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_table]:w-full [&_td]:border [&_td]:p-1 [&_th]:border [&_th]:p-1 [&_code]:bg-stone-100 [&_code]:px-1 [&_code]:rounded; }
+:root {
+  --bg: #0b1120;
+  --ink: #0f172a;
+}
+
+html { scroll-behavior: smooth; }
+body { @apply bg-slate-50 text-slate-800 antialiased; }
+
+/* ---------- buttons ---------- */
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 px-5 py-3 text-white font-semibold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none; }
+.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-700 font-medium hover:border-emerald-400 hover:text-emerald-700 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50; }
+.btn-dark { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/20 backdrop-blur px-5 py-3 text-white font-medium hover:bg-white/20 transition-all; }
+
+/* ---------- cards ---------- */
+.card { @apply rounded-3xl bg-white border border-slate-200/70 p-5 shadow-sm; }
+.card-hover { @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-300; }
+.glass { @apply bg-white/70 backdrop-blur-xl border border-white/40; }
+
+.input { @apply w-full rounded-2xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition; }
+
+.badge-material { @apply inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 px-2.5 py-0.5 text-xs font-semibold; }
+.badge-model { @apply inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 px-2.5 py-0.5 text-xs font-semibold; }
+
+.prose-zh { @apply leading-relaxed [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-4 [&_h3]:font-semibold [&_h3]:mt-3 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_strong]:font-semibold [&_table]:w-full [&_td]:border [&_td]:p-1 [&_th]:border [&_th]:p-1 [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:rounded; }
+
+/* ---------- animations ---------- */
+@keyframes floatUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.animate-in { animation: floatUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.d1 { animation-delay: .06s; } .d2 { animation-delay: .12s; } .d3 { animation-delay: .18s; } .d4 { animation-delay: .24s; } .d5 { animation-delay: .3s; }
+
+@keyframes blob { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(30px,-40px) scale(1.1); } 66% { transform: translate(-20px,20px) scale(0.95); } }
+.blob { animation: blob 14s ease-in-out infinite; }
+
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.shimmer { background: linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite; }
+
+@keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.4);} 70%{ box-shadow:0 0 0 12px rgba(16,185,129,0);} 100%{ box-shadow:0 0 0 0 rgba(16,185,129,0);} }
+.pulse-ring { animation: pulseRing 2s infinite; }
+
+.grad-hero { background: radial-gradient(1200px 600px at 20% -10%, #0d9488 0%, transparent 55%), radial-gradient(1000px 500px at 100% 0%, #6366f1 0%, transparent 45%), linear-gradient(180deg,#0b1120,#0f172a); }

@@ -80,12 +80,13 @@ export default function Settings() {
         </div>
         {msg && <p className="text-sm text-emerald-700">{msg}</p>}
       </div>}
-      <div className="card space-y-2">
-        <h2 className="font-semibold">{t("浏览器采集令牌")}</h2>
-        <p className="text-xs text-stone-500">{t("配合 Chrome 采集扩展使用,把网页资料一键采进当前考试。把下面的令牌粘贴到扩展里。")}</p>
-        <input className="input font-mono text-xs" readOnly value={ingestToken} onClick={(e) => e.target.select()} />
-        <button className="btn-ghost text-sm py-2" onClick={resetIngest}>{t("重置令牌")}</button>
-      </div>
+      <a href="/collector" className="card card-hover flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold">🧲 {t("浏览器采集 / Agent")}</h2>
+          <p className="text-xs text-stone-500">{t("用扩展把网页资料采进资料库,或让 agent 自动采集")}</p>
+        </div>
+        <span className="text-slate-300">→</span>
+      </a>
       <div className="card space-y-2">
         <h2 className="font-semibold">{t("数据导出")}</h2>
         <p className="text-xs text-stone-500">{t("下载你的全部备考数据(JSON),随时备份。")}</p>
