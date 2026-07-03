@@ -28,7 +28,7 @@ export default function Login() {
     <div className="grad-hero fixed inset-0 overflow-hidden text-white">
       {/* animated blobs */}
       <div className="blob absolute -top-32 -left-24 h-96 w-96 rounded-full bg-emerald-500/25 blur-3xl" />
-      <div className="blob absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-indigo-500/25 blur-3xl" style={{ animationDelay: "5s" }} />
+      <div className="blob absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-cyan-500/25 blur-3xl" style={{ animationDelay: "5s" }} />
 
       {/* top nav */}
       <div className="relative z-10 flex items-center justify-between px-6 py-5 md:px-12">
