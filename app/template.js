@@ -1,7 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
 
-// 每个功能页的主题强调色(切换时页面顶部会有对应颜色的光晕)
 const ACCENTS = {
   "/": "rgba(16,185,129,.16)",
   "/study": "rgba(56,189,248,.18)",
@@ -18,11 +17,12 @@ const ACCENTS = {
 
 export default function Template({ children }) {
   const path = usePathname();
+  // 登录/导引页有自己的全屏固定布局,不套过渡动画(避免 transform 破坏 fixed 定位)
+  if (path === "/login" || path.startsWith("/onboarding")) return <>{children}</>;
   const key = Object.keys(ACCENTS).find((k) => (k === "/" ? path === "/" : path.startsWith(k))) || "/";
-  const accent = ACCENTS[key];
   return (
     <div key={path} className="page-enter">
-      <div className="page-accent" style={{ background: `radial-gradient(600px 260px at 50% -60px, ${accent}, transparent 70%)` }} />
+      <div className="page-accent" style={{ background: `radial-gradient(600px 260px at 50% -60px, ${ACCENTS[key]}, transparent 70%)` }} />
       {children}
     </div>
   );

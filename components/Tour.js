@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useT, useI18n } from "@/components/I18n";
 import { LANGS } from "@/lib/translations";
 
@@ -36,7 +37,7 @@ export default function Tour({ firstTime }) {
   }
   function skip() { localStorage.setItem("beikao_tour_done", "1"); setStep(-1); }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
       <div className="animate-in w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-2xl">
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 text-4xl">{s.icon}</div>
@@ -63,6 +64,7 @@ export default function Tour({ firstTime }) {
           <button onClick={next} className="btn flex-1 py-2.5 text-sm">{last ? t("开始使用") : t("下一步")}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
