@@ -32,7 +32,7 @@ export default function Chat() {
     setBusy(false);
   }
 
-  const suggestions = [t("帮我看看我现在学得怎么样"), t("我觉得有一章我已经很熟了,想少花时间"), t("帮我搜一下这门考试最新的公告")];
+  const suggestions = [t("🤖 帮我把这门考试从头准备好"), t("帮我看看我现在学得怎么样"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
     <div className="flex flex-col md:mt-14" style={{ height: "calc(100dvh - 130px)" }}>
       <h1 className="text-2xl font-bold mb-2">{t("聊天")}</h1>

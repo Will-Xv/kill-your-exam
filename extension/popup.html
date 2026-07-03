@@ -1,15 +1,19 @@
 <!doctype html><html><head><meta charset="utf-8"><style>
-  body{font-family:system-ui,-apple-system,sans-serif;width:320px;margin:0;padding:16px;color:#1c1917}
+  body{font-family:system-ui,-apple-system,sans-serif;width:340px;margin:0;padding:16px;color:#1c1917}
   h1{font-size:15px;margin:0 0 12px}
   label{font-size:12px;color:#78716c}
-  input{width:100%;box-sizing:border-box;border:1px solid #d6d3d1;border-radius:8px;padding:8px;margin-top:4px;font-size:13px}
-  .row{margin-bottom:12px}
+  input,textarea{width:100%;box-sizing:border-box;border:1px solid #d6d3d1;border-radius:8px;padding:8px;margin-top:4px;font-size:13px;font-family:inherit}
+  .row{margin-bottom:10px}
   button{width:100%;border:0;border-radius:8px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px}
   .primary{background:#059669;color:#fff}
   .ghost{background:#f5f5f4;color:#44403c}
-  #status{font-size:12px;margin-top:10px;white-space:pre-wrap;line-height:1.5}
+  .danger{background:#dc2626;color:#fff}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tabs button{flex:1;margin:0;padding:8px;font-size:13px;background:#f5f5f4;color:#57534e}
+  .tabs button.on{background:#059669;color:#fff}
+  #status,#astatus{font-size:12px;margin-top:10px;white-space:pre-wrap;line-height:1.5;max-height:180px;overflow:auto}
   .ok{color:#059669}.err{color:#dc2626}.muted{color:#a8a29e}
-  a{color:#059669}
+  .hidden{display:none}
 </style></head><body>
   <h1>📘 备考助手采集</h1>
   <div class="row">
@@ -20,8 +24,29 @@
     <label>采集令牌 Token（网站设置页获取）</label>
     <input id="token" placeholder="paste token">
   </div>
-  <button class="primary" id="grab">采集当前页 Collect this page</button>
-  <button class="ghost" id="auto">自动翻页采集 Auto-paginate…</button>
-  <div id="status" class="muted">登录资料网站后打开要采集的页面,再点上面的按钮。</div>
+  <div class="tabs">
+    <button id="tabManual" class="on">手动采集</button>
+    <button id="tabAgent">🤖 Agent 自动</button>
+  </div>
+
+  <div id="paneManual">
+    <button class="primary" id="grab">采集当前页 Collect this page</button>
+    <button class="ghost" id="auto">按“下一页”翻页采集</button>
+    <div id="status" class="muted">登录资料网站后打开要采集的页面,再点按钮。</div>
+  </div>
+
+  <div id="paneAgent" class="hidden">
+    <div class="row">
+      <label>告诉 agent 要做什么</label>
+      <textarea id="goal" rows="2" placeholder="例：把这门课所有章节的内容都采集进来"></textarea>
+    </div>
+    <div class="row">
+      <label>最多步数 Max steps</label>
+      <input id="maxsteps" type="number" value="30">
+    </div>
+    <button class="primary" id="run">▶ 开始 Start</button>
+    <button class="danger hidden" id="stop">■ 停止 Stop</button>
+    <div id="astatus" class="muted">agent 会在你已登录的浏览器里,自己观察页面、翻页、采集。只读内容和点导航链接,绝不填表/提交/花钱。</div>
+  </div>
   <script src="popup.js"></script>
 </body></html>
