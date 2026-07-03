@@ -1,9 +1,12 @@
 import db, { upsertDocument } from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 import { searchWeb, generateJson } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
   try {
+    const { user } = await requireUser();
+    if (!user) return unauthorized();
     const { name, examDate, dailyMinutes } = await req.json();
     // 1) 联网搜索该考试的公开信息
     const search = await searchWeb(
@@ -48,10 +51,11 @@ ${search.text || "(没有搜到有效信息)"}
 - dossier_md: 一份 Markdown 格式的"考试档案"初稿,包含考试名称、日期、已知的题型结构、大纲章节、信息来源(注明哪些来自搜索、哪些未经证实)。不知道的部分明确写"待补充"。`,
       schema
     );
-    const info = db.prepare("INSERT INTO exams(name, exam_date, daily_minutes, self_assessment, checklist) VALUES(?,?,?,?,?)").run(
+    const info = db.prepare("INSERT INTO exams(name, exam_date, daily_minutes, self_assessment, checklist, user_id) VALUES(?,?,?,?,?,?)").run(
       name, examDate || null, dailyMinutes || 60,
       JSON.stringify({ ...report, sources: search.sources }),
-      JSON.stringify(report.checklist.map((c) => ({ ...c, done: false })))
+      JSON.stringify(report.checklist.map((c) => ({ ...c, done: false }))),
+      user.id
     );
     const examId = info.lastInsertRowid;
     upsertDocument(examId, "dossier", report.dossier_md);

@@ -1,12 +1,16 @@
 import db, { getDocument, upsertDocument } from "@/lib/db";
+import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, embed, cosine } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
   try {
+    const { user } = await requireUser();
+    if (!user) return unauthorized();
     const { examId } = await req.json();
     const exam = db.prepare("SELECT * FROM exams WHERE id=?").get(examId);
     if (!exam) return Response.json({ error: "exam not found" }, { status: 404 });
+    if (exam.user_id !== user.id) return forbidden();
     const dossier = getDocument(examId, "dossier")?.content_md || "";
     const sample = db.prepare("SELECT heading_path, substr(content,1,200) c FROM chunks WHERE exam_id=? LIMIT 40").all(examId);
     const sampleText = sample.map((s) => `${s.heading_path}: ${s.c}`).join("\n").slice(0, 12000);

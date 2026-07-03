@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
+const PUBLIC = ["/login", "/favicon.ico", "/manifest.webmanifest", "/sw.js"];
+
 export function middleware(req) {
   const { pathname } = req.nextUrl;
-  if (pathname === "/login" || pathname.startsWith("/api/login") || pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname === "/manifest.webmanifest" || pathname === "/sw.js" || pathname.startsWith("/icon-")) {
+  if (PUBLIC.includes(pathname) || pathname.startsWith("/api/auth/") || pathname.startsWith("/_next") || pathname.startsWith("/icon-")) {
     return NextResponse.next();
   }
-  const ok = req.cookies.get("beikao_access")?.value === "1";
+  const ok = !!req.cookies.get("beikao_session")?.value;
   if (!ok) {
     if (pathname.startsWith("/api/")) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const url = req.nextUrl.clone();

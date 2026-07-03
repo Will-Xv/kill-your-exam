@@ -1,4 +1,5 @@
-import db, { getActiveExam, getDocument, upsertDocument } from "@/lib/db";
+import db, { getDocument, upsertDocument } from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 import { generate, searchWeb } from "@/lib/gemini";
 import { retrieve, ragBlock } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
@@ -71,7 +72,8 @@ async function execTool(name, args, exam) {
 }
 
 export async function GET() {
-  const exam = getActiveExam();
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
   if (!exam) return Response.json({ messages: [] });
   const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT 60").all(exam.id).reverse();
   return Response.json({ messages });
@@ -80,7 +82,8 @@ export async function GET() {
 export async function POST(req) {
   try {
     const { message } = await req.json();
-    const exam = getActiveExam();
+    const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "请先创建考试" }, { status: 400 });
     db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(exam.id, "user", message);
 

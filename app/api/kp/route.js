@@ -1,7 +1,9 @@
-import db, { getActiveExam } from "@/lib/db";
+import db from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 
 export async function GET() {
-  const exam = getActiveExam();
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
   if (!exam) return Response.json({ tree: [] });
   const rows = db.prepare("SELECT * FROM knowledge_points WHERE exam_id=? ORDER BY sort").all(exam.id);
   const chapters = rows.filter((r) => !r.parent_id).map((ch) => ({

@@ -1,4 +1,5 @@
-import db, { getActiveExam } from "@/lib/db";
+import db from "@/lib/db";
+import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson } from "@/lib/gemini";
 import { updateReviewQueue } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
@@ -8,7 +9,9 @@ export async function POST(req) {
     const { questionId, userAnswer, mode = "practice" } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
     if (!q) return Response.json({ error: "not found" }, { status: 404 });
-    const exam = getActiveExam();
+    const { user, exam } = await requireUser();
+    if (!user) return unauthorized();
+    if (!exam || q.exam_id !== exam.id) return forbidden();
     const ans = JSON.parse(q.answer);
     let correct, score, feedback = "";
     if (q.qtype === "short") {

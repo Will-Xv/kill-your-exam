@@ -1,4 +1,5 @@
-import db, { getActiveExam, getDocument } from "@/lib/db";
+import db, { getDocument } from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 import { retrieve, ragBlock } from "@/lib/rag";
 import { generateText } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
@@ -12,7 +13,8 @@ export async function POST(req) {
       const cached = db.prepare("SELECT * FROM explanations WHERE kp_id=? ORDER BY id DESC LIMIT 1").get(kpId);
       if (cached) return Response.json({ explanation: cached, cached: true });
     }
-    const exam = getActiveExam();
+    const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
     const chapter = kp.parent_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.parent_id)?.title : "";
     const hits = await retrieve(exam.id, `${chapter} ${kp.title}`, 6);
     const dossier = getDocument(exam.id, "dossier")?.content_md || "";

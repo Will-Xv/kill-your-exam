@@ -1,6 +1,8 @@
-import db, { getActiveExam } from "@/lib/db";
+import db from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 export async function GET() {
-  const exam = getActiveExam();
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
   if (!exam) return Response.json({ mistakes: [] });
   const rows = db.prepare(`SELECT q.id, q.qtype, q.body, q.answer, q.kp_id, kp.title kp_title,
       a.user_answer, a.created_at last_at,
@@ -15,9 +17,11 @@ export async function GET() {
 }
 export async function DELETE(req) {
   // “我已理解,移出错题本”
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
   const { questionId } = await req.json();
   const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
-  if (q) {
+  if (q && exam && q.exam_id === exam.id) {
     db.prepare("DELETE FROM review_queue WHERE question_id=?").run(questionId);
     db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,mode) VALUES(?,?,?,?,1,100,'resolved')")
       .run(questionId, q.exam_id, q.kp_id, "(手动移出错题本)");

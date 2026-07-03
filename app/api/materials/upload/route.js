@@ -1,4 +1,5 @@
-import db, { getActiveExam } from "@/lib/db";
+import db from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 import { parseUpload } from "@/lib/parse";
 import { indexMaterial } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
@@ -6,7 +7,8 @@ import { aiErrorResponse } from "@/lib/errors";
 export const maxDuration = 300;
 
 export async function POST(req) {
-  const exam = getActiveExam();
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
   // onboarding 期间也可传 examId
   const url = new URL(req.url);
   const examId = Number(url.searchParams.get("examId")) || exam?.id;
@@ -36,8 +38,13 @@ export async function POST(req) {
 }
 
 export async function DELETE(req) {
+  const { user } = await requireUser();
+  if (!user) return unauthorized();
   const { id } = await req.json();
-  db.prepare("DELETE FROM chunks WHERE material_id=?").run(id);
-  db.prepare("DELETE FROM materials WHERE id=?").run(id);
+  const m = db.prepare("SELECT m.id FROM materials m JOIN exams e ON e.id=m.exam_id WHERE m.id=? AND e.user_id=?").get(id, user.id);
+  if (m) {
+    db.prepare("DELETE FROM chunks WHERE material_id=?").run(id);
+    db.prepare("DELETE FROM materials WHERE id=?").run(id);
+  }
   return Response.json({ ok: true });
 }

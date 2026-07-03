@@ -1,7 +1,9 @@
-import db, { getActiveExam, getDocument } from "@/lib/db";
+import db, { getDocument } from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 
 export async function GET() {
-  const exam = getActiveExam();
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
   if (!exam) return Response.json({ exam: null });
   const kpCount = db.prepare("SELECT COUNT(*) n FROM knowledge_points WHERE exam_id=?").get(exam.id).n;
   const matCount = db.prepare("SELECT COUNT(*) n FROM materials WHERE exam_id=? AND status='ready'").get(exam.id).n;

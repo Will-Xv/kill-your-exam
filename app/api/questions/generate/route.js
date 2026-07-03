@@ -1,4 +1,5 @@
-import db, { getActiveExam, getDocument } from "@/lib/db";
+import db, { getDocument } from "@/lib/db";
+import { requireUser, unauthorized } from "@/lib/auth";
 import { retrieve, ragBlock } from "@/lib/rag";
 import { generateJson } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
@@ -28,7 +29,8 @@ const schema = {
 export async function POST(req) {
   try {
     const { kpId, count = 5, reuse = true } = await req.json();
-    const exam = getActiveExam();
+    const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
     // 优先复用已有未答过的题
     if (reuse) {
