@@ -54,3 +54,14 @@ body { @apply text-slate-800 antialiased; background: #f6f8fb; }
 .pulse-ring { animation: pulseRing 2s infinite; }
 
 .grad-hero { background: radial-gradient(1200px 600px at 20% -10%, #0d9488 0%, transparent 55%), radial-gradient(1000px 500px at 100% 0%, #6366f1 0%, transparent 45%), linear-gradient(180deg,#0b1120,#0f172a); }
+
+/* 页面切换过渡(约 0.8s) */
+@keyframes pageEnter {
+  0% { opacity: 0; transform: translateY(18px) scale(.985); filter: blur(6px); }
+  60% { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.page-enter { animation: pageEnter .8s cubic-bezier(.22,1,.36,1) both; }
+.page-accent { position: fixed; top: 0; left: 0; right: 0; height: 220px; z-index: -1; pointer-events: none;
+  animation: accentFade .9s ease both; }
+@keyframes accentFade { 0% { opacity: 0; } 100% { opacity: 1; } }
