@@ -7,10 +7,21 @@ export default function Home() {
   const t = useT();
   const [data, setData] = useState(null);
   const [daily, setDaily] = useState(null);
+  const [sugg, setSugg] = useState(null);
+  const [suggBusy, setSuggBusy] = useState(false);
   useEffect(() => {
     fetch("/api/exam").then((r) => r.json()).then(setData);
     fetch("/api/daily").then((r) => r.json()).then(setDaily);
   }, []);
+  async function loadSugg() {
+    setSuggBusy(true);
+    try { const d = await fetch("/api/strategy").then((r) => r.json()); setSugg(d.suggestion || { none: true }); } catch {}
+    setSuggBusy(false);
+  }
+  async function adopt() {
+    await fetch("/api/strategy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ strategyMd: sugg.revised_strategy_md }) });
+    setSugg({ adopted: true });
+  }
   if (!data) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
   if (!data.exam) {
     return (
@@ -39,7 +50,7 @@ export default function Home() {
       <div className="card bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0">
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-xl font-bold">{exam.name}</h1>
+            <a href="/exams" className="text-xl font-bold underline decoration-emerald-300/50 decoration-2 underline-offset-4">{exam.name}</a>
             {days != null && <p className="mt-1 text-emerald-100">{t("距考试")}<span className="text-3xl font-bold text-white">{days}</span>{t("天")}</p>}
           </div>
           {daily && <p className="text-emerald-100 text-sm">{t("已学")} {daily.activeDays} {t("天")}</p>}
@@ -71,7 +82,25 @@ export default function Home() {
         <Link href="/mistakes" className="card hover:border-emerald-400 transition"><div className="text-lg">📕</div><div className="text-xs text-stone-500 mt-1">{t("错题本")}</div></Link>
         <Link href="/chat" className="card hover:border-emerald-400 transition"><div className="text-lg">💬</div><div className="text-xs text-stone-500 mt-1">{t("找管家聊聊")}</div></Link>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/mock" className="card hover:border-emerald-400 transition text-center"><div className="text-lg">📝</div><div className="text-xs text-stone-500 mt-1">{t("模拟考")}</div></Link>
+        <Link href="/exams" className="card hover:border-emerald-400 transition text-center"><div className="text-lg">🗂️</div><div className="text-xs text-stone-500 mt-1">{t("我的考试")}</div></Link>
+      </div>
 
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-sm">🎯 {t("AI 策略建议")}</h2>
+          {!sugg && <button className="btn-ghost py-1.5 text-xs" onClick={loadSugg} disabled={suggBusy}>{suggBusy ? t("分析中…") : t("看看我的进度建议")}</button>}
+        </div>
+        {sugg?.none && <p className="text-sm text-stone-400 mt-2">{t("先做一些练习,AI 才能根据你的表现给建议。")}</p>}
+        {sugg?.adopted && <p className="text-sm text-emerald-700 mt-2">{t("已采纳,备考策略已更新 ✓")}</p>}
+        {sugg?.suggestions && (
+          <div className="mt-2 space-y-2">
+            <ul className="list-disc pl-5 text-sm text-stone-600">{sugg.suggestions.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            <button className="btn w-full py-2 text-sm" onClick={adopt}>{t("采纳并更新备考策略")}</button>
+          </div>
+        )}
+      </div>
       {stats.matCount === 0 && (
         <Link href="/materials" className="card block border-amber-300 bg-amber-50">
           <p className="text-sm text-amber-800">{t("⚠️ 资料库还是空的,AI 只能凭记忆讲课,准确性没保障。")}<b>{t("强烈建议先上传资料")}</b>。</p>

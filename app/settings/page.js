@@ -14,8 +14,16 @@ export default function Settings() {
   const [model, setModel] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ingestToken, setIngestToken] = useState("");
 
-  useEffect(() => { fetch("/api/settings").then((r) => r.json()).then((d) => { setInfo(d); setModel(d.model); }); }, []);
+  useEffect(() => {
+    fetch("/api/settings").then((r) => r.json()).then((d) => { setInfo(d); setModel(d.model); });
+    fetch("/api/ingest/token").then((r) => r.json()).then((d) => setIngestToken(d.token || ""));
+  }, []);
+  async function resetIngest() {
+    const d = await fetch("/api/ingest/token", { method: "POST" }).then((r) => r.json());
+    setIngestToken(d.token || "");
+  }
 
   async function save() {
     setBusy(true); setMsg("");
@@ -72,6 +80,17 @@ export default function Settings() {
         </div>
         {msg && <p className="text-sm text-emerald-700">{msg}</p>}
       </div>}
+      <div className="card space-y-2">
+        <h2 className="font-semibold">{t("浏览器采集令牌")}</h2>
+        <p className="text-xs text-stone-500">{t("配合 Chrome 采集扩展使用,把网页资料一键采进当前考试。把下面的令牌粘贴到扩展里。")}</p>
+        <input className="input font-mono text-xs" readOnly value={ingestToken} onClick={(e) => e.target.select()} />
+        <button className="btn-ghost text-sm py-2" onClick={resetIngest}>{t("重置令牌")}</button>
+      </div>
+      <div className="card space-y-2">
+        <h2 className="font-semibold">{t("数据导出")}</h2>
+        <p className="text-xs text-stone-500">{t("下载你的全部备考数据(JSON),随时备份。")}</p>
+        <a className="btn-ghost text-sm py-2 inline-block" href="/api/export">{t("导出我的数据")}</a>
+      </div>
       <div className="card text-sm text-stone-500 space-y-1">
         <p>{t("遇到任何解决不了的问题,直接联系 Will:")}</p>
         <a className="text-emerald-700 font-medium" href="mailto:xuy413682@gmail.com">xuy413682@gmail.com</a>

@@ -17,6 +17,7 @@ export default function Onboarding() {
   const [sources, setSources] = useState([]);
   const [files, setFiles] = useState([]);
   const [uploadLog, setUploadLog] = useState([]);
+  const [related, setRelated] = useState(null);
 
   async function doAssess() {
     setBusy(true); setBusyText("正在联网搜索这门考试的公开信息,并生成 AI 认知自评…(约 1 分钟)");
@@ -94,6 +95,19 @@ export default function Onboarding() {
         </>
       )}
 
+      {step === 4 && related && (
+        <div className="card space-y-3">
+          <h2 className="font-bold">{t("发现可借用的资料")}</h2>
+          <p className="text-sm text-stone-500">{t("你以前的考试里有相关资料。要借用到这门新考试吗?(默认隔离,不借用不会互相影响)")}</p>
+          {related.map((r) => (
+            <div key={r.id} className="flex items-center justify-between border-b border-stone-100 pb-2">
+              <div><b className="text-sm">{r.name}</b><p className="text-xs text-stone-400">{r.materials} {t("份资料")}</p></div>
+              <button className="btn-ghost py-2 text-sm" onClick={() => borrow(r.id)} disabled={busy}>{t("借用")}</button>
+            </div>
+          ))}
+          <button className="btn w-full" onClick={() => (location.href = "/")}>{t("不借用,直接开始")}</button>
+        </div>
+      )}
       {step === 3 && (
         <div className="card space-y-3">
           <h2 className="font-bold">{t("上传资料(PDF / Word / 文本 / 图片)")}</h2>
