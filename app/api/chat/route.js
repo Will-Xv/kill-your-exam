@@ -147,10 +147,12 @@ export async function POST(req) {
 
     const toolNotes = [];
     let response = await generate(null, { contents, system, tools: [{ functionDeclarations }] });
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       const calls = response.functionCalls;
       if (!calls || !calls.length) break;
-      contents.push({ role: "model", parts: calls.map((fc) => ({ functionCall: fc })) });
+      // 保留模型原始 content(含 thoughtSignature,thinking 模型回传必需)
+      const modelContent = response.candidates?.[0]?.content || { role: "model", parts: calls.map((fc) => ({ functionCall: fc })) };
+      contents.push(modelContent);
       const parts = [];
       for (const fc of calls) {
         const result = await execTool(fc.name, fc.args || {}, exam, user.lang);
