@@ -27,7 +27,13 @@ export async function GET() {
     try {
       const t0 = Date.now();
       const r = await Promise.race([generate(null, { contents, system: "你是助手", tools: [{ functionDeclarations: fns }] }), timeout(20000)]);
-      out.withHistory = { text: (r.text || "(fc)").slice(0, 30), ms: Date.now() - t0 };
+      out.withHistory = { text: (r.text || "").slice(0, 60), calls: (r.functionCalls || []).map((c) => c.name + ":" + JSON.stringify(c.args)), ms: Date.now() - t0 };
+      // 第二轮:模拟回传 functionResponse 后再 generate(检验 thinking 模型的 thoughtSignature 问题)
+      if (r.functionCalls && r.functionCalls.length) {
+        const c2 = [...contents, { role: "model", parts: r.functionCalls.map((fc) => ({ functionCall: fc })) }, { role: "user", parts: r.functionCalls.map((fc) => ({ functionResponse: { name: fc.name, response: { result: { ok: true } } } })) }];
+        try { const r2 = await Promise.race([generate(null, { contents: c2, system: "你是助手", tools: [{ functionDeclarations: fns }] }), timeout(20000)]); out.round2 = { text: (r2.text || "").slice(0, 40), calls: (r2.functionCalls || []).map((c) => c.name), ms: Date.now() - t0 }; }
+        catch (e) { out.round2_err = String(e?.message || e).slice(0, 500); }
+      }
     } catch (e) { out.withHistory_err = String(e?.message || e).slice(0, 500); }
   }
   return Response.json(out);
