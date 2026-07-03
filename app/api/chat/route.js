@@ -38,8 +38,7 @@ const functionDeclarations = [
   },
   {
     name: "get_progress_stats",
-    description: "获取各知识点的练习次数与正确率统计",
-    parameters: { type: "object", properties: {} }
+    description: "获取各知识点的练习次数与正确率统计"
   },
   {
     name: "web_search_and_ingest",
@@ -48,8 +47,7 @@ const functionDeclarations = [
   },
   {
     name: "build_knowledge_tree",
-    description: "根据考试档案和已入库资料,(重新)生成整个考试的知识点树。会覆盖现有知识点树。",
-    parameters: { type: "object", properties: {} }
+    description: "根据考试档案和已入库资料,(重新)生成整个考试的知识点树。会覆盖现有知识点树。"
   },
   {
     name: "generate_question_set",
@@ -58,8 +56,7 @@ const functionDeclarations = [
   },
   {
     name: "list_knowledge_points",
-    description: "列出当前考试的所有知识点(章 → 点)及资料覆盖情况",
-    parameters: { type: "object", properties: {} }
+    description: "列出当前考试的所有知识点(章 → 点)及资料覆盖情况"
   }
 ];
 
