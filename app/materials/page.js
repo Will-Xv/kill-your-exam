@@ -13,6 +13,9 @@ export default function Materials() {
   const [log, setLog] = useState("");
   const [other, setOther] = useState("");
   const OTHER = "其他文件或说明";
+  const [openId, setOpenId] = useState(null);
+  const [openContent, setOpenContent] = useState("");
+  const [openBusy, setOpenBusy] = useState(false);
 
   const load = () => fetch("/api/materials").then((r) => r.json()).then((d) => { setList(d.materials); const cl = d.checklist || []; setChecklist(cl); const o = cl.find((c) => c.item === OTHER); setOther(o?.answer || ""); });
   useEffect(() => { load(); }, []);
@@ -43,6 +46,13 @@ export default function Materials() {
     setChecklist(cl);
     await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: cl }) });
   }
+  async function view(m) {
+    if (openId === m.id) { setOpenId(null); return; }
+    setOpenId(m.id); setOpenContent(""); setOpenBusy(true);
+    try { const d = await fetch(`/api/materials/content?id=${m.id}`).then((r) => r.json()); setOpenContent((d.content || "").trim() || t("(这个文件没有可显示的文本内容)")); }
+    catch { setOpenContent(t("加载失败")); }
+    setOpenBusy(false);
+  }
   async function del(id) {
     if (!confirm(t("确定删除这份资料?相关检索内容也会移除。"))) return;
     await fetch("/api/materials/upload", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
@@ -57,6 +67,33 @@ export default function Materials() {
         {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}
         {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
+      </div>
+      <div className="space-y-2">
+        <h2 className="font-semibold text-sm px-1">{t("资料库")}（{list.length}）<span className="ml-1 text-xs font-normal text-stone-400">— {t("已上传的资料,点删除可移除")}</span></h2>
+        {list.map((m) => (
+          <div key={m.id} className="card py-3">
+            <div className="flex items-center justify-between gap-3">
+              <button className="min-w-0 flex-1 text-left" onClick={() => view(m)}>
+                <p className="font-medium text-sm truncate">{openId === m.id ? "▾ " : "▸ "}{m.filename}</p>
+                <p className="text-xs text-stone-500">
+                  {m.status === "ready" && `${t("✓ 已入库")} (${m.chunk_count}) · ${t("点开查看")}`}
+                  {m.status === "processing" && t("⏳ 处理中")}
+                  {m.status === "failed" && <span className="text-red-600">✗ {m.error}</span>}
+                </p>
+              </button>
+              <button className="shrink-0 text-stone-400 hover:text-red-600 text-sm" onClick={() => del(m.id)}>{t("删除")}</button>
+            </div>
+            {openId === m.id && (
+              <div className="mt-2 border-t border-stone-200 pt-2">
+                {openBusy ? <p className="text-sm text-stone-400 animate-pulse">{t("加载中…")}</p> : (
+                  <div className="max-h-80 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-black/[0.03] p-3 text-xs leading-relaxed text-stone-700">{openContent}</div>
+                )}
+                <p className="mt-1 text-[11px] text-stone-400">{t("这是 AI 从该文件读取到的文本(原始文件不保存)。")}</p>
+              </div>
+            )}
+          </div>
+        ))}
+        {!list.length && <p className="text-center text-stone-400 text-sm py-4">{t("还没有资料。上面上传后会显示在这里,可随时删除。")}</p>}
       </div>
       <div className="card space-y-2">
         <h2 className="font-semibold text-sm">{t("其他文件或说明")}</h2>
@@ -82,22 +119,6 @@ export default function Materials() {
           ))}
         </div>
       )}
-      <div className="space-y-2">
-        {list.map((m) => (
-          <div key={m.id} className="card flex items-center justify-between py-3">
-            <div>
-              <p className="font-medium text-sm">{m.filename}</p>
-              <p className="text-xs text-stone-500">
-                {m.status === "ready" && `${t("✓ 已入库")} (${m.chunk_count})`}
-                {m.status === "processing" && t("⏳ 处理中")}
-                {m.status === "failed" && <span className="text-red-600">✗ {m.error}</span>}
-              </p>
-            </div>
-            <button className="text-stone-400 hover:text-red-600 text-sm" onClick={() => del(m.id)}>{t("删除")}</button>
-          </div>
-        ))}
-        {!list.length && <p className="text-center text-stone-400 text-sm py-6">{t("还没有资料。资料是 AI 讲对、出对题的地基。")}</p>}
-      </div>
     </div>
   );
 }
