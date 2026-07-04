@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { parseUpload } from "@/lib/parse";
-import { indexMaterial } from "@/lib/rag";
+import { indexMaterial, afterMaterialsChanged } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveMat, delMat, guessMime, kindOf } from "@/lib/files";
 
@@ -42,6 +42,7 @@ export async function POST(req) {
       }
     }
     db.prepare("UPDATE materials SET status='ready' WHERE id=?").run(materialId);
+    await afterMaterialsChanged(examId); // 重算覆盖度 + 刷新今日计划
     return Response.json({ ok: true, materialId, chunks });
   } catch (e) {
     const msg = String(e?.message || e).slice(0, 300);
@@ -57,11 +58,12 @@ export async function DELETE(req) {
   const { user } = await requireUser();
   if (!user) return unauthorized();
   const { id } = await req.json();
-  const m = db.prepare("SELECT m.id FROM materials m JOIN exams e ON e.id=m.exam_id WHERE m.id=? AND e.user_id=?").get(id, user.id);
+  const m = db.prepare("SELECT m.id, m.exam_id FROM materials m JOIN exams e ON e.id=m.exam_id WHERE m.id=? AND e.user_id=?").get(id, user.id);
   if (m) {
     db.prepare("DELETE FROM chunks WHERE material_id=?").run(id);
     db.prepare("DELETE FROM materials WHERE id=?").run(id);
     delMat(id);
+    if (m.exam_id) await afterMaterialsChanged(m.exam_id);
   }
   return Response.json({ ok: true });
 }
