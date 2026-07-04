@@ -116,10 +116,12 @@ export default function Welcome() {
         book.style.transform = "translateZ(0px) rotateX(0deg)";
       }
       const segLen = (1 - somerEnd) / flips;
+      const depth = 32;
       leaves.forEach((leaf, i) => {
-        if (i === leaves.length - 1) { leaf.style.transform = "rotateY(0deg)"; leaf.style.zIndex = "0"; return; }
+        const baseZ = -(i / Math.max(1, leaves.length - 1)) * depth;
+        if (i === leaves.length - 1) { leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(0deg)`; leaf.style.zIndex = "0"; return; }
         const local = Math.max(0, Math.min(1, (p - (somerEnd + i * segLen)) / segLen));
-        leaf.style.transform = `rotateY(${(-178 * local).toFixed(1)}deg)`;
+        leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(${(-178 * local).toFixed(1)}deg)`;
         leaf.style.zIndex = String(local < 0.5 ? 100 - i : 10 + i);
       });
     };
@@ -184,6 +186,12 @@ export default function Welcome() {
         <section ref={sceneRef} style={{ height: `${pages.length * 108}vh` }} className="relative">
           <div className="fb-stage">
             <div ref={bookRef} className="fb-book">
+              <div className="fb-thick" style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", zIndex: 0 }}>
+                <div style={{ position: "absolute", inset: 0, transform: "translateZ(-34px)", borderRadius: "6px 16px 16px 6px", background: "linear-gradient(135deg,#0c7568,#0a4a43)", boxShadow: "0 45px 80px -26px rgba(0,0,0,.7)" }} />
+                <div style={{ position: "absolute", top: 0, right: 0, width: "34px", height: "100%", transformOrigin: "right center", transform: "rotateY(-90deg)", background: "repeating-linear-gradient(to bottom,#eef6f3 0 2px,#c9e2db 2px 4px)" }} />
+                <div style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: "34px", transformOrigin: "bottom center", transform: "rotateX(90deg)", background: "repeating-linear-gradient(to right,#eef6f3 0 2px,#c9e2db 2px 4px)" }} />
+                <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "34px", transformOrigin: "top center", transform: "rotateX(-90deg)", background: "repeating-linear-gradient(to right,#eef6f3 0 2px,#c9e2db 2px 4px)" }} />
+              </div>
               {pages.map((pg, i) => (
                 <div key={i} className="fb-leaf" style={{ zIndex: pages.length - i }}>
                   <div className="fb-face"><Front pg={pg} i={i} /></div>
