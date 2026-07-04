@@ -247,12 +247,12 @@ export default function Welcome() {
         const zoom = clamp((fin - 0.66) / 0.20);   // 长时间停留看清后才放大(突脸)
         const ty = (62 - rise * 88).toFixed(0);   // 62% -> -26%
         const sc = (0.95 + rise * 0.37 + zoom * 1.15).toFixed(3); // 停留~1.32,突脸~2.5
-        const fade = clamp((fin - 0.80) / 0.14);   // 放大后停留更久,更晚才虚化淡出
+        const fade = clamp((fin - 0.86) / 0.07);   // 更晚、更快的虚化淡出
         fs.style.transform = `translate(-50%, ${ty}%) scale(${sc})`;
         fs.style.opacity = fin < 0.06 ? "0" : (1 - fade).toFixed(2);
       }
       const ft = document.getElementById("fin-text"); if (ft) {   // 图消失后浮现大字+按钮
-        const o = clamp((fin - 0.86) / 0.14);
+        const o = clamp((fin - 0.90) / 0.10);
         ft.style.opacity = o.toFixed(2);
         ft.style.transform = `translateY(${((1 - o) * 30).toFixed(0)}px)`;
         ft.style.pointerEvents = o > 0.5 ? "auto" : "none";
