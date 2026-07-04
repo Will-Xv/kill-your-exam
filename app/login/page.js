@@ -59,8 +59,8 @@ export default function Login() {
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-6 pt-6 md:grid-cols-2 md:px-12 md:pt-16">
         <div className="animate-in">
           <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-medium text-emerald-300">✨ {t("你的私人 AI 备考教练")}</p>
-          <h1 className="text-4xl font-black leading-tight tracking-tight md:text-6xl">
-            {t("任何考试,")}<br /><span className="bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">{t("都能考好。")}</span>
+          <h1 className="font-hero text-5xl leading-tight tracking-tight md:text-7xl">
+            {t("任何考试,")}<br /><span className="bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">{t("轻松通过。")}</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-slate-300">{t("上传你的资料,AI 讲知识点、出练习题、盯进度、排计划——像请了个私教。")}</p>
           <div className="mt-8 hidden gap-6 text-sm text-slate-400 md:flex">
