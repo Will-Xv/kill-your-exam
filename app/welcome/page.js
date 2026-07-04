@@ -192,10 +192,10 @@ export default function Welcome() {
         const openP = Math.max(0, Math.min((pr - 0.5) / 0.22, 1));
         const fade = Math.max(0, Math.min((pr - 0.72) / 0.2, 1));
         g.rotation.x = flip * Math.PI * 6 + myE * 0.3 * (1 - openP);
-        g.rotation.y = (0.5 + Math.sin(tt * 0.5) * 0.16) * (1 - openP) + mxE * 0.8 * (1 - openP);
-        g.position.x = mxE * 0.8 * (1 - openP);
-        g.position.y = -1.4 + flip * 1.4 + Math.sin(tt * 0.8) * 0.15 * (1 - fade) - fade * 1.6;
-        g.scale.setScalar(0.7 + flip * 0.38 + openP * 0.1 - fade * 0.22);
+        g.rotation.y = (0.6 + Math.sin(tt * 0.5) * 0.14) * (1 - openP) + mxE * 0.7 * (1 - openP);
+        g.position.x = 3.0 * (1 - flip) + mxE * 0.8 * (1 - openP);
+        g.position.y = 0.3 * (1 - flip) + Math.sin(tt * 0.8) * 0.14 * (1 - fade) - fade * 1.6;
+        g.scale.setScalar(0.9 + openP * 0.12 - fade * 0.25);
         frontPivot.rotation.y = -openP * 2.5;
         backPivot.rotation.y = openP * 2.5;
         cam.position.x = mxE * 1.2; cam.lookAt(0, 0, 0);
