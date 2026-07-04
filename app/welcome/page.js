@@ -93,6 +93,9 @@ export default function Welcome() {
     const content = document.getElementById("kye-smooth");
     let raf = 0, cur = window.scrollY, run = true;
     const setHeight = () => { if (desktop && content) document.body.style.height = content.scrollHeight + "px"; };
+    const html = document.documentElement;
+    const prevOX = html.style.overflowX;
+    html.style.overflowX = "hidden";
     if (desktop && content) {
       content.style.position = "fixed"; content.style.top = "0"; content.style.left = "0";
       content.style.width = "100%"; content.style.willChange = "transform";
@@ -133,6 +136,7 @@ export default function Welcome() {
       run = false; cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); clearTimeout(ht);
       if (desktop && content) { content.style.position = ""; content.style.transform = ""; content.style.width = ""; }
       document.body.style.height = "";
+      html.style.overflowX = prevOX;
     };
   }, [lang]);
 
@@ -155,14 +159,18 @@ export default function Welcome() {
       const cam = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
       cam.position.z = 9;
       const g = new THREE.Group();
-      const cover = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.55), new THREE.MeshStandardMaterial({ color: 0x0f766e, metalness: 0.5, roughness: 0.3, emissive: 0x053b36, emissiveIntensity: 0.5 }));
-      const pages = new THREE.Mesh(new THREE.BoxGeometry(2.72, 3.7, 0.62), new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85 }));
-      pages.position.x = 0.16;
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(3.03, 4.03, 0.57)), new THREE.LineBasicMaterial({ color: 0x5eead4 }));
-      g.add(pages); g.add(cover); g.add(edges); scene.add(g);
-      scene.add(new THREE.AmbientLight(0x99ddcc, 0.65));
-      const l1 = new THREE.PointLight(0x2dd4bf, 1.4); l1.position.set(6, 6, 6); scene.add(l1);
-      const l2 = new THREE.PointLight(0x38bdf8, 1.1); l2.position.set(-7, -3, 5); scene.add(l2);
+      const emMat = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.35, roughness: 0.35, emissive: 0x0b6b5e, emissiveIntensity: 0.75 });
+      const paperMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 });
+      const pages = new THREE.Mesh(new THREE.BoxGeometry(2.86, 3.8, 0.8), paperMat);
+      const front = new THREE.Mesh(new THREE.BoxGeometry(3.06, 4.02, 0.09), emMat); front.position.z = 0.43;
+      const back = new THREE.Mesh(new THREE.BoxGeometry(3.06, 4.02, 0.09), emMat); back.position.z = -0.43;
+      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.15, 4.02, 0.95), emMat); spine.position.x = -1.53;
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(3.08, 4.05, 0.97)), new THREE.LineBasicMaterial({ color: 0x5eead4 }));
+      g.add(pages, front, back, spine, edges); g.scale.setScalar(1.08); scene.add(g);
+      scene.add(new THREE.AmbientLight(0xbfeee4, 0.85));
+      const l1 = new THREE.PointLight(0x5eead4, 1.7); l1.position.set(6, 6, 7); scene.add(l1);
+      const l2 = new THREE.PointLight(0x38bdf8, 1.2); l2.position.set(-7, -3, 5); scene.add(l2);
+      const l3 = new THREE.DirectionalLight(0xffffff, 0.5); l3.position.set(0, 4, 6); scene.add(l3);
       const resize = () => { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
       resize(); window.addEventListener("resize", resize); cleanupResize = () => window.removeEventListener("resize", resize);
       let mxE = 0, myE = 0, tt = 0;
