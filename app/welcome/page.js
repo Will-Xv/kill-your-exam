@@ -78,6 +78,14 @@ export default function Welcome() {
     const saved = typeof localStorage !== "undefined" && localStorage.getItem("kye_welcome_lang");
     if (saved && L[saved]) setLang(saved);
   }, []);
+
+  // 这是营销页,强制整页深色底(覆盖应用默认的浅色 body 背景),避免滚到底露出浅色
+  useEffect(() => {
+    const b = document.body.style.background, h = document.documentElement.style.background;
+    document.body.style.background = "#04201f";
+    document.documentElement.style.background = "#04201f";
+    return () => { document.body.style.background = b; document.documentElement.style.background = h; };
+  }, []);
   function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
 
   // mouse position for parallax
