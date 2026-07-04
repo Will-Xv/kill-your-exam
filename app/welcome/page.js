@@ -364,11 +364,11 @@ export default function Welcome() {
 
       {desktop && (
         <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
-          <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 120%, #f2dc86 0%, #dcbb54 55%, #c9a844 100%)" }} />
+          <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 20%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
           <img id="fin-scare" src="/illustrations/scare.png" alt="" className="absolute bottom-0 left-1/2 h-[86vh] max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0, mixBlendMode: "multiply" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
           <div id="fin-text" className="absolute inset-x-0 top-[16vh] z-10 text-center" style={{ opacity: 0 }}>
             <h2 className="font-hero text-5xl leading-tight text-[#3a2a17] md:text-7xl">{t.ctaT}</h2>
-            <a href="/" className="mt-7 inline-block rounded-2xl bg-[#3a2a17] px-10 py-4 text-lg font-bold text-[#f2dc86] shadow-2xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
+            <a href="/" className="mt-7 inline-block rounded-2xl bg-[#3a2a17] px-10 py-4 text-lg font-bold text-[#efe7d2] shadow-2xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
             <p className="mt-6 text-xs text-[#5a4327]">© 2026 Kill Your Exam · <a href="/privacy" className="underline">{t.priv}</a></p>
           </div>
         </div>
