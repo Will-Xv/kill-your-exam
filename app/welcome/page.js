@@ -219,6 +219,8 @@ export default function Welcome() {
       if (fin > 0) bt += ` scale(${(1 + fin * 0.5).toFixed(3)})`;
       book.style.transform = bt;
       book.style.opacity = (1 - clamp(fin * 2.4)).toFixed(2);
+      // 结尾书已不可见:整本从渲染中移除,极大降低合成开销(低端设备更流畅)
+      book.style.visibility = fin >= 0.42 ? "hidden" : "visible";
       const segLen = (flipEnd - somerEnd) / flips;
       const depth = 34;
       let current = 0;
