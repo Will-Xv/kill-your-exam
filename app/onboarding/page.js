@@ -30,6 +30,8 @@ export default function Onboarding() {
   const [report, setReport] = useState(null);
   const [sources, setSources] = useState([]);
   const [checklist, setChecklist] = useState([]);
+  const [other, setOther] = useState("");
+  const OTHER = "其他文件或说明";
   const [related, setRelated] = useState(null);
 
   async function createExam() {
@@ -70,7 +72,9 @@ export default function Onboarding() {
   async function finalize() {
     setBusy(true); setBusyText(t("正在生成知识点树和备考策略…(约 1 分钟)"));
     try {
-      if (checklist.length) { try { await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist, examId }) }); } catch {} }
+      const cl = checklist.filter((c) => c.item !== OTHER);
+      if (other.trim()) cl.push({ kind: "qa", item: OTHER, why: "", priority: "opt", fixed: true, answer: other, done: true });
+      if (cl.length) { try { await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: cl, examId }) }); } catch {} }
       await aiFetch("/api/onboarding/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId }) });
       const r = await fetch("/api/exam/related", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examName: name, targetExamId: examId }) }).then((x) => x.json()).catch(() => ({ related: [] }));
       if (r.related?.length) { setRelated(r.related); setStep(5); setBusy(false); } else location.href = "/";
@@ -97,7 +101,7 @@ export default function Onboarding() {
       {uploadLog.map((l, i) => <p key={i} className="text-sm text-slate-600">{l}</p>)}
       {checklist.length > 0 && (
         <div className="space-y-1 pt-1">
-          {checklist.map((c, i) => c.kind === "qa" ? (
+          {checklist.map((c, i) => c.item === OTHER ? null : c.kind === "qa" ? (
             <div key={i} className="py-1.5 border-b border-slate-100 last:border-0">
               <p className="text-sm">{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">— {t("直接回答")}</span></p>
               <input className="input py-2 text-sm mt-1" value={c.answer || ""} placeholder={c.why}
@@ -112,6 +116,11 @@ export default function Onboarding() {
           ))}
         </div>
       )}
+      <div className="pt-1">
+        <p className="text-sm font-medium">{t("其他文件或说明")}</p>
+        <p className="text-xs text-slate-400">{t("有资料没法上传(纸质书、老师口头强调、目标分数等),或想直接告诉 AI 的话,写在这里。")}</p>
+        <textarea className="input mt-1" rows={3} value={other} onChange={(e) => setOther(e.target.value)} placeholder={t("例如:我有纸质《XX》第 3 章;老师说重点考案例分析;目标 80 分…")} />
+      </div>
     </div>
   );
 

@@ -11,8 +11,10 @@ export default function Materials() {
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState("");
+  const [other, setOther] = useState("");
+  const OTHER = "其他文件或说明";
 
-  const load = () => fetch("/api/materials").then((r) => r.json()).then((d) => { setList(d.materials); setChecklist(d.checklist || []); });
+  const load = () => fetch("/api/materials").then((r) => r.json()).then((d) => { setList(d.materials); const cl = d.checklist || []; setChecklist(cl); const o = cl.find((c) => c.item === OTHER); setOther(o?.answer || ""); });
   useEffect(() => { load(); }, []);
 
   async function upload() {
@@ -35,6 +37,12 @@ export default function Materials() {
     setChecklist(next);
     await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: next }) });
   }
+  async function saveOther() {
+    const cl = checklist.filter((c) => c.item !== OTHER);
+    if (other.trim()) cl.push({ kind: "qa", item: OTHER, why: "", priority: "opt", fixed: true, answer: other, done: true });
+    setChecklist(cl);
+    await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: cl }) });
+  }
   async function del(id) {
     if (!confirm(t("确定删除这份资料?相关检索内容也会移除。"))) return;
     await fetch("/api/materials/upload", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
@@ -50,10 +58,15 @@ export default function Materials() {
         {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
       </div>
-      {checklist.length > 0 && (
+      <div className="card space-y-2">
+        <h2 className="font-semibold text-sm">{t("其他文件或说明")}</h2>
+        <p className="text-xs text-stone-400">{t("有资料没法上传(纸质书、老师口头强调、目标分数等),或想直接告诉 AI 的补充说明,写在这里。")}</p>
+        <textarea className="input" rows={3} value={other} onChange={(e) => setOther(e.target.value)} onBlur={saveOther} placeholder={t("例如:我有纸质《XX》第 3 章;老师说重点考案例分析;目标 80 分…")} />
+      </div>
+      {checklist.filter((c) => c.item !== OTHER).length > 0 && (
         <div className="card space-y-1">
           <h2 className="font-semibold text-sm mb-1">{t("资料收集清单")}({done}/{checklist.length})</h2>
-          {checklist.map((c, i) => c.kind === "qa" ? (
+          {checklist.map((c, i) => c.item === OTHER ? null : c.kind === "qa" ? (
             <div key={i} className="py-1.5 border-b border-slate-100 last:border-0">
               <p className="text-sm">{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">— {t("直接回答")}</span></p>
               <div className="mt-1 flex gap-2">
