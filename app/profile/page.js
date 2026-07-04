@@ -52,7 +52,7 @@ export default function ProfilePage() {
 
       {aiOpen && (
         <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="card space-y-2">
-          <p className="text-sm font-medium">✨ {t("让 AI 更新整体画像")}</p>
+          <p className="text-sm font-medium">✨ {t("让 AI 更新你的全部杀技")}</p>
           <p className="text-xs text-stone-400">{t("可以只说要求(比如「我更擅长逻辑推理,请体现」),也可以拖拽/粘贴/上传文件让 AI 参考。留空则只根据最新做题数据刷新。")}</p>
           <textarea className="input" rows={3} placeholder={t("给 AI 的补充或修改要求(可留空)…")} value={instr} onChange={(e) => setInstr(e.target.value)} />
           <div className="flex items-center gap-2 text-sm text-stone-500">
@@ -74,7 +74,7 @@ export default function ProfilePage() {
         </div>
       ) : (
         <div className="card">
-          {doc ? <MD>{doc}</MD> : <p className="text-center text-stone-400 py-6">{t("还没有整体画像。点「让 AI 更新」根据你的做题情况自动生成,或点「编辑」自己写。")}</p>}
+          {doc ? <MD>{doc}</MD> : <p className="text-center text-stone-400 py-6">{t("这套杀技档案还是空的。点「让 AI 更新」根据你的做题情况自动生成,或点「编辑」自己写。")}</p>}
           {data.updatedAt && <p className="mt-3 text-[10px] text-stone-300">{t("更新于")} {data.updatedAt.slice(0, 16).replace("T", " ")}</p>}
         </div>
       )}
