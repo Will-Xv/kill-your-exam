@@ -294,7 +294,6 @@ export default function Welcome() {
             <select value={lang} onChange={(e) => pick(e.target.value)} className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white ring-1 ring-white/20 outline-none">
               {LANGS.map(([c, n]) => <option key={c} value={c} className="text-black">{n}</option>)}
             </select>
-            <a href="/" className="rounded-full bg-white/10 px-5 py-2 text-sm font-semibold ring-1 ring-white/20 backdrop-blur transition hover:bg-white/20">{t.enter} →</a>
           </div>
         </div>
       </header>
@@ -327,7 +326,7 @@ export default function Welcome() {
                       <p className="rounded-full bg-white/10 px-3 py-1 text-xs text-emerald-200 ring-1 ring-white/15 w-fit">✨ {t.badge}</p>
                       <h2 className="font-hero mt-5 text-5xl">{t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span></h2>
                       <p className="mt-5 text-slate-300">{t.sub}</p>
-                      <p className="mt-8 animate-bounce text-emerald-300">↓ scroll</p>
+                      <p className="mt-10 animate-bounce text-3xl font-black text-emerald-300">↓ {t.see || "scroll"}</p>
                     </>
                   ) : pg.type === "cta" ? (
                     <>
