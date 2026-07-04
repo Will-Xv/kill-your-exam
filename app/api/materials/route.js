@@ -11,10 +11,12 @@ export async function GET() {
 }
 
 export async function PATCH(req) {
-  // 更新资料清单勾选状态
-  const { checklist } = await req.json();
+  // 更新资料清单勾选状态(onboarding 可传 examId)
+  const { checklist, examId } = await req.json();
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
-  if (exam && checklist) db.prepare("UPDATE exams SET checklist=? WHERE id=?").run(JSON.stringify(checklist), exam.id);
+  let targetId = exam?.id;
+  if (examId) { const own = db.prepare("SELECT id FROM exams WHERE id=? AND user_id=?").get(examId, user.id); if (own) targetId = own.id; }
+  if (targetId && checklist) db.prepare("UPDATE exams SET checklist=? WHERE id=?").run(JSON.stringify(checklist), targetId);
   return Response.json({ ok: true });
 }

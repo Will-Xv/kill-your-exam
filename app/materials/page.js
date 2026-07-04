@@ -43,7 +43,7 @@ export default function Materials() {
   const done = checklist.filter((c) => c.done).length;
   return (
     <div className="space-y-4 md:mt-14">
-      <h1 className="text-2xl font-bold">{t("资料库")}</h1>
+      <h1 className="text-2xl font-bold">{t("补充资料")}</h1>
       <div className="card space-y-2">
         <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp" />
         {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}

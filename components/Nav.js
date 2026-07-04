@@ -7,7 +7,7 @@ import { useT } from "@/components/I18n";
 const primary = [
   { href: "/exams", label: "追杀计划", icon: "🗂️" },
   { href: "/", label: "首页", icon: "🏠" },
-  { href: "/study", label: "学习", icon: "📖" },
+  { href: "/materials", label: "补充资料", icon: "📎" },
   { href: "/chat", label: "问问杀手", icon: "💬" }
 ];
 const more = [
@@ -16,7 +16,6 @@ const more = [
   { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
   { href: "/notes", label: "笔记本", icon: "📓", desc: "收藏的题+随手笔记" },
   { href: "/profile", label: "你的全部杀技", icon: "🧭", desc: "跨考试综合评估" },
-  { href: "/materials", label: "资料", icon: "📚", desc: "上传/网页采集" },
   { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
 ];
 
