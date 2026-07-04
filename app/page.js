@@ -68,7 +68,6 @@ export default function Home() {
       <Tour />
       {/* hero */}
       <div className="animate-in grad-hero relative overflow-hidden rounded-3xl p-6 text-white shadow-xl">
-        <div className="blob absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/30 blur-2xl" />
         <div className="relative flex items-end justify-between">
           <div>
             <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline">{exam.name}</Link>
