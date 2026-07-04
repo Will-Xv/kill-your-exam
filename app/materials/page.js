@@ -48,7 +48,9 @@ export default function Materials() {
   }
   async function view(m) {
     if (openId === m.id) { setOpenId(null); return; }
-    setOpenId(m.id); setOpenContent(""); setOpenBusy(true);
+    setOpenId(m.id); setOpenContent("");
+    if (m.stored && (m.kind === "image" || m.kind === "audio" || m.kind === "pdf")) return; // 有原文件,直接看
+    setOpenBusy(true);
     try { const d = await fetch(`/api/materials/content?id=${m.id}`).then((r) => r.json()); setOpenContent((d.content || "").trim() || t("(这个文件没有可显示的文本内容)")); }
     catch { setOpenContent(t("加载失败")); }
     setOpenBusy(false);
@@ -63,7 +65,7 @@ export default function Materials() {
     <div className="space-y-4 md:mt-14">
       <h1 className="text-2xl font-bold">{t("补充资料")}</h1>
       <div className="card space-y-2">
-        <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp" />
+        <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,image/*,audio/*" />
         {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}
         {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
@@ -76,7 +78,7 @@ export default function Materials() {
               <button className="min-w-0 flex-1 text-left" onClick={() => view(m)}>
                 <p className="font-medium text-sm truncate">{openId === m.id ? "▾ " : "▸ "}{m.filename}</p>
                 <p className="text-xs text-stone-500">
-                  {m.status === "ready" && `${t("✓ 已入库")} (${m.chunk_count}) · ${t("点开查看")}`}
+                  {m.status === "ready" && `${m.chunk_count ? `${t("✓ 已入库")} (${m.chunk_count})` : t("✓ 已保存")} · ${t("点开查看")}`}
                   {m.status === "processing" && t("⏳ 处理中")}
                   {m.status === "failed" && <span className="text-red-600">✗ {m.error}</span>}
                 </p>
@@ -85,10 +87,18 @@ export default function Materials() {
             </div>
             {openId === m.id && (
               <div className="mt-2 border-t border-stone-200 pt-2">
-                {openBusy ? <p className="text-sm text-stone-400 animate-pulse">{t("加载中…")}</p> : (
-                  <div className="max-h-80 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-black/[0.03] p-3 text-xs leading-relaxed text-stone-700">{openContent}</div>
+                {m.stored && m.kind === "image" ? (
+                  <img src={`/api/materials/raw?id=${m.id}`} alt={m.filename} className="max-h-96 w-auto rounded-xl border border-stone-200" />
+                ) : m.stored && m.kind === "audio" ? (
+                  <audio controls src={`/api/materials/raw?id=${m.id}`} className="w-full" />
+                ) : m.stored && m.kind === "pdf" ? (
+                  <iframe src={`/api/materials/raw?id=${m.id}`} className="h-96 w-full rounded-xl border border-stone-200" title={m.filename} />
+                ) : openBusy ? (
+                  <p className="text-sm text-stone-400 animate-pulse">{t("加载中…")}</p>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-black/[0.03] p-3 text-xs leading-relaxed text-stone-700">{openContent}</div>
                 )}
-                <p className="mt-1 text-[11px] text-stone-400">{t("这是 AI 从该文件读取到的文本(原始文件不保存)。")}</p>
+                {m.stored ? <a href={`/api/materials/raw?id=${m.id}`} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-amber-700 underline">{t("在新标签打开 / 下载原文件")}</a> : <p className="mt-1 text-[11px] text-stone-400">{t("原文件未保存(在启用「保存原件」前上传的),以上为已提取文字;重新上传可查看/播放原件。")}</p>}
               </div>
             )}
           </div>
