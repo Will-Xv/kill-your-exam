@@ -82,14 +82,28 @@ export default function Welcome() {
     const scrub = () => {
       raf = 0;
       const vh = window.innerHeight;
-      setScrolled(window.scrollY > 24);
+      const sy = window.scrollY;
+      setScrolled(sy > 24);
+      const bg = document.getElementById("kye-bg");
+      if (bg) bg.style.transform = `translateY(${(sy * 0.16).toFixed(1)}px)`;
       document.querySelectorAll("[data-scrub]").forEach((el) => {
         const r = el.getBoundingClientRect();
-        let p = (vh - r.top) / (vh * 0.55);
+        let p = (vh - r.top) / (vh * 0.62);
         p = Math.max(0, Math.min(1, p));
         const floor = parseFloat(el.dataset.floor || "0");
+        const dist = parseFloat(el.dataset.dist || "44");
+        const dir = el.dataset.dir || "up";
+        const k = (1 - p) * dist;
+        let x = 0, y = 0;
+        if (dir === "up") y = k; else if (dir === "down") y = -k;
+        else if (dir === "left") x = -k; else if (dir === "right") x = k;
         el.style.opacity = (floor + (1 - floor) * p).toFixed(3);
-        el.style.transform = `translateY(${((1 - p) * 34).toFixed(1)}px)`;
+        el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
+      });
+      document.querySelectorAll("[data-para]").forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const center = r.top + r.height / 2 - vh / 2;
+        el.style.transform = `translate3d(0,${(-center * parseFloat(el.dataset.para)).toFixed(1)}px,0)`;
       });
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(scrub); };
@@ -114,7 +128,7 @@ export default function Welcome() {
 
   return (
     <div dir={rtl ? "rtl" : "ltr"} className="relative min-h-screen overflow-x-clip bg-[#04201f] text-white">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div id="kye-bg" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden will-change-transform">
         <div className="kye-blob h-96 w-96 bg-emerald-500/40" style={{ top: "-6rem", left: "-4rem", animation: "kyeFloat 11s ease-in-out infinite" }} />
         <div className="kye-blob h-[28rem] w-[28rem] bg-cyan-500/30" style={{ top: "18%", right: "-8rem", animation: "kyeDrift 15s ease-in-out infinite" }} />
         <div className="kye-blob h-80 w-80 bg-teal-400/30" style={{ bottom: "-6rem", left: "28%", animation: "kyeFloat2 13s ease-in-out infinite" }} />
@@ -138,15 +152,14 @@ export default function Welcome() {
       <section className="relative mx-auto max-w-6xl px-6 pt-32 pb-24 text-center md:pt-40">
         <Dots className="left-0 top-24 h-40 w-40 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
         <p data-scrub data-floor="0" className="mx-auto mb-6 w-fit rounded-full bg-white/10 px-4 py-1.5 text-sm text-emerald-200 ring-1 ring-white/15">✨ {t.badge}</p>
-        <h1 data-scrub data-floor="0.15" className="font-hero text-6xl leading-[1.04] tracking-tight md:text-8xl">
+        <h1 data-scrub data-floor="0.15" data-dir="left" data-dist="60" className="font-hero text-6xl leading-[1.04] tracking-tight md:text-8xl">
           {t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span>
         </h1>
-        <p data-scrub className="mx-auto mt-8 max-w-2xl text-lg text-slate-300 md:text-xl">{t.sub}</p>
+        <p data-scrub data-dir="right" data-dist="60" className="mx-auto mt-8 max-w-2xl text-lg text-slate-300 md:text-xl">{t.sub}</p>
         <div data-scrub className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <a href="/" className="group rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-8 py-4 text-lg font-bold text-emerald-950 shadow-xl shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:shadow-2xl">
             {t.start} <span className="inline-block transition group-hover:translate-x-1">→</span>
           </a>
-          <a href="#features" className="rounded-2xl px-8 py-4 text-lg font-semibold text-slate-200 ring-1 ring-white/20 transition hover:bg-white/10">{t.see} ↓</a>
         </div>
         <div data-scrub className="mx-auto mt-16 grid max-w-xl grid-cols-3 gap-4 text-center">
           {[["7", t.s1], ["100%", t.s2], ["24/7", t.s3]].map(([a, b]) => (
@@ -158,7 +171,8 @@ export default function Welcome() {
       {/* why — nanfu-style split with glowing app mock + scroll-scrubbed reasons */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-12 overflow-hidden px-6 py-24 md:grid-cols-2">
         <Dots className="-right-10 bottom-0 h-56 w-56 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
-        <div ref={mockRef} onMouseMove={tilt} onMouseLeave={untilt} className="relative mx-auto w-full max-w-md transition-transform duration-200 will-change-transform">
+        <div data-scrub data-dir="left" data-dist="80" className="mx-auto w-full max-w-md">
+        <div ref={mockRef} onMouseMove={tilt} onMouseLeave={untilt} className="relative transition-transform duration-200 will-change-transform">
           <div className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-emerald-400/30 to-cyan-400/20 blur-2xl" />
           <div className="relative rounded-[2rem] bg-[#0a2b2a] p-5 ring-1 ring-white/10 shadow-2xl">
             <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white">
@@ -175,11 +189,12 @@ export default function Welcome() {
             </div>
           </div>
         </div>
+        </div>
         <div>
-          <h2 data-scrub data-floor="0.12" className="font-hero text-4xl md:text-6xl">{t.whyT}</h2>
+          <h2 data-scrub data-floor="0.12" data-dir="right" data-dist="60" className="font-hero text-4xl md:text-6xl">{t.whyT}</h2>
           <div className="mt-8 space-y-7">
             {t.why.map((w, i) => (
-              <div key={i} data-scrub className="border-l-2 border-emerald-400/60 pl-5 rtl:border-l-0 rtl:border-r-2 rtl:pr-5 rtl:pl-0">
+              <div key={i} data-scrub data-dir="right" data-dist="50" className="border-l-2 border-emerald-400/60 pl-5 rtl:border-l-0 rtl:border-r-2 rtl:pr-5 rtl:pl-0">
                 <h3 className="text-xl font-bold text-emerald-200">{w[0]}</h3>
                 <p className="mt-1 text-slate-300">{w[1]}</p>
               </div>
@@ -194,7 +209,7 @@ export default function Welcome() {
         <p data-scrub className="mx-auto mt-3 max-w-xl text-center text-slate-400">{t.featS}</p>
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {t.feats.map((f, i) => (
-            <div key={i} data-scrub className="kye-card rounded-3xl bg-white/[0.04] p-6 ring-1 ring-white/10 backdrop-blur">
+            <div key={i} data-scrub data-dir={["left","up","right"][i%3]} data-dist="56" className="kye-card rounded-3xl bg-white/[0.04] p-6 ring-1 ring-white/10 backdrop-blur">
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-cyan-500/20 text-3xl ring-1 ring-white/15">{f[0]}</div>
               <h3 className="mt-4 text-xl font-bold">{f[1]}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-300">{f[2]}</p>
@@ -208,7 +223,7 @@ export default function Welcome() {
         <h2 data-scrub data-floor="0.12" className="font-hero text-center text-4xl md:text-5xl">{t.stepT}</h2>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {t.steps.map((s, i) => (
-            <div key={i} data-scrub className="rounded-3xl bg-white/5 p-8 ring-1 ring-white/10">
+            <div key={i} data-scrub data-dir={["left","up","right"][i%3]} data-dist="56" className="rounded-3xl bg-white/5 p-8 ring-1 ring-white/10">
               <div className="font-hero text-6xl text-emerald-300/40">{i + 1}</div>
               <h3 className="mt-2 text-2xl font-bold">{s[0]}</h3>
               <p className="mt-2 text-slate-300">{s[1]}</p>
