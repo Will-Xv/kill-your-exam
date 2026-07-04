@@ -15,11 +15,18 @@ export default function Settings() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [ingestToken, setIngestToken] = useState("");
+  const [school, setSchool] = useState("");
+  const [profileMsg, setProfileMsg] = useState("");
 
   useEffect(() => {
     fetch("/api/settings").then((r) => r.json()).then((d) => { setInfo(d); setModel(d.model); });
     fetch("/api/ingest/token").then((r) => r.json()).then((d) => setIngestToken(d.token || ""));
+    fetch("/api/profile").then((r) => r.json()).then((d) => setSchool(d.profile?.school || ""));
   }, []);
+  async function saveProfile() {
+    await fetch("/api/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile: { school } }) });
+    setProfileMsg(t("已保存 ✓"));
+  }
   async function resetIngest() {
     const d = await fetch("/api/ingest/token", { method: "POST" }).then((r) => r.json());
     setIngestToken(d.token || "");
@@ -80,6 +87,13 @@ export default function Settings() {
         </div>
         {msg && <p className="text-sm text-emerald-700">{msg}</p>}
       </div>}
+      <div className="card space-y-2">
+        <h2 className="font-semibold">🏫 {t("我的档案")}</h2>
+        <label className="text-xs text-slate-500">{t("学校/课程信息")}</label>
+        <input className="input" value={school} onChange={(e) => setSchool(e.target.value)} placeholder={t("例如:XX大学 数据结构 期末考")} />
+        <button className="btn-ghost text-sm py-2" onClick={saveProfile}>{t("保存")}</button>
+        {profileMsg && <p className="text-sm text-emerald-700">{profileMsg}</p>}
+      </div>
       <a href="/collector" className="card card-hover flex items-center justify-between">
         <div>
           <h2 className="font-semibold">🧲 {t("浏览器采集 / Agent")}</h2>
