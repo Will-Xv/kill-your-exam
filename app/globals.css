@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -70,4 +69,11 @@ body {
 /* 让页面内容浮在背景纹理之上 */
 main, .page-enter { position: relative; z-index: 1; }
 
-.font-hero { font-family: 'ZCOOL QingKe HuangYou', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif; font-weight: 400; }
+@font-face {
+  font-family: 'Smiley Sans';
+  src: url('/fonts/SmileySans-Oblique.woff2') format('woff2');
+  font-weight: 400;
+  font-style: oblique;
+  font-display: swap;
+}
+.font-hero { font-family: 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif; font-weight: 400; letter-spacing: 0.02em; }
