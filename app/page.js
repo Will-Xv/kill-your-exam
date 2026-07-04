@@ -66,19 +66,39 @@ export default function Home() {
   return (
     <>
       <Tour />
-      {/* hero */}
-      <div className="animate-in grad-hero relative overflow-hidden rounded-3xl p-6 text-white shadow-xl">
-        <div className="relative flex items-end justify-between">
-          <div>
-            <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline">{exam.name}</Link>
-            {days != null && <p className="mt-1 text-amber-100">{t("距猎杀")} <span className="text-4xl font-black text-white">{days}</span> {t("天")}</p>}
-          </div>
-          {daily && <div className="text-right text-amber-100 text-sm">🔥 {daily.activeDays} {t("天")}</div>}
+      {/* hero:浅黄底 + 右上角手绘血刃插画 */}
+      <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
+        {/* 手绘:墨线弯刃 + 一丢丢血,集中右上角 */}
+        <svg viewBox="0 0 240 170" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" className="pointer-events-none absolute right-0 top-0 h-[62%] w-[48%] max-w-[300px]">
+          <g fill="none" stroke="#2e2013" strokeLinecap="round" strokeLinejoin="round">
+            <g strokeWidth="1" opacity="0.16">
+              <path d="M232,6 L252,26" /><path d="M224,6 L252,34" /><path d="M238,16 L252,30" /><path d="M230,20 L252,42" />
+            </g>
+            <path d="M120,132 Q175,70 214,24 Q176,98 134,140 Z" fill="#e7d9b4" strokeWidth="2.4" />
+            <path d="M124,130 Q172,80 209,31" strokeWidth="1.3" />
+            <g strokeWidth="1.2" opacity="0.65">
+              <path d="M138,124 L145,112" /><path d="M150,118 L158,104" /><path d="M162,112 L170,97" /><path d="M175,104 L182,90" />
+            </g>
+            <path d="M110,148 L140,124" strokeWidth="5" />
+            <path d="M126,138 L98,170" strokeWidth="7" />
+            <g strokeWidth="1.4" stroke="#e7d9b4">
+              <path d="M118,142 L110,150" /><path d="M113,150 L105,158" /><path d="M108,158 L100,166" />
+            </g>
+            <circle cx="96" cy="172" r="6" fill="#2e2013" />
+            <path d="M188,44 Q200,33 211,26" stroke="#9b1c1c" strokeWidth="2.6" />
+            <path d="M210,40 c-3,4 -3,8 0,10 c3,-2 3,-6 0,-10 z" fill="#9b1c1c" stroke="none" />
+            <path d="M200,56 c-2.6,3.4 -2.6,7 0,8.6 c2.6,-1.7 2.6,-5 0,-8.6 z" fill="#9b1c1c" stroke="none" />
+            <circle cx="216" cy="53" r="2" fill="#9b1c1c" stroke="none" />
+          </g>
+        </svg>
+        <div className="relative z-10">
+          <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{exam.name}</Link>
+          {days != null && <p className="mt-1 text-[#6b4a25]">{t("距猎杀")} <span className="text-4xl font-black text-[#2f2413]">{days}</span> {t("天")}{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</p>}
         </div>
-        <div className="relative mt-4 grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{stats.todayCount}</div><div className="text-[11px] text-amber-100">{t("今日做题")}</div></div>
-          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{acc == null ? "—" : acc + "%"}</div><div className="text-[11px] text-amber-100">{t("总正确率")}</div></div>
-          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{stats.matCount}</div><div className="text-[11px] text-amber-100">{t("资料数")}</div></div>
+        <div className="relative z-10 mt-4 grid grid-cols-3 gap-3 text-center">
+          <div className="rounded-2xl bg-[#3d2b10]/[0.06] py-2 ring-1 ring-[#dbc999]"><div className="text-xl font-bold">{stats.todayCount}</div><div className="text-[11px] text-[#7a5a2a]">{t("今日做题")}</div></div>
+          <div className="rounded-2xl bg-[#3d2b10]/[0.06] py-2 ring-1 ring-[#dbc999]"><div className="text-xl font-bold">{acc == null ? "—" : acc + "%"}</div><div className="text-[11px] text-[#7a5a2a]">{t("总正确率")}</div></div>
+          <div className="rounded-2xl bg-[#3d2b10]/[0.06] py-2 ring-1 ring-[#dbc999]"><div className="text-xl font-bold">{stats.matCount}</div><div className="text-[11px] text-[#7a5a2a]">{t("资料数")}</div></div>
         </div>
       </div>
 
