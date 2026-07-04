@@ -42,7 +42,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-4 md:mt-14">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">🧭 {t("整体画像")}</h1>
+        <h1 className="text-2xl font-bold">🧭 {t("你的全部杀技")}</h1>
         <div className="flex gap-2">
           {!edit && <button className="btn-ghost text-sm py-2" onClick={() => setEdit(true)}>✏️ {t("编辑")}</button>}
           <button className="btn text-sm py-2" onClick={() => setAiOpen((v) => !v)}>✨ {t("让 AI 更新")}</button>

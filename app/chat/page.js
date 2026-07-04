@@ -61,7 +61,7 @@ export default function Chat() {
   const suggestions = [t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 130px)" }}>
-      <h1 className="text-2xl font-black mb-2">{t("问问AI")}</h1>
+      <h1 className="text-2xl font-black mb-2">{t("问问杀手")}</h1>
       <div className="flex-1 overflow-y-auto space-y-3 pb-3">
         {!messages.length && !pending && (
           <div className="text-center text-slate-400 text-sm mt-10 space-y-2">
