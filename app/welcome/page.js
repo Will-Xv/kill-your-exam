@@ -113,8 +113,8 @@ export default function Welcome() {
   const rtl = lang === "ar";
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="relative min-h-screen overflow-x-hidden bg-[#04201f] text-white">
-      <div className="pointer-events-none fixed inset-0 -z-10">
+    <div dir={rtl ? "rtl" : "ltr"} className="relative min-h-screen overflow-x-clip bg-[#04201f] text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="kye-blob h-96 w-96 bg-emerald-500/40" style={{ top: "-6rem", left: "-4rem", animation: "kyeFloat 11s ease-in-out infinite" }} />
         <div className="kye-blob h-[28rem] w-[28rem] bg-cyan-500/30" style={{ top: "18%", right: "-8rem", animation: "kyeDrift 15s ease-in-out infinite" }} />
         <div className="kye-blob h-80 w-80 bg-teal-400/30" style={{ bottom: "-6rem", left: "28%", animation: "kyeFloat2 13s ease-in-out infinite" }} />
@@ -156,7 +156,7 @@ export default function Welcome() {
       </section>
 
       {/* why — nanfu-style split with glowing app mock + scroll-scrubbed reasons */}
-      <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-24 md:grid-cols-2">
+      <section className="relative mx-auto grid max-w-6xl items-center gap-12 overflow-hidden px-6 py-24 md:grid-cols-2">
         <Dots className="-right-10 bottom-0 h-56 w-56 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
         <div ref={mockRef} onMouseMove={tilt} onMouseLeave={untilt} className="relative mx-auto w-full max-w-md transition-transform duration-200 will-change-transform">
           <div className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-emerald-400/30 to-cyan-400/20 blur-2xl" />
