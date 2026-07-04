@@ -73,7 +73,7 @@ main, .page-enter { position: relative; z-index: 1; }
   font-family: 'Smiley Sans';
   src: url('/fonts/SmileySans-Oblique.woff2') format('woff2');
   font-weight: 400;
-  font-style: oblique;
+  font-style: normal;
   font-display: swap;
 }
 .font-hero { font-family: 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif; font-weight: 400; letter-spacing: 0.02em; }
