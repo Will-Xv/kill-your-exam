@@ -102,14 +102,19 @@ export default function Welcome() {
     if (!scene || !book) return;
     const leaves = [...book.querySelectorAll(".fb-leaf")];
     const flips = leaves.length - 1;
-    const somerEnd = 0.12;
+    const somerEnd = 0.2;
     let raf = 0;
     const upd = () => {
       raf = 0;
       const total = Math.max(1, scene.offsetHeight - window.innerHeight);
       const p = Math.max(0, Math.min(1, -scene.getBoundingClientRect().top / total));
       setScrolled(window.scrollY > 24);
-      book.style.transform = `rotateX(${(p < somerEnd ? (p / somerEnd) * 720 : 0).toFixed(1)}deg)`;
+      if (p < somerEnd) {
+        const q = p / somerEnd;
+        book.style.transform = `translateZ(${(-1700 * (1 - q)).toFixed(0)}px) rotateX(${(q * 720).toFixed(1)}deg)`;
+      } else {
+        book.style.transform = "translateZ(0px) rotateX(0deg)";
+      }
       const segLen = (1 - somerEnd) / flips;
       leaves.forEach((leaf, i) => {
         if (i === leaves.length - 1) { leaf.style.transform = "rotateY(0deg)"; leaf.style.zIndex = "0"; return; }
@@ -130,8 +135,9 @@ export default function Welcome() {
     if (pg.type === "cover") return (
       <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-800 p-8 text-center">
         <p className="rounded-full bg-white/15 px-3 py-1 text-xs text-emerald-50 ring-1 ring-white/20">✨ {t.badge}</p>
-        <h1 className="font-hero mt-6 text-5xl leading-[1.05]">{t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span></h1>
-        <p className="mt-5 max-w-xs text-sm text-emerald-50/90">{t.sub}</p>
+        <div className="mt-6 text-6xl">📘</div>
+        <h1 className="font-hero mt-4 text-5xl leading-[1.02]">Kill Your<br /><span className="kye-gradtext">Exam</span></h1>
+        <p className="mt-5 text-sm text-emerald-50/90">{t.h1a} {t.h1b}</p>
         <p className="mt-8 animate-bounce text-emerald-100/80">↓</p>
       </div>
     );
