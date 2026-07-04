@@ -243,16 +243,16 @@ export default function Welcome() {
       // ===== 结尾惊吓桥段 =====
       const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = clamp(fin / 0.10).toFixed(2);
       const fs = document.getElementById("fin-scare"); if (fs) {
-        const rise = clamp((fin - 0.10) / 0.26);   // 从下方升起、正脸居中
-        const zoom = clamp((fin - 0.56) / 0.24);   // 停留看清后再放大(突脸)
-        const ty = ((1 - rise) * 62).toFixed(0);
-        const sc = (0.96 + rise * 0.04 + zoom * 0.95).toFixed(3);
-        const fade = clamp((fin - 0.60) / 0.18);   // 放大同时逐渐消失
+        const rise = clamp((fin - 0.08) / 0.30);   // 从下方升起,把正脸抬到画面中央
+        const zoom = clamp((fin - 0.66) / 0.20);   // 长时间停留看清后才放大(突脸)
+        const ty = (62 - rise * 88).toFixed(0);   // 62% -> -26%
+        const sc = (0.95 + rise * 0.37 + zoom * 1.15).toFixed(3); // 停留~1.32,突脸~2.5
+        const fade = clamp((fin - 0.72) / 0.16);   // 放大之后才淡出
         fs.style.transform = `translate(-50%, ${ty}%) scale(${sc})`;
-        fs.style.opacity = fin < 0.08 ? "0" : (1 - fade).toFixed(2);
+        fs.style.opacity = fin < 0.06 ? "0" : (1 - fade).toFixed(2);
       }
       const ft = document.getElementById("fin-text"); if (ft) {   // 图消失后浮现大字+按钮
-        const o = clamp((fin - 0.78) / 0.18);
+        const o = clamp((fin - 0.86) / 0.14);
         ft.style.opacity = o.toFixed(2);
         ft.style.transform = `translateY(${((1 - o) * 30).toFixed(0)}px)`;
         ft.style.pointerEvents = o > 0.5 ? "auto" : "none";
@@ -399,7 +399,7 @@ export default function Welcome() {
       {desktop && (
         <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
           <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 30%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
-          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,62%)", opacity: 0, transformOrigin: "center center" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,62%) scale(0.95)", opacity: 0, transformOrigin: "center center" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
           <div id="fin-text" className="absolute inset-x-0 top-[14vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
             <div className="rounded-[2rem] bg-[#efe7d2]/92 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20">
               <h2 className="font-hero text-5xl leading-[1.05] text-[#2e2013] md:text-7xl">{t.ctaT}</h2>

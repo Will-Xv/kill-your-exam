@@ -64,10 +64,10 @@ export default function Chat() {
       <h1 className="text-2xl font-black mb-2">{t("问问杀手")}</h1>
       <div className="flex-1 overflow-y-auto space-y-3 pb-3">
         {!messages.length && !pending && (
-          <div className="text-center text-slate-400 text-sm mt-10 space-y-2">
+          <div className="text-center text-[#cdbfa0] text-sm mt-10 space-y-2">
             <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用,或让我去某个已登录的学习网站采集资料。")}</p>
             {suggestions.map((s, i) => (
-              <button key={i} className="block mx-auto rounded-full border border-slate-300 px-4 py-1.5 text-slate-600 hover:bg-slate-100" onClick={() => send(s)}>{s}</button>
+              <button key={i} className="block mx-auto rounded-full border border-[#e8c987]/40 px-4 py-1.5 text-[#ece0c3] hover:bg-[#e8c987]/12 transition" onClick={() => send(s)}>{s}</button>
             ))}
           </div>
         )}
@@ -75,7 +75,7 @@ export default function Chat() {
           m.role === "tool_note" ? (
             <p key={i} className="text-center text-xs text-emerald-700">⚙️ {m.content}</p>
           ) : (
-            <div key={i} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "ml-auto bg-emerald-600 text-white" : "bg-white border border-slate-200"}`}>
+            <div key={i} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "ml-auto bg-emerald-600 text-white" : "bg-[#f5eed6] border border-[#e4d5af] text-[#2f2413]"}`}>
               {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <MD className="prose-zh">{m.content}</MD>}
             </div>
           )
