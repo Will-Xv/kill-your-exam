@@ -23,11 +23,12 @@ export async function POST(req) {
       revise: { type: "boolean", description: "是否需要修订本次判分(仅当讨论中确认原判分错了)" },
       newCorrect: { type: "boolean" },
       newScore: { type: "integer" },
-      reviseReason: { type: "string" }
+      reviseReason: { type: "string" },
+      newFeedback: { type: "string", description: "根据讨论更新后的、对考生这次作答的简短点评(即使不改分,只要讨论让点评更准确就给)" }
     }, required: ["insight", "kind", "revise"] };
 
     const out = await generateJson(
-      `根据下面这段"考生就某道题与 AI 的讨论",客观提炼结果。题目:${body.stem}\n参考答案:${ans.answer}\n\n讨论记录:\n${convo}\n\n1) insight+kind:是否体现出考生对该知识点的理解到位(understanding)或仍有薄弱/误区(gap)?没有就 kind=none、insight 留空。要客观,不要因为讨论气氛而美化。\n2) revise:仅当讨论中【事实层面确认】原判分判错了(比如考生其实答对但被判错),才 revise=true 并给 newCorrect/newScore/reviseReason;若考生只是不服但没有正当理由,revise=false。严禁为迎合考生而改分。` + langInstruction(user.lang),
+      `根据下面这段"考生就某道题与 AI 的讨论",客观提炼结果。题目:${body.stem}\n参考答案:${ans.answer}\n\n讨论记录:\n${convo}\n\n1) insight+kind:是否体现出考生对该知识点的理解到位(understanding)或仍有薄弱/误区(gap)?没有就 kind=none、insight 留空。要客观,不要因为讨论气氛而美化。\n2) revise:仅当讨论中【事实层面确认】原判分判错了,才 revise=true 并给 newCorrect/newScore/reviseReason;若考生只是不服但没有正当理由,revise=false。严禁为迎合考生而改分。\n3) newFeedback:如果讨论让"对这次作答的点评"可以更准确(即使不改分),给一句更新后的点评;否则留空。` + langInstruction(user.lang),
       schema);
 
     let applied = { revised: false };
@@ -35,13 +36,19 @@ export async function POST(req) {
       db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text) VALUES(?,?,?,?,?)").run(exam.id, q.kp_id, questionId, out.kind, out.insight.trim());
       applied.insight = out.insight.trim();
     }
-    if (out.revise && attemptId) {
+    if (attemptId) {
       const at = db.prepare("SELECT * FROM attempts WHERE id=? AND exam_id=?").get(attemptId, exam.id);
       if (at) {
-        const nc = out.newCorrect ? 1 : 0;
-        const ns = out.newScore != null ? out.newScore : (nc ? 100 : 0);
-        db.prepare("UPDATE attempts SET correct=?, score=?, feedback=? WHERE id=?").run(nc, ns, "【讨论后修订】" + (out.reviseReason || ""), attemptId);
-        applied.revised = true; applied.newScore = ns; applied.reason = out.reviseReason;
+        if (out.revise) {
+          const nc = out.newCorrect ? 1 : 0;
+          const ns = out.newScore != null ? out.newScore : (nc ? 100 : 0);
+          const fb = out.newFeedback || ("【讨论后修订】" + (out.reviseReason || ""));
+          db.prepare("UPDATE attempts SET correct=?, score=?, feedback=? WHERE id=?").run(nc, ns, fb, attemptId);
+          applied.revised = true; applied.newScore = ns; applied.reason = out.reviseReason; applied.newFeedback = fb;
+        } else if (out.newFeedback && out.newFeedback.trim()) {
+          db.prepare("UPDATE attempts SET feedback=? WHERE id=?").run(out.newFeedback.trim(), attemptId);
+          applied.newFeedback = out.newFeedback.trim();
+        }
       }
     }
     return Response.json({ ok: true, applied });

@@ -1,36 +1,70 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 
-const items = [
+const primary = [
   { href: "/", label: "今天", icon: "🏠" },
   { href: "/study", label: "学习", icon: "📖" },
   { href: "/practice", label: "自由练习", icon: "✍️" },
-  { href: "/mock", label: "模拟考", icon: "📝" },
-  { href: "/materials", label: "资料", icon: "📚" },
-  { href: "/chat", label: "问问AI", icon: "💬" },
-  { href: "/settings", label: "设置", icon: "⚙️" }
+  { href: "/chat", label: "问问AI", icon: "💬" }
+];
+const more = [
+  { href: "/mock", label: "模拟考", icon: "📝", desc: "限时全真模拟" },
+  { href: "/prep", label: "考前准备", icon: "🎒", desc: "考务/应试自测" },
+  { href: "/knowledge", label: "掌握度", icon: "📊", desc: "看各章强弱" },
+  { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
+  { href: "/materials", label: "资料", icon: "📚", desc: "上传/网页采集" },
+  { href: "/exams", label: "我的考试", icon: "🗂️", desc: "切换/新建/删除" },
+  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
 ];
 
 export default function Nav() {
   const t = useT();
   const path = usePathname();
+  const [open, setOpen] = useState(false);
+  const [me, setMe] = useState(null);
   useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => {}); }, []);
+  useEffect(() => { fetch("/api/me").then((r) => r.ok ? r.json() : null).then((d) => setMe(d?.user)).catch(() => {}); }, []);
+  useEffect(() => { setOpen(false); }, [path]);
   if (path === "/login" || path.startsWith("/onboarding")) return null;
   const active = (h) => (h === "/" ? path === "/" : path.startsWith(h));
+
+  const extra = [];
+  if (me?.isAdmin) extra.push({ href: "/admin", label: "管理面板", icon: "📈", desc: "使用情况/子账号" });
+  if (me?.isDeveloper) extra.push({ href: "/dev", label: "开发者工具", icon: "🛠️", desc: "调试" });
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 md:top-0 md:bottom-auto">
-      <div className="mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-slate-200 bg-white/85 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:px-2 md:shadow-lg">
-        {items.map((it) => (
-          <Link key={it.href} href={it.href}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${active(it.href) ? "text-emerald-700 md:bg-emerald-50" : "text-slate-500 hover:text-slate-800"}`}>
-            <span className="text-lg md:text-base">{it.icon}</span>
-            <span>{t(it.label)}</span>
-          </Link>
-        ))}
-      </div>
-    </nav>
+    <>
+      {open && (
+        <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <div className="absolute bottom-16 left-1/2 w-[92%] max-w-md -translate-x-1/2 md:top-16 md:bottom-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="card grid grid-cols-2 gap-2 shadow-2xl animate-in">
+              {[...more, ...extra].map((it) => (
+                <Link key={it.href} href={it.href} className={`flex items-start gap-2 rounded-2xl p-3 transition ${active(it.href) ? "bg-emerald-50 text-emerald-700" : "hover:bg-slate-50"}`}>
+                  <span className="text-xl">{it.icon}</span>
+                  <span><span className="block text-sm font-semibold">{t(it.label)}</span><span className="block text-xs text-slate-400">{t(it.desc)}</span></span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:top-0 md:bottom-auto">
+        <div className="mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-slate-200 bg-white/85 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:px-2 md:shadow-lg">
+          {primary.map((it) => (
+            <Link key={it.href} href={it.href}
+              className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${active(it.href) ? "text-emerald-700 md:bg-emerald-50" : "text-slate-500 hover:text-slate-800"}`}>
+              <span className="text-lg md:text-base">{it.icon}</span><span>{t(it.label)}</span>
+            </Link>
+          ))}
+          <button onClick={() => setOpen(!open)}
+            className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${open ? "text-emerald-700 md:bg-emerald-50" : "text-slate-500 hover:text-slate-800"}`}>
+            <span className="text-lg md:text-base">☰</span><span>{t("更多")}</span>
+          </button>
+        </div>
+      </nav>
+    </>
   );
 }
