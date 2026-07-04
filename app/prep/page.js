@@ -46,6 +46,27 @@ export default function Prep() {
         </div>
       ))}
 
+      {prep.knowledgeCheck && (
+        <div className="card border-emerald-200">
+          <h2 className="font-bold text-emerald-900">📖 {t("知识性考前自测")}</h2>
+          <div className="mt-2 rounded-xl bg-emerald-50 p-3 text-sm text-slate-700 whitespace-pre-wrap">{prep.knowledgeCheck.summary}</div>
+          <div className="mt-3 space-y-3">
+            {(prep.knowledgeCheck.questions || []).map((q, i) => {
+              const RE = { weak: t("薄弱"), unreviewed: t("未复习"), key: t("重点"), likely: t("大概率考") };
+              return (
+                <div key={i} className="rounded-xl bg-white border border-slate-100 p-3">
+                  <p className="text-xs text-slate-400">{q.topic} · <span className="text-emerald-600">{RE[q.reason] || q.reason}</span></p>
+                  <p className="text-sm font-medium mt-0.5">{q.stem}</p>
+                  {q.options?.length > 0 && <ul className="mt-1 text-sm text-slate-600">{q.options.map((o, j) => <li key={j}>{o}</li>)}</ul>}
+                  <button className="text-xs text-emerald-700 underline mt-1" onClick={() => setReveal({ ...reveal, ["k" + i]: !reveal["k" + i] })}>{reveal["k" + i] ? t("隐藏答案") : t("看答案")}</button>
+                  {reveal["k" + i] && <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.answer}<br /><span className="text-slate-600">{q.explanation}</span></p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="card border-amber-200 bg-amber-50/60">
         <div className="flex items-center justify-between">
           <div><h2 className="font-bold text-amber-900">🧪 {t("考前自测(可选)")}</h2>
