@@ -20,7 +20,12 @@ function extractContent() {
   const clone = document.body.cloneNode(true);
   clone.querySelectorAll(bad.join(",")).forEach((e) => e.remove());
   const main = document.querySelector("main,article,[role=main],.content,#content") || clone;
-  return { title: document.title, url: location.href, text: (main.innerText || clone.innerText || "").replace(/\n{3,}/g, "\n\n").trim() };
+  const mediaUrls = [...new Set([
+    ...[...document.querySelectorAll("audio,audio source,video,video source")].map((e) => e.currentSrc || e.src),
+    ...[...document.querySelectorAll("img")].filter((i) => (i.naturalWidth || i.width || 0) >= 200).map((i) => i.currentSrc || i.src),
+    ...[...document.querySelectorAll("a[href]")].map((a) => a.href).filter((h) => /\.(mp3|wav|m4a|ogg|aac|flac|pdf)(\?|$)/i.test(h)),
+  ])].filter((u) => /^https?:/i.test(u)).slice(0, 12);
+  return { title: document.title, url: location.href, text: (main.innerText || clone.innerText || "").replace(/\n{3,}/g, "\n\n").trim(), mediaUrls };
 }
 function collectLinks() {
   const out = [];

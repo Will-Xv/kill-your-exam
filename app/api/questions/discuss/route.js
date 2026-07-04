@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, attachParts } from "@/lib/gemini";
-import { retrieve, ragBlock } from "@/lib/rag";
+import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 120;
@@ -37,7 +37,8 @@ ${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库�
 
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
     const ap = attachParts(attachments);
-    if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: contents[contents.length - 1].parts[0].text }, ...ap];
+    const mp = materialParts(exam.id, { max: 4 });
+    if ((ap.length || mp.length) && contents.length) contents[contents.length - 1].parts = [{ text: contents[contents.length - 1].parts[0].text }, ...ap, ...mp];
     const res = await generate(null, { contents, system });
     const reply = res.text || "(未生成回复)";
     return Response.json({ reply });

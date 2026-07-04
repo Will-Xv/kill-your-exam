@@ -1,6 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemini";
+import { materialParts } from "@/lib/rag";
 import { updateReviewQueue } from "@/lib/mastery";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { aiErrorResponse } from "@/lib/errors";
@@ -23,9 +24,10 @@ export async function POST(req) {
 ${attachments && attachments.length ? "考生以图片/文件形式作答(见附件),请识别其中内容再评分。" : ""}
 按要点给 0~100 分,并指出答对了什么、缺了什么。数学公式用 $...$ 包裹。` + langInstruction(user.lang);
       const ap = attachParts(attachments);
+      const mp = materialParts(exam.id, { max: 4 });
       let g;
-      if (ap.length) {
-        const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }].concat(ap) }], jsonSchema: gradeSchema });
+      if (ap.length || mp.length) {
+        const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...ap, ...mp] }], jsonSchema: gradeSchema });
         g = JSON.parse(res.text);
       } else {
         g = await generateJson(gradePrompt, gradeSchema);

@@ -1,6 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, langInstruction } from "@/lib/gemini";
+import { mmOpts } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 300;
@@ -23,8 +24,8 @@ export async function POST(req) {
       const ua = answers[qid];
       let correct = 0;
       if (q.qtype === "short") {
-        const g = await generateJson(`阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || "(未答)"}\n给0~100分。` + langInstruction(user.lang),
-          { type: "object", properties: { score: { type: "integer" } }, required: ["score"] });
+        const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || "(未答)"}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)` + langInstruction(user.lang);
+        const g = await generateJson(gradePrompt, { type: "object", properties: { score: { type: "integer" } }, required: ["score"] }, mmOpts(exam.id, gradePrompt));
         correct = (g.score || 0) >= 60 ? 1 : 0;
       } else correct = norm(ua) === norm(ans.answer) ? 1 : 0;
       total++; got += correct;
