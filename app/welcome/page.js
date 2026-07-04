@@ -182,7 +182,7 @@ export default function Welcome() {
         g.rotation.x = pr * Math.PI * 2 + myE * 0.6 + Math.sin(tt) * 0.06;
         g.rotation.y = tt * 0.45 + mxE * 1.1;
         g.position.y = Math.sin(tt * 0.8) * 0.25 - pr * 2.2;
-        g.position.x = 2.6 + mxE * 1.2;
+        g.position.x = 2.2 + mxE * 1.2;
         cam.position.x = mxE * 1.6; cam.lookAt(0, 0, 0);
         canvas.style.opacity = (0.9 - pr * 0.72).toFixed(3);
         renderer.render(scene, cam);
@@ -206,7 +206,8 @@ export default function Welcome() {
   const rtl = lang === "ar";
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="relative min-h-screen overflow-x-clip bg-[#04201f] text-white">
+    <div dir={rtl ? "rtl" : "ltr"} className="relative min-h-screen overflow-x-clip text-white">
+      <div className="fixed inset-0 bg-[#04201f]" style={{ zIndex: -20 }} />
       <div id="kye-bg" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden will-change-transform">
         <div className="kye-blob h-96 w-96 bg-emerald-500/40" style={{ top: "-6rem", left: "-4rem", animation: "kyeFloat 11s ease-in-out infinite" }} />
         <div className="kye-blob h-[28rem] w-[28rem] bg-cyan-500/30" style={{ top: "18%", right: "-8rem", animation: "kyeDrift 15s ease-in-out infinite" }} />
