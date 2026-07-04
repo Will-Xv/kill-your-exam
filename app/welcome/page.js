@@ -119,10 +119,14 @@ export default function Welcome() {
       const depth = 32;
       leaves.forEach((leaf, i) => {
         const baseZ = -(i / Math.max(1, leaves.length - 1)) * depth;
-        if (i === leaves.length - 1) { leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(0deg)`; leaf.style.zIndex = "0"; return; }
+        const sh = leaf.querySelector(".fb-shade");
+        if (i === leaves.length - 1) { leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(0deg)`; leaf.style.zIndex = "0"; if (sh) sh.style.opacity = "0"; return; }
         const local = Math.max(0, Math.min(1, (p - (somerEnd + i * segLen)) / segLen));
-        leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(${(-178 * local).toFixed(1)}deg)`;
-        leaf.style.zIndex = String(local < 0.5 ? 100 - i : 10 + i);
+        const e = local < 0.5 ? 2 * local * local : 1 - Math.pow(-2 * local + 2, 2) / 2; // easeInOut
+        const arc = Math.sin(Math.PI * local) * 60;   // 书页翻到中间向前拱起(软)
+        leaf.style.transform = `translateZ(${(baseZ + arc).toFixed(1)}px) rotateY(${(-178 * e).toFixed(1)}deg)`;
+        leaf.style.zIndex = String(e < 0.5 ? 100 - i : 10 + i);
+        if (sh) sh.style.opacity = (Math.sin(Math.PI * local) * 0.6).toFixed(2);
       });
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(upd); };
@@ -194,7 +198,10 @@ export default function Welcome() {
               </div>
               {pages.map((pg, i) => (
                 <div key={i} className="fb-leaf" style={{ zIndex: pages.length - i }}>
-                  <div className="fb-face"><Front pg={pg} i={i} /></div>
+                  <div className="fb-face">
+                    <Front pg={pg} i={i} />
+                    <div className="fb-shade" style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0, background: "linear-gradient(90deg, rgba(0,0,0,.6), rgba(0,0,0,.1) 45%, transparent 70%)" }} />
+                  </div>
                   <div className="fb-face fb-back" style={{ background: "linear-gradient(90deg,#0b3b34,#0e463d)" }} />
                 </div>
               ))}
