@@ -247,8 +247,8 @@ export default function Welcome() {
       const fs = document.getElementById("fin-scare"); if (fs) {
         const rise = clamp((fin - 0.06) / 0.26);   // 从下方升起,把正脸抬到画面中央
         const zoom = clamp((fin - 0.46) / 0.16);   // 停留后放大,~0.62 到达最大并保持
-        const ty = (62 - rise * 88).toFixed(0);   // 62% -> -26%
-        const sc = (0.95 + rise * 0.37 + zoom * 1.15).toFixed(3); // 停留~1.32,突脸~2.5
+        const ty = (60 - rise * 70).toFixed(0);   // 60% -> -10%:升到全身构图后锁定,不再上移
+        const sc = (0.95 + rise * 0.20 + zoom * 1.10).toFixed(3); // 停留~1.15,原地放大冲到~2.25
         const fade = clamp((fin - 0.74) / 0.06);   // 最大停留后快速虚化,~0.80 前彻底消失
         fs.style.transform = `translate(-50%, ${ty}%) scale(${sc})`;
         fs.style.opacity = fin < 0.06 ? "0" : (1 - fade).toFixed(2);
@@ -401,7 +401,7 @@ export default function Welcome() {
       {desktop && (
         <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
           <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 30%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
-          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,62%) scale(0.95)", opacity: 0, transformOrigin: "center center" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,60%) scale(0.95)", opacity: 0, transformOrigin: "50% 44%" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
           <div id="fin-text" className="absolute inset-x-0 top-[14vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
             <div className="rounded-[2rem] bg-[#efe7d2]/92 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20">
               <h2 className="font-hero text-5xl leading-[1.05] text-[#2e2013] md:text-7xl">{t.ctaT}</h2>
