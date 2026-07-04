@@ -29,6 +29,12 @@ export default function Materials() {
     setChecklist(next);
     await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: next }) });
   }
+  function setAnswer(i, v) { setChecklist(checklist.map((c, j) => (j === i ? { ...c, answer: v } : c))); }
+  async function saveAnswer(i) {
+    const next = checklist.map((c, j) => (j === i ? { ...c, done: !!(c.answer && c.answer.trim()) } : c));
+    setChecklist(next);
+    await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: next }) });
+  }
   async function del(id) {
     if (!confirm(t("确定删除这份资料?相关检索内容也会移除。"))) return;
     await fetch("/api/materials/upload", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
@@ -47,10 +53,18 @@ export default function Materials() {
       {checklist.length > 0 && (
         <div className="card space-y-1">
           <h2 className="font-semibold text-sm mb-1">{t("资料收集清单")}({done}/{checklist.length})</h2>
-          {checklist.map((c, i) => (
-            <label key={i} className="flex items-start gap-2 text-sm py-1 cursor-pointer">
+          {checklist.map((c, i) => c.kind === "qa" ? (
+            <div key={i} className="py-1.5 border-b border-slate-100 last:border-0">
+              <p className="text-sm">{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">— {t("直接回答")}</span></p>
+              <div className="mt-1 flex gap-2">
+                <input className="input py-2 text-sm" value={c.answer || ""} onChange={(e) => setAnswer(i, e.target.value)} onBlur={() => saveAnswer(i)} placeholder={c.why} />
+                {c.done && <span className="text-emerald-600 text-sm self-center">✓</span>}
+              </div>
+            </div>
+          ) : (
+            <label key={i} className="flex items-start gap-2 text-sm py-1.5 cursor-pointer border-b border-slate-100 last:border-0">
               <input type="checkbox" checked={!!c.done} onChange={() => toggleCheck(i)} className="mt-1" />
-              <span className={c.done ? "line-through text-stone-400" : ""}>{c.priority === "must" ? "🔴 " : ""}{c.item}</span>
+              <span className={c.done ? "line-through text-slate-400" : ""}>{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">({t("上传文件")})</span></span>
             </label>
           ))}
         </div>
