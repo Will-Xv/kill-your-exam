@@ -12,7 +12,10 @@ export async function GET() {
     hasKey: !!key,
     keyTail: me.is_admin && key ? key.slice(-4) : "",
     model: getSetting("gemini_model", "gemini-2.5-flash"),
-    embedModel: getSetting("gemini_embed_model", "gemini-embedding-001")
+    embedModel: getSetting("gemini_embed_model", "gemini-embedding-001"),
+    googleLinked: !!me.google_sub,
+    email: me.email || "",
+    googleAvailable: !!process.env.GOOGLE_CLIENT_ID
   });
 }
 export async function POST(req) {

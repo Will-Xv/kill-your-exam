@@ -74,6 +74,17 @@ export default function Settings() {
           <button className="text-sm text-stone-400 underline" onClick={logout}>{t("退出登录")}</button>
         </div>
       </div>
+      {info.googleAvailable && (
+        <div className="card flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold">{t("Google 账号")}</h2>
+            <p className="text-xs text-stone-400">{info.googleLinked ? (t("已绑定") + (info.email ? " · " + info.email : "")) : t("绑定后可以用 Google 一键登录")}</p>
+          </div>
+          {info.googleLinked
+            ? <span className="text-sm text-emerald-700">✓ {t("已绑定")}</span>
+            : <a href="/api/auth/google/start?bind=1" className="btn-ghost text-sm py-2">{t("绑定 Google")}</a>}
+        </div>
+      )}
       {info.isAdmin && <div className="card space-y-3">
         <h2 className="font-semibold">{t("AI 服务(Gemini)")}</h2>
         <p className="text-sm text-stone-500">{info.hasKey ? `${t("已配置密钥(尾号")} ${info.keyTail})` : t("⚠️ 还没有配置 API 密钥,网站的 AI 功能无法使用")}</p>
