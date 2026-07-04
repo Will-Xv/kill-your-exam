@@ -4,7 +4,7 @@ const PUBLIC = ["/login", "/favicon.ico", "/manifest.webmanifest", "/sw.js"];
 
 export function middleware(req) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC.includes(pathname) || pathname.startsWith("/api/auth/") || pathname.startsWith("/api/ingest") || pathname.startsWith("/api/agent") || pathname.startsWith("/_next") || pathname.startsWith("/icon-")) {
+  if (PUBLIC.includes(pathname) || pathname.startsWith("/api/auth/") || pathname.startsWith("/api/ingest") || pathname.startsWith("/api/agent") || pathname.startsWith("/api/browser/poll") || pathname.startsWith("/api/browser/update") || pathname.startsWith("/_next") || pathname.startsWith("/icon-")) {
     return NextResponse.next();
   }
   const ok = !!req.cookies.get("beikao_session")?.value;

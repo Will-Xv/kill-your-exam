@@ -11,9 +11,14 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(null); // { token, actions, approve:{idx:bool} }
+  const [bjobs, setBjobs] = useState([]);
   const bottom = useRef(null);
 
   useEffect(() => { fetch("/api/chat").then((r) => r.json()).then((d) => setMessages(d.messages || [])); }, []);
+  useEffect(() => {
+    const load = () => fetch("/api/browser/status").then((r) => r.json()).then((d) => setBjobs(d.jobs || [])).catch(() => {});
+    load(); const iv = setInterval(load, 4000); return () => clearInterval(iv);
+  }, []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, pending]);
 
   function applyResult(d) {
@@ -71,6 +76,16 @@ export default function Chat() {
             </div>
           )
         )}
+        {bjobs.filter((j) => j.status === "pending" || j.status === "running").map((j) => (
+          <div key={j.id} className="card border-sky-200 bg-sky-50/70 text-sm">
+            <p className="font-semibold text-sky-900">🌐 {t("浏览器采集")}:{j.goal}</p>
+            <p className="text-xs text-sky-700 mt-0.5">{j.status === "pending" ? t("等待扩展执行(请确保已安装并打开扩展,已登录目标网站)…") : t("扩展执行中…")} · {t("已采集")} {j.collected}</p>
+            {j.log && <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap text-xs text-slate-500">{j.log.split("\n").slice(-6).join("\n")}</pre>}
+          </div>
+        ))}
+        {bjobs.filter((j) => j.status === "done").slice(0, 1).map((j) => (
+          <p key={j.id} className="text-center text-xs text-emerald-700">🌐 {t("采集完成")}:{j.goal}({t("共")} {j.collected} {t("页")})</p>
+        ))}
         {pending && (
           <div className="card border-amber-300 bg-amber-50/70">
             <p className="text-sm font-semibold text-amber-900">🔐 {t("AI 想做以下改动,需要你确认:")}</p>
