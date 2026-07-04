@@ -34,9 +34,9 @@ export default function Home() {
         <div className="mx-auto flex min-h-[75vh] max-w-md flex-col items-center justify-center px-4 text-center">
           <div className="animate-in grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-4xl shadow-xl shadow-emerald-500/30">📘</div>
           <h1 className="animate-in d1 mt-6 text-3xl font-black">{t("欢迎!先设置一门考试")}</h1>
-          <p className="animate-in d2 mt-3 text-slate-500">{t("还没有设置考试。花 5 分钟告诉我你要考什么,")}{t("我会先坦白我知道什么、不知道什么。")}</p>
+          <p className="animate-in d2 mt-3 text-[#cdbfa0]">{t("还没有设置考试。花 5 分钟告诉我你要考什么,")}{t("我会先坦白我知道什么、不知道什么。")}</p>
           <Link href="/onboarding" className="btn animate-in d3 mt-7 text-base">🚀 {t("开始设置考试")}</Link>
-          <p className="animate-in d4 mt-6 text-xs text-slate-400">{t("首次使用请先到")} <Link className="underline" href="/settings">{t("设置")}</Link> {t("填入 AI 密钥")}</p>
+          <p className="animate-in d4 mt-6 text-xs text-[#9fb09a]">{t("首次使用请先到")} <Link className="underline" href="/settings">{t("设置")}</Link> {t("填入 AI 密钥")}</p>
         </div>
       </>
     );
@@ -103,10 +103,10 @@ export default function Home() {
       </div>
 
       {/* feature grid */}
-      <h2 className="mt-6 mb-2 text-sm font-semibold text-slate-500">{t("更多功能")}</h2>
+      <h2 className="mt-6 mb-2 text-sm font-semibold text-[#e8c987]">{t("更多功能")}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {features.map((f, i) => (
-          <Link key={f.href} href={f.href} className={`group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${f.tint} animate-in d${(i % 5) + 1} flex flex-col items-start`}>
+          <Link key={f.href} href={f.href} className={`group relative overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f5eed6] p-4 shadow-sm text-[#2f2413] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${f.tint} animate-in d${(i % 5) + 1} flex flex-col items-start`}>
             <div className={`absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br ${f.grad} opacity-10 blur-xl transition-opacity group-hover:opacity-25`} />
             <div className={`relative grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${f.ig} text-xl shadow-inner`}>{f.icon}</div>
             <div className="relative mt-2 font-semibold">{f.title}</div>

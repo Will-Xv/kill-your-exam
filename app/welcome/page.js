@@ -163,7 +163,6 @@ function InkScene({ i }) {
     </svg>
   );
 }
-
 export default function Welcome() {
   const [lang, setLang] = useState("en");
   const [scrolled, setScrolled] = useState(false);
@@ -178,14 +177,14 @@ export default function Welcome() {
   function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
   useEffect(() => {
     const b = document.body.style.background, h = document.documentElement.style.background;
-    document.body.style.background = "#04201f"; document.documentElement.style.background = "#04201f";
+    document.body.style.background = "#052620"; document.documentElement.style.background = "#052620";
     return () => { document.body.style.background = b; document.documentElement.style.background = h; };
   }, []);
 
   const t = L[lang];
   const rtl = lang === "ar";
   const fe = t.feats.slice(0, 4);
-  // 6 页:封面 + 4 内容页 + ready-to-kill(CTA)
+  // 6 页:封面 + 4 内容页 + ready-to-kill
   const pages = [
     { type: "cover" },
     { type: "leaf", scene: 1, title: fe[0][1], desc: fe[0][2] },
@@ -201,21 +200,25 @@ export default function Welcome() {
     if (!isDesk) return;
     const scene = sceneRef.current, book = bookRef.current;
     if (!scene || !book) return;
+    const clamp = (x) => Math.max(0, Math.min(1, x));
     const leaves = [...book.querySelectorAll(".fb-leaf")];
     const flips = leaves.length - 1;
     const somerEnd = 0.2;
+    const flipEnd = 0.68;
     let raf = 0;
     const upd = () => {
       raf = 0;
       const total = Math.max(1, scene.offsetHeight - window.innerHeight);
-      const p = Math.max(0, Math.min(1, -scene.getBoundingClientRect().top / total));
+      const p = clamp(-scene.getBoundingClientRect().top / total);
       setScrolled(window.scrollY > 24);
-      const flipEnd = 0.72;
-      const fin = Math.max(0, Math.min(1, (p - flipEnd) / 0.24));
-      let bt = p < somerEnd ? `translateZ(${(-2600 * (1 - p / somerEnd)).toFixed(0)}px) rotateX(${((p / somerEnd) * 720).toFixed(1)}deg)` : "translateZ(0px) rotateX(0deg)";
-      if (fin > 0) bt += ` scale(${(1 + fin * 0.6).toFixed(3)})`;
+      const fin = clamp((p - flipEnd) / 0.30);
+      // 书:空翻飞入 → 结尾放大淡出
+      let bt = p < somerEnd
+        ? `translateZ(${(-2600 * (1 - p / somerEnd)).toFixed(0)}px) rotateX(${((p / somerEnd) * 720).toFixed(1)}deg)`
+        : "translateZ(0px) rotateX(0deg)";
+      if (fin > 0) bt += ` scale(${(1 + fin * 0.5).toFixed(3)})`;
       book.style.transform = bt;
-      book.style.opacity = (1 - Math.min(1, fin * 1.9)).toFixed(2);
+      book.style.opacity = (1 - clamp(fin * 2.4)).toFixed(2);
       const segLen = (flipEnd - somerEnd) / flips;
       const depth = 34;
       let current = 0;
@@ -223,31 +226,35 @@ export default function Welcome() {
         const baseZ = -(i / Math.max(1, leaves.length - 1)) * depth;
         const sh = leaf.querySelector(".fb-shade");
         if (i === leaves.length - 1) { leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(0deg)`; leaf.style.zIndex = "0"; if (sh) sh.style.opacity = "0"; return; }
-        const local = Math.max(0, Math.min(1, (p - (somerEnd + i * segLen)) / segLen));
-        const e = local < 0.5 ? 4 * local * local * local : 1 - Math.pow(-2 * local + 2, 3) / 2; // easeInOutCubic
-        const arc = Math.sin(Math.PI * local) * 160;   // 中段大幅拱起(更软)
-        const curl = Math.sin(Math.PI * local) * 16;     // 边缘弯曲(更软)
+        const local = clamp((p - (somerEnd + i * segLen)) / segLen);
+        const e = local < 0.5 ? 4 * local * local * local : 1 - Math.pow(-2 * local + 2, 3) / 2;
+        const arc = Math.sin(Math.PI * local) * 160;
+        const curl = Math.sin(Math.PI * local) * 16;
         leaf.style.transform = `translateZ(${(baseZ + arc).toFixed(1)}px) rotateY(${(-178 * e).toFixed(1)}deg) rotateZ(${curl.toFixed(1)}deg)`;
         leaf.style.zIndex = String(e < 0.5 ? 100 - i : 10 + i);
         if (sh) sh.style.opacity = (Math.sin(Math.PI * local) * 0.55).toFixed(2);
         if (e >= 0.5) current = i + 1;
       });
-      // 右侧文字随当前页切换
+      // 右侧文字随当前页切换;进入结尾时整列淡出(避免挡住满屏羊皮纸)
+      const col = document.getElementById("fb-textcol");
+      if (col) { col.style.opacity = (1 - clamp(fin / 0.06)).toFixed(2); col.style.pointerEvents = fin > 0.02 ? "none" : "auto"; }
       const blocks = scene.querySelectorAll("[data-txt]");
-      blocks.forEach((b) => { b.style.opacity = Number(b.dataset.txt) === current ? "1" : "0"; b.style.pointerEvents = Number(b.dataset.txt) === current ? "auto" : "none"; });
-      // 结尾惊吓桥段
-      const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = Math.min(1, fin / 0.22).toFixed(2);
+      blocks.forEach((b) => { const on = Number(b.dataset.txt) === current; b.style.opacity = on ? "1" : "0"; });
+      // ===== 结尾惊吓桥段 =====
+      const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = clamp(fin / 0.10).toFixed(2);
       const fs = document.getElementById("fin-scare"); if (fs) {
-        const rise = Math.max(0, Math.min(1, (fin - 0.06) / 0.4));   // 上冲
-        const sc2 = 0.8 + rise * 0.9;                                // 放大(突脸)
-        const out = Math.max(0, Math.min(1, (fin - 0.52) / 0.2));    // 之后淡出
-        fs.style.transform = `translate(-50%, ${((1 - rise) * 100).toFixed(0)}%) scale(${sc2.toFixed(2)})`;
-        fs.style.opacity = fin < 0.06 ? "0" : (1 - out).toFixed(2);
+        const rise = clamp((fin - 0.10) / 0.26);   // 从下方升起、正脸居中
+        const zoom = clamp((fin - 0.56) / 0.24);   // 停留看清后再放大(突脸)
+        const ty = ((1 - rise) * 62).toFixed(0);
+        const sc = (0.96 + rise * 0.04 + zoom * 0.95).toFixed(3);
+        const fade = clamp((fin - 0.60) / 0.18);   // 放大同时逐渐消失
+        fs.style.transform = `translate(-50%, ${ty}%) scale(${sc})`;
+        fs.style.opacity = fin < 0.08 ? "0" : (1 - fade).toFixed(2);
       }
-      const ft = document.getElementById("fin-text"); if (ft) {   // 图消失后浮现
-        const o = Math.max(0, Math.min(1, (fin - 0.74) / 0.2));
+      const ft = document.getElementById("fin-text"); if (ft) {   // 图消失后浮现大字+按钮
+        const o = clamp((fin - 0.78) / 0.18);
         ft.style.opacity = o.toFixed(2);
-        ft.style.transform = `translateY(${((1 - o) * 28).toFixed(0)}px)`;
+        ft.style.transform = `translateY(${((1 - o) * 30).toFixed(0)}px)`;
         ft.style.pointerEvents = o > 0.5 ? "auto" : "none";
       }
     };
@@ -289,19 +296,19 @@ export default function Welcome() {
   }
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="relative text-white">
-      <div className="fixed inset-0 bg-[#04201f]" style={{ zIndex: -20 }} />
+    <div dir={rtl ? "rtl" : "ltr"} className="relative text-[#f4ecd8]">
+      <div className="fixed inset-0" style={{ zIndex: -20, background: "radial-gradient(1200px 700px at 15% -10%, #0d5348 0%, transparent 55%), radial-gradient(1000px 600px at 100% 0%, #0a6b5c 0%, transparent 48%), linear-gradient(180deg,#052620,#04211c)" }} />
       <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: -10 }}>
-        <div className="kye-blob h-96 w-96 bg-emerald-500/40" style={{ top: "-6rem", left: "-4rem", animation: "kyeFloat 12s ease-in-out infinite" }} />
-        <div className="kye-blob h-[28rem] w-[28rem] bg-cyan-500/25" style={{ top: "20%", right: "-8rem", animation: "kyeDrift 16s ease-in-out infinite" }} />
-        <div className="kye-blob h-80 w-80 bg-teal-400/25" style={{ bottom: "-6rem", left: "30%", animation: "kyeFloat2 14s ease-in-out infinite" }} />
+        <div className="kye-blob h-96 w-96" style={{ background: "rgba(202,162,90,.30)", top: "-6rem", left: "-4rem", animation: "kyeFloat 12s ease-in-out infinite" }} />
+        <div className="kye-blob h-[28rem] w-[28rem]" style={{ background: "rgba(16,120,100,.35)", top: "20%", right: "-8rem", animation: "kyeDrift 16s ease-in-out infinite" }} />
+        <div className="kye-blob h-80 w-80" style={{ background: "rgba(232,201,135,.22)", bottom: "-6rem", left: "30%", animation: "kyeFloat2 14s ease-in-out infinite" }} />
       </div>
 
-      <header className={"fixed inset-x-0 top-0 z-50 transition-all duration-300 " + (scrolled ? "bg-[#04201f]/70 backdrop-blur-xl ring-1 ring-white/10" : "")}>
+      <header className={"fixed inset-x-0 top-0 z-50 transition-all duration-300 " + (scrolled ? "bg-[#052620]/70 backdrop-blur-xl ring-1 ring-[#e8c987]/15" : "")}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2 text-xl font-black">📘 Kill Your <span className="text-emerald-300">Exam</span></div>
+          <div className="flex items-center gap-2 text-xl font-black">📘 Kill Your <span className="text-[#e8c987]">Exam</span></div>
           <div className="flex items-center gap-3">
-            <select value={lang} onChange={(e) => pick(e.target.value)} className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-white ring-1 ring-white/20 outline-none">
+            <select value={lang} onChange={(e) => pick(e.target.value)} className="rounded-full bg-[#e8c987]/10 px-3 py-1.5 text-sm text-[#f4ecd8] ring-1 ring-[#e8c987]/25 outline-none">
               {LANGS.map(([c, n]) => <option key={c} value={c} className="text-black">{n}</option>)}
             </select>
           </div>
@@ -328,27 +335,21 @@ export default function Welcome() {
                 ))}
               </div>
             </div>
-            <div className="fb-text relative hidden h-[560px] w-[360px] shrink-0 md:block">
+            <div id="fb-textcol" className="fb-text relative hidden h-[560px] w-[360px] shrink-0 md:block">
               {pages.map((pg, i) => (
                 <div key={i} data-txt={i} className="absolute inset-0 flex flex-col justify-center transition-opacity duration-500" style={{ opacity: i === 0 ? 1 : 0 }}>
                   {pg.type === "cover" ? (
                     <>
-                      <p className="rounded-full bg-white/10 px-3 py-1 text-xs text-emerald-200 ring-1 ring-white/15 w-fit">✨ {t.badge}</p>
-                      <h2 className="font-hero mt-5 text-5xl">{t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span></h2>
-                      <p className="mt-5 text-slate-300">{t.sub}</p>
-                      <p className="mt-10 animate-bounce text-3xl font-black text-emerald-300">↓ {t.see || "scroll"}</p>
-                    </>
-                  ) : pg.type === "cta" ? (
-                    <>
-                      <h2 className="font-hero text-4xl leading-tight">{t.ctaT}</h2>
-                      <p className="mt-4 text-slate-300">{t.ctaS}</p>
-                      <a href="/" className="mt-7 w-fit rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-8 py-3 text-lg font-bold text-emerald-950 shadow-lg transition hover:-translate-y-0.5">{t.ctaB} →</a>
+                      <p className="rounded-full bg-[#e8c987]/12 px-3 py-1 text-xs text-[#e8c987] ring-1 ring-[#e8c987]/25 w-fit">✨ {t.badge}</p>
+                      <h2 className="font-hero mt-5 text-5xl">{t.h1a}<br /><span className="kye-goldtext">{t.h1b}</span></h2>
+                      <p className="mt-5 text-[#cdbfa0]">{t.sub}</p>
+                      <p className="mt-10 animate-bounce text-3xl font-black text-[#e8c987]">↓ {t.see || "scroll"}</p>
                     </>
                   ) : (
                     <>
-                      <h2 className="font-hero text-4xl text-emerald-200">{pg.title}</h2>
-                      <div className="mt-3 h-px w-16 bg-emerald-400/50" />
-                      <p className="mt-4 text-lg leading-relaxed text-slate-300">{pg.desc}</p>
+                      <h2 className="font-hero text-4xl text-[#e8c987]">{pg.title}</h2>
+                      <div className="mt-3 h-px w-16 bg-[#e8c987]/50" />
+                      <p className="mt-4 text-lg leading-relaxed text-[#cdbfa0]">{pg.desc}</p>
                     </>
                   )}
                 </div>
@@ -357,28 +358,50 @@ export default function Welcome() {
           </div>
         </section>
       ) : (
-        <div className="mx-auto max-w-md space-y-6 px-5 pb-16 pt-24">
-          {pages.map((pg, i) => (
-            <div key={i} className="overflow-hidden rounded-3xl ring-1 ring-white/10">
-              <div className="aspect-[3/4] w-full"><LeafFront pg={pg} /></div>
-              <div className="bg-white/[0.04] p-5">
-                {pg.type === "cta"
-                  ? <><h3 className="font-hero text-2xl">{t.ctaT}</h3><a href="/" className="mt-3 inline-block rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-6 py-2.5 font-bold text-emerald-950">{t.ctaB} →</a></>
-                  : pg.type === "cover"
-                  ? <p className="text-slate-300">{t.sub}</p>
-                  : <><h3 className="font-hero text-2xl text-emerald-200">{pg.title}</h3><p className="mt-2 text-slate-300">{pg.desc}</p></>}
+        <div className="mx-auto max-w-md px-5 pb-24 pt-24">
+          {/* 封面 */}
+          <div className="overflow-hidden rounded-3xl ring-1 ring-[#e8c987]/20 shadow-2xl">
+            <div className="aspect-[3/4] w-full"><LeafFront pg={pages[0]} /></div>
+          </div>
+          <div className="mt-6 text-center">
+            <p className="mx-auto w-fit rounded-full bg-[#e8c987]/12 px-3 py-1 text-xs text-[#e8c987] ring-1 ring-[#e8c987]/25">✨ {t.badge}</p>
+            <h2 className="font-hero mt-4 text-4xl">{t.h1a} <span className="kye-goldtext">{t.h1b}</span></h2>
+            <p className="mt-4 text-[#cdbfa0]">{t.sub}</p>
+            <p className="mt-8 animate-bounce text-2xl font-black text-[#e8c987]">↓ {t.see || "scroll"}</p>
+          </div>
+          {/* 内容页 */}
+          {pages.slice(1).map((pg, i) => (
+            <div key={i} className="mt-12">
+              <div className="overflow-hidden rounded-3xl ring-1 ring-[#e8c987]/20 shadow-xl">
+                <div className="aspect-[3/4] w-full"><LeafFront pg={pg} /></div>
+              </div>
+              <div className="mt-4 rounded-2xl bg-[#e8c987]/[0.06] p-5 ring-1 ring-[#e8c987]/12">
+                <h3 className="font-hero text-2xl text-[#e8c987]">{pg.title}</h3>
+                <div className="mt-2 h-px w-14 bg-[#e8c987]/40" />
+                <p className="mt-3 leading-relaxed text-[#cdbfa0]">{pg.desc}</p>
               </div>
             </div>
           ))}
+          {/* 结尾突脸 + CTA */}
+          <div className="relative mt-16 overflow-hidden rounded-3xl ring-1 ring-[#2e2013]/30 shadow-2xl" style={{ background: "radial-gradient(130% 120% at 50% 15%, #efe7d2 0%, #e6dabb 60%, #dccdab 100%)" }}>
+            <img src="/illustrations/scary.png" alt="" loading="lazy" className="mx-auto block max-h-[52vh] w-auto" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            <div className="px-6 pb-8 pt-2 text-center">
+              <h2 className="font-hero text-3xl leading-tight text-[#2e2013]">{t.ctaT}</h2>
+              <a href="/" className="mt-5 inline-block rounded-2xl bg-[#2e2013] px-10 py-3.5 text-lg font-black text-[#efe7d2] shadow-xl">{t.ctaB} →</a>
+            </div>
+          </div>
+          <footer className="mt-10 text-center text-sm text-[#8a9b8e]">
+            © 2026 Kill Your Exam · <a href="/privacy" className="underline">{t.priv}</a>
+          </footer>
         </div>
       )}
 
       {desktop && (
-        <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
-          <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 20%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
-          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0, transformOrigin: "center center" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
-          <div id="fin-text" className="absolute inset-x-0 top-[11vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
-            <div className="rounded-[2rem] bg-[#efe7d2]/90 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20">
+        <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
+          <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 30%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
+          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,62%)", opacity: 0, transformOrigin: "center center" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <div id="fin-text" className="absolute inset-x-0 top-[14vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
+            <div className="rounded-[2rem] bg-[#efe7d2]/92 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20">
               <h2 className="font-hero text-5xl leading-[1.05] text-[#2e2013] md:text-7xl">{t.ctaT}</h2>
               <a href="/" className="mt-8 inline-block rounded-2xl bg-[#2e2013] px-12 py-4 text-xl font-black text-[#efe7d2] shadow-xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
             </div>
@@ -386,9 +409,6 @@ export default function Welcome() {
           </div>
         </div>
       )}
-      {!desktop && <footer className="relative z-10 mx-auto max-w-6xl px-6 py-10 text-center text-sm text-slate-500">
-        © 2026 Kill Your Exam · <a href="/privacy" className="underline hover:text-slate-300">{t.priv}</a> · <a href="/" className="underline hover:text-slate-300">{t.enter}</a>
-      </footer>}
     </div>
   );
 }
