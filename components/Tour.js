@@ -23,8 +23,7 @@ export default function Tour({ firstTime }) {
     },
     { icon: "📚", title: t("第一步:给它资料"), body: t("在「资料」页上传大纲、教材、真题(PDF/Word/图片都行),或用浏览器扩展从网页采集。资料越全,AI 越靠谱。") },
     { icon: "📖", title: t("第二步:学与练"), body: t("「学习」看 AI 讲知识点,「练习」做题即时批改,做错的自动进「错题本」按科学间隔重练。") },
-    { icon: "📊", title: t("随时看进度"), body: t("「今天」页有每日任务,「掌握度」一眼看出强弱,「模拟考」做全真限时卷。有想法直接找「AI 助手」聊。") },
-    { icon: "🔑", title: t("最后:填 AI 密钥"), body: t("首次使用要在「设置」页填入 AI 密钥,功能才能用。(管理员操作)") }
+    { icon: "📊", title: t("随时看进度"), body: t("「今天」页有每日任务,「掌握度」一眼看出强弱,「模拟考」做全真限时卷。有想法直接找「AI 助手」聊。") }
   ];
   const s = steps[step];
   const last = step === steps.length - 1;

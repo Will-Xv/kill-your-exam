@@ -74,7 +74,7 @@ export default function Settings() {
           <button className="text-sm text-stone-400 underline" onClick={logout}>{t("退出登录")}</button>
         </div>
       </div>
-      {info.isDeveloper && <div className="card space-y-3">
+      {info.isAdmin && <div className="card space-y-3">
         <h2 className="font-semibold">{t("AI 服务(Gemini)")}</h2>
         <p className="text-sm text-stone-500">{info.hasKey ? `${t("已配置密钥(尾号")} ${info.keyTail})` : t("⚠️ 还没有配置 API 密钥,网站的 AI 功能无法使用")}</p>
         <input className="input" type="password" placeholder={info.hasKey ? t("粘贴新密钥可替换(留空则不变)") : t("粘贴 Gemini API 密钥")} value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
