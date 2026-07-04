@@ -225,8 +225,8 @@ export default function Welcome() {
         if (i === leaves.length - 1) { leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(0deg)`; leaf.style.zIndex = "0"; if (sh) sh.style.opacity = "0"; return; }
         const local = Math.max(0, Math.min(1, (p - (somerEnd + i * segLen)) / segLen));
         const e = local < 0.5 ? 4 * local * local * local : 1 - Math.pow(-2 * local + 2, 3) / 2; // easeInOutCubic
-        const arc = Math.sin(Math.PI * local) * 110;   // 中段大幅拱起
-        const curl = Math.sin(Math.PI * local) * 8;     // 边缘弯曲
+        const arc = Math.sin(Math.PI * local) * 160;   // 中段大幅拱起(更软)
+        const curl = Math.sin(Math.PI * local) * 16;     // 边缘弯曲(更软)
         leaf.style.transform = `translateZ(${(baseZ + arc).toFixed(1)}px) rotateY(${(-178 * e).toFixed(1)}deg) rotateZ(${curl.toFixed(1)}deg)`;
         leaf.style.zIndex = String(e < 0.5 ? 100 - i : 10 + i);
         if (sh) sh.style.opacity = (Math.sin(Math.PI * local) * 0.55).toFixed(2);
@@ -238,7 +238,7 @@ export default function Welcome() {
       // 结尾惊吓桥段
       const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = Math.min(1, fin * 1.7).toFixed(2);
       const fs = document.getElementById("fin-scare"); if (fs) { const rise = Math.max(0, 1 - Math.max(0, fin - 0.15) / 0.5); fs.style.transform = `translate(-50%, ${(rise * 100).toFixed(0)}%)`; fs.style.opacity = fin > 0.12 ? "1" : "0"; }
-      const ft = document.getElementById("fin-text"); if (ft) { const o = Math.max(0, Math.min(1, (fin - 0.6) / 0.34)); ft.style.opacity = o.toFixed(2); ft.style.transform = `translateY(${((1 - o) * 24).toFixed(0)}px)`; ft.style.pointerEvents = o > 0.5 ? "auto" : "none"; }
+      const ft = document.getElementById("fin-text"); if (ft) { const o = Math.max(0, Math.min(1, (fin - 0.5) / 0.34)); ft.style.opacity = o.toFixed(2); ft.style.transform = `translateY(${((1 - o) * 24).toFixed(0)}px)`; ft.style.pointerEvents = o > 0.5 ? "auto" : "none"; }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(upd); };
     upd();
@@ -366,10 +366,12 @@ export default function Welcome() {
         <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
           <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 20%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
           <img id="fin-scare" src="/illustrations/scare.png" alt="" className="absolute bottom-0 left-1/2 h-[112vh] w-auto max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0, mixBlendMode: "multiply" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
-          <div id="fin-text" className="absolute inset-x-0 top-[16vh] z-10 text-center" style={{ opacity: 0 }}>
-            <h2 className="font-hero text-5xl leading-tight text-[#3a2a17] md:text-7xl">{t.ctaT}</h2>
-            <a href="/" className="mt-7 inline-block rounded-2xl bg-[#3a2a17] px-10 py-4 text-lg font-bold text-[#efe7d2] shadow-2xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
-            <p className="mt-6 text-xs text-[#5a4327]">© 2026 Kill Your Exam · <a href="/privacy" className="underline">{t.priv}</a></p>
+          <div id="fin-text" className="absolute inset-x-0 top-[11vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
+            <div className="rounded-[2rem] bg-[#efe7d2]/85 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20 backdrop-blur-sm">
+              <h2 className="font-hero text-5xl leading-[1.05] text-[#2e2013] md:text-7xl">{t.ctaT}</h2>
+              <a href="/" className="mt-8 inline-block rounded-2xl bg-[#2e2013] px-12 py-4 text-xl font-black text-[#efe7d2] shadow-xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
+            </div>
+            <p className="mt-4 text-xs text-[#5a4327]">© 2026 Kill Your Exam · <a href="/privacy" className="underline">{t.priv}</a></p>
           </div>
         </div>
       )}
