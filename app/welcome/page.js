@@ -176,6 +176,12 @@ export default function Welcome() {
   }, []);
   function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
   useEffect(() => {
+    const onS = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onS, { passive: true });
+    onS();
+    return () => window.removeEventListener("scroll", onS);
+  }, []);
+  useEffect(() => {
     const b = document.body.style.background, h = document.documentElement.style.background;
     document.body.style.background = "#052620"; document.documentElement.style.background = "#052620";
     return () => { document.body.style.background = b; document.documentElement.style.background = h; };
@@ -306,7 +312,7 @@ export default function Welcome() {
         <div className="kye-blob h-80 w-80" style={{ background: "rgba(232,201,135,.22)", bottom: "-6rem", left: "30%", animation: "kyeFloat2 14s ease-in-out infinite" }} />
       </div>
 
-      <header className={"fixed inset-x-0 top-0 z-50 transition-all duration-300 " + (scrolled ? "bg-[#052620]/70 backdrop-blur-xl ring-1 ring-[#e8c987]/15" : "")}>
+      <header className={"fixed inset-x-0 top-0 z-50 transition-all duration-300 " + (scrolled ? "-translate-y-full opacity-0 pointer-events-none" : "")}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2 text-xl font-black">📘 Kill Your <span className="text-[#e8c987]">Exam</span></div>
           <div className="flex items-center gap-3">
