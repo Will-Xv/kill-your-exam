@@ -77,3 +77,16 @@ main, .page-enter { position: relative; z-index: 1; }
   font-display: swap;
 }
 .font-hero { font-family: 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif; font-weight: 400; letter-spacing: 0.02em; }
+
+/* ===== Landing page (/welcome) animations ===== */
+@keyframes kyeFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-26px); } }
+@keyframes kyeFloat2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(14px,22px); } }
+@keyframes kyeDrift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-18px,16px) scale(1.08); } }
+@keyframes kyeGrad { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+@keyframes kyeFadeUp { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+.kye-blob { position: absolute; border-radius: 9999px; filter: blur(64px); opacity: .55; pointer-events: none; }
+.kye-reveal { opacity: 0; transform: translateY(30px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+.kye-reveal.in { opacity: 1; transform: none; }
+.kye-gradtext { background: linear-gradient(90deg,#6ee7b7,#5eead4,#7dd3fc,#6ee7b7); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: kyeGrad 6s linear infinite; }
+.kye-card { transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s, border-color .35s; }
+.kye-card:hover { transform: translateY(-8px); box-shadow: 0 24px 60px -20px rgba(16,185,129,.35); }

@@ -88,6 +88,7 @@ export default function Login() {
             </a>
           </div>
           <p className="mt-4 text-center text-xs text-slate-400">{t("登录一次,这台设备一年内免登录")}</p>
+          <p className="mt-2 text-center text-xs"><a href="/welcome" className="text-emerald-600 underline">{t("了解这个网站能做什么 →")}</a></p>
         </form>
       </div>
     </div>

@@ -58,14 +58,14 @@ export default function Chat() {
     setBusy(false);
   }
 
-  const suggestions = [t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("我觉得有一章我已经很熟了,想少花时间")];
+  const suggestions = [t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 130px)" }}>
       <h1 className="text-2xl font-black mb-2">{t("问问杀手")}</h1>
       <div className="flex-1 overflow-y-auto space-y-3 pb-3">
         {!messages.length && !pending && (
           <div className="text-center text-slate-400 text-sm mt-10 space-y-2">
-            <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用。")}</p>
+            <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用,或让我去某个已登录的学习网站采集资料。")}</p>
             {suggestions.map((s, i) => (
               <button key={i} className="block mx-auto rounded-full border border-slate-300 px-4 py-1.5 text-slate-600 hover:bg-slate-100" onClick={() => send(s)}>{s}</button>
             ))}
