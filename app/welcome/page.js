@@ -66,6 +66,104 @@ function Dots({ className, style }) {
   return <div className={"pointer-events-none absolute " + className} style={{ backgroundImage: "radial-gradient(rgba(45,212,191,.55) 1.6px, transparent 1.6px)", backgroundSize: "24px 24px", ...style }} />;
 }
 
+
+// 中世纪羊皮纸墨色
+const INK = "#3a2a17";
+const PARCH = "#e9ddc0";
+
+function MFrame() {
+  return (
+    <svg viewBox="0 0 100 130" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+      <rect x="3" y="3" width="94" height="124" fill="none" stroke={INK} strokeWidth="0.8" />
+      <rect x="5" y="5" width="90" height="120" fill="none" stroke={INK} strokeWidth="0.4" />
+      {[[5,5,1,1],[95,5,-1,1],[5,125,1,-1],[95,125,-1,-1]].map(([x,y,sx,sy],k)=>(
+        <path key={k} d={`M ${x} ${y} q ${8*sx} ${1*sy} ${9*sx} ${9*sy} q ${-1*sx} ${-8*sy} ${-9*sx} ${-9*sy} m ${9*sx} ${9*sy} q ${1*sx} ${5*sy} ${-2*sx} ${7*sy}`} fill="none" stroke={INK} strokeWidth="0.5" />
+      ))}
+    </svg>
+  );
+}
+
+// 5 个墨线场景(兜帽刺客),直接画在羊皮纸上
+function InkScene({ i }) {
+  const common = { fill: "none", stroke: INK, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+  const fillFig = { fill: INK, stroke: INK, strokeWidth: 1.2, strokeLinejoin: "round" };
+  const A = (x, y, sc, extra) => (
+    <g transform={`translate(${x} ${y}) scale(${sc})`}>
+      {/* 兜帽头 */}
+      <path d="M0,-42 C -14,-42 -18,-26 -14,-16 L 14,-16 C 18,-26 14,-42 0,-42 Z" {...fillFig} />
+      <path d="M -9,-24 q 9,6 18,0" fill="none" stroke={PARCH} strokeWidth="2" />
+      {/* 斗篷身体 */}
+      <path d="M -16,-16 C -22,10 -20,30 -18,40 L 18,40 C 20,30 22,10 16,-16 Z" {...fillFig} />
+      {extra}
+    </g>
+  );
+  if (i === 1) return (
+    <svg viewBox="0 0 300 300" className="h-full w-full">
+      {/* 城堡墙 + 目标 */}
+      <g {...common}>
+        <path d="M170,300 V150 h120 v150" />
+        {[170,190,210,230,250,270].map((x,k)=>(<rect key={k} x={x} y="140" width="12" height="14" fill={PARCH} stroke={INK} strokeWidth="2"/>))}
+        <path d="M200,150 V95" /><circle cx="200" cy="80" r="14" />
+        <path d="M186,150 C 188,120 212,120 214,150" />
+      </g>
+      {/* 刺客躲墙后偷窥,持刀 */}
+      {A(110,180,1.5,<g><path d="M18,-8 L 46,-20" stroke={INK} strokeWidth="3" /><path d="M42,-24 L 52,-14 L 46,-8 Z" {...fillFig}/></g>)}
+      <path d="M150,300 V150" fill="none" stroke={INK} strokeWidth="2" opacity="0.25"/>
+    </svg>
+  );
+  if (i === 2) return (
+    <svg viewBox="0 0 300 300" className="h-full w-full">
+      {/* 靶 */}
+      <g {...common}>
+        {[46,34,22,10].map((r,k)=>(<circle key={k} cx="235" cy="150" r={r} />))}
+        <circle cx="235" cy="150" r="3" fill={INK}/>
+        <path d="M235,196 V250" />
+      </g>
+      {/* 刺客拉弓 */}
+      {A(95,180,1.6,<g stroke={INK}><path d="M8,-14 q 40,0 0,44" fill="none" strokeWidth="3"/><path d="M8,8 L 150,8" strokeWidth="1.6"/><path d="M8,-14 L 8,30" strokeWidth="1.6"/></g>)}
+    </svg>
+  );
+  if (i === 3) return (
+    <svg viewBox="0 0 300 300" className="h-full w-full">
+      {/* 兜帽神秘师父(高) */}
+      <g transform="translate(215 150) scale(2)">
+        <path d="M0,-52 C -18,-52 -22,-30 -16,-18 L 16,-18 C 22,-30 18,-52 0,-52 Z" {...fillFig}/>
+        <path d="M -20,-18 C -30,20 -26,52 -24,64 L 24,64 C 26,52 30,20 20,-18 Z" {...fillFig}/>
+        <path d="M 20,0 L 20,-70" stroke={INK} strokeWidth="3"/>
+      </g>
+      {/* 刺客下跪拜师 */}
+      {A(95,205,1.15,<path d="M -18,40 q 20,10 40,-2" fill="none" stroke={INK} strokeWidth="2"/>)}
+      <path d="M60,258 h190" stroke={INK} strokeWidth="2"/>
+    </svg>
+  );
+  if (i === 4) return (
+    <svg viewBox="0 0 300 300" className="h-full w-full">
+      {/* 草地盘坐冥想 */}
+      <g transform="translate(150 150) scale(1.7)">
+        <path d="M0,-42 C -14,-42 -18,-26 -14,-16 L 14,-16 C 18,-26 14,-42 0,-42 Z" {...fillFig}/>
+        <path d="M -18,-16 C -26,6 -26,20 -30,26 C -10,20 10,20 30,26 C 26,20 26,6 18,-16 Z" {...fillFig}/>
+        <path d="M -30,26 q 30,10 60,0" fill={INK} stroke={INK}/>
+      </g>
+      <g stroke={INK} strokeWidth="2">{[60,90,120,180,210,240].map((x,k)=>(<path key={k} d={`M${x},250 q -3,-14 0,-22 M${x},250 q 3,-14 0,-22`} fill="none"/>))}<path d="M40,252 h220"/></g>
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 300 300" className="h-full w-full">
+      {/* 刺客拔刀 面对惊恐目标 */}
+      {A(95,175,1.5,<g><path d="M12,-18 L 30,-46" stroke={INK} strokeWidth="3"/><path d="M26,-50 L 36,-40 L 30,-34 Z" {...fillFig}/></g>)}
+      {/* 目标惊恐,举手 */}
+      <g transform="translate(215 185) scale(1.3)">
+        <circle cx="0" cy="-30" r="14" fill={PARCH} stroke={INK} strokeWidth="2"/>
+        <circle cx="-5" cy="-32" r="2" fill={INK}/><circle cx="5" cy="-32" r="2" fill={INK}/>
+        <ellipse cx="0" cy="-23" rx="4" ry="5" fill={INK}/>
+        <path d="M -14,-16 C -18,10 -16,34 -14,44 L 14,44 C 16,34 18,10 14,-16 Z" fill={PARCH} stroke={INK} strokeWidth="2"/>
+        <path d="M -12,-12 L -30,-34 M 12,-12 L 30,-34" stroke={INK} strokeWidth="3" fill="none"/>
+      </g>
+      <path d="M60,262 h200" stroke={INK} strokeWidth="2"/>
+    </svg>
+  );
+}
+
 export default function Welcome() {
   const [lang, setLang] = useState("en");
   const [scrolled, setScrolled] = useState(false);
@@ -78,24 +176,27 @@ export default function Welcome() {
     if (saved && L[saved]) setLang(saved);
   }, []);
   function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
-
-  // 营销页强制整页深色底
   useEffect(() => {
     const b = document.body.style.background, h = document.documentElement.style.background;
-    document.body.style.background = "#04201f";
-    document.documentElement.style.background = "#04201f";
+    document.body.style.background = "#04201f"; document.documentElement.style.background = "#04201f";
     return () => { document.body.style.background = b; document.documentElement.style.background = h; };
   }, []);
 
   const t = L[lang];
   const rtl = lang === "ar";
-  const feats = t.feats.slice(0, 4);
-  // 书页:封面 + 4 内容页 + tryout
-  const pages = [{ type: "cover" }, ...feats.map((f) => ({ type: "feat", f })), { type: "cta" }];
+  const fe = t.feats.slice(0, 4);
+  // 6 页:封面 + 4 内容页 + ready-to-kill(CTA)
+  const pages = [
+    { type: "cover" },
+    { type: "leaf", scene: 1, title: fe[0][1], desc: fe[0][2] },
+    { type: "leaf", scene: 2, title: fe[1][1], desc: fe[1][2] },
+    { type: "leaf", scene: 3, title: fe[2][1], desc: fe[2][2] },
+    { type: "leaf", scene: 4, title: fe[3][1], desc: fe[3][2] },
+    { type: "cta", scene: 5, title: t.ctaT, desc: t.ctaS },
+  ];
 
-  // 翻书:滚动驱动。顶部静止 → 空翻两圈 → 逐页翻 → tryout
   useEffect(() => {
-    const isDesk = window.matchMedia("(min-width: 821px) and (pointer: fine)").matches;
+    const isDesk = window.matchMedia("(min-width: 900px) and (pointer: fine)").matches;
     setDesktop(isDesk);
     if (!isDesk) return;
     const scene = sceneRef.current, book = bookRef.current;
@@ -109,58 +210,59 @@ export default function Welcome() {
       const total = Math.max(1, scene.offsetHeight - window.innerHeight);
       const p = Math.max(0, Math.min(1, -scene.getBoundingClientRect().top / total));
       setScrolled(window.scrollY > 24);
-      if (p < somerEnd) {
-        const q = p / somerEnd;
-        book.style.transform = `translateZ(${(-2600 * (1 - q)).toFixed(0)}px) rotateX(${(q * 720).toFixed(1)}deg)`;
-      } else {
-        book.style.transform = "translateZ(0px) rotateX(0deg)";
-      }
+      if (p < somerEnd) { const q = p / somerEnd; book.style.transform = `translateZ(${(-2600 * (1 - q)).toFixed(0)}px) rotateX(${(q * 720).toFixed(1)}deg)`; }
+      else book.style.transform = "translateZ(0px) rotateX(0deg)";
       const segLen = (1 - somerEnd) / flips;
-      const depth = 32;
+      const depth = 34;
+      let current = 0;
       leaves.forEach((leaf, i) => {
         const baseZ = -(i / Math.max(1, leaves.length - 1)) * depth;
         const sh = leaf.querySelector(".fb-shade");
         if (i === leaves.length - 1) { leaf.style.transform = `translateZ(${baseZ.toFixed(1)}px) rotateY(0deg)`; leaf.style.zIndex = "0"; if (sh) sh.style.opacity = "0"; return; }
         const local = Math.max(0, Math.min(1, (p - (somerEnd + i * segLen)) / segLen));
-        const e = local < 0.5 ? 2 * local * local : 1 - Math.pow(-2 * local + 2, 2) / 2; // easeInOut
-        const arc = Math.sin(Math.PI * local) * 60;   // 书页翻到中间向前拱起(软)
-        leaf.style.transform = `translateZ(${(baseZ + arc).toFixed(1)}px) rotateY(${(-178 * e).toFixed(1)}deg)`;
+        const e = local < 0.5 ? 4 * local * local * local : 1 - Math.pow(-2 * local + 2, 3) / 2; // easeInOutCubic
+        const arc = Math.sin(Math.PI * local) * 110;   // 中段大幅拱起
+        const curl = Math.sin(Math.PI * local) * 8;     // 边缘弯曲
+        leaf.style.transform = `translateZ(${(baseZ + arc).toFixed(1)}px) rotateY(${(-178 * e).toFixed(1)}deg) rotateZ(${curl.toFixed(1)}deg)`;
         leaf.style.zIndex = String(e < 0.5 ? 100 - i : 10 + i);
-        if (sh) sh.style.opacity = (Math.sin(Math.PI * local) * 0.6).toFixed(2);
+        if (sh) sh.style.opacity = (Math.sin(Math.PI * local) * 0.55).toFixed(2);
+        if (e >= 0.5) current = i + 1;
       });
+      // 右侧文字随当前页切换
+      const blocks = scene.querySelectorAll("[data-txt]");
+      blocks.forEach((b) => { b.style.opacity = Number(b.dataset.txt) === current ? "1" : "0"; b.style.pointerEvents = Number(b.dataset.txt) === current ? "auto" : "none"; });
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(upd); };
     upd();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
-    const tm = setTimeout(upd, 120);
+    const tm = setTimeout(upd, 140);
     return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); clearTimeout(tm); };
   }, [lang, desktop]);
 
-  function Front({ pg, i }) {
-    if (pg.type === "cover") return (
-      <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-800 p-8 text-center">
-        <p className="rounded-full bg-white/15 px-3 py-1 text-xs text-emerald-50 ring-1 ring-white/20">✨ {t.badge}</p>
-        <div className="mt-6 text-6xl">📘</div>
-        <h1 className="font-hero mt-4 text-5xl leading-[1.02]">Kill Your<br /><span className="kye-gradtext">Exam</span></h1>
-        <p className="mt-5 text-sm text-emerald-50/90">{t.h1a} {t.h1b}</p>
-        <p className="mt-8 animate-bounce text-emerald-100/80">↓</p>
-      </div>
-    );
-    if (pg.type === "cta") return (
-      <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-cyan-700 p-8 text-center">
-        <h2 className="font-hero text-4xl leading-tight text-white">{t.ctaT}</h2>
-        <p className="mt-4 max-w-xs text-emerald-50">{t.ctaS}</p>
-        <a href="/" className="mt-7 rounded-2xl bg-white px-8 py-3 text-lg font-bold text-emerald-800 shadow-lg transition hover:-translate-y-0.5">{t.ctaB} →</a>
-      </div>
-    );
-    const f = pg.f;
+  function LeafFront({ pg }) {
     return (
-      <div className="flex h-full flex-col justify-center bg-gradient-to-br from-[#0d322d] to-[#081f1d] p-9">
-        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/10 text-4xl ring-1 ring-white/15">{f[0]}</div>
-        <h3 className="font-hero mt-5 text-3xl text-white">{f[1]}</h3>
-        <p className="mt-3 text-[15px] leading-relaxed text-slate-300">{f[2]}</p>
-        <div className="mt-auto pt-6 text-xs text-slate-500">{i} / {pages.length - 1}</div>
+      <div className="fb-face" style={{ background: PARCH, color: INK }}>
+        <div className="absolute inset-0" style={{ background: "radial-gradient(120% 90% at 30% 20%, rgba(255,255,255,.25), transparent 60%), radial-gradient(100% 100% at 80% 100%, rgba(120,90,40,.15), transparent 60%)" }} />
+        <MFrame />
+        {pg.type === "cover" ? (
+          <div className="relative flex h-full flex-col items-center justify-center p-8 text-center">
+            <svg viewBox="0 0 120 120" className="h-24 w-24">
+              <path d="M60,18 L66,52 L60,96 L54,52 Z" fill={INK} />
+              <path d="M42,60 h36 M46,66 h28" stroke={INK} strokeWidth="3" /><path d="M60,96 l-5,8 h10 Z" fill={INK}/>
+              <circle cx="60" cy="60" r="46" fill="none" stroke={INK} strokeWidth="1.5" />
+            </svg>
+            <h1 className="font-hero mt-4 text-4xl leading-none" style={{ color: INK }}>Kill Your<br />Exam</h1>
+            <p className="mt-4 text-xs tracking-widest">— A · D · MMXXVI —</p>
+          </div>
+        ) : (
+          <div className="relative flex h-full flex-col p-7">
+            <h3 className="font-hero text-center text-2xl" style={{ color: INK }}>{pg.title}</h3>
+            <div className="mx-auto mt-1 h-px w-24" style={{ background: INK, opacity: .5 }} />
+            <div className="mt-2 flex-1"><InkScene i={pg.scene} /></div>
+            <div className="text-center text-[11px] tracking-widest" style={{ opacity: .6 }}>· {pages.findIndex((x) => x === pg)} / {pages.length - 1} ·</div>
+          </div>
+        )}
       </div>
     );
   }
@@ -187,32 +289,65 @@ export default function Welcome() {
       </header>
 
       {desktop ? (
-        <section ref={sceneRef} style={{ height: `${pages.length * 108}vh` }} className="relative">
+        <section ref={sceneRef} style={{ height: `${pages.length * 115}vh` }} className="relative">
           <div className="fb-stage">
-            <div ref={bookRef} className="fb-book">
-              <div className="fb-thick" style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", zIndex: 0 }}>
-                <div style={{ position: "absolute", inset: 0, transform: "translateZ(-34px)", borderRadius: "6px 16px 16px 6px", background: "linear-gradient(135deg,#0c7568,#0a4a43)", boxShadow: "0 45px 80px -26px rgba(0,0,0,.7)" }} />
-                <div style={{ position: "absolute", top: 0, right: 0, width: "34px", height: "100%", transformOrigin: "right center", transform: "rotateY(-90deg)", background: "repeating-linear-gradient(to bottom,#eef6f3 0 2px,#c9e2db 2px 4px)" }} />
-                <div style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: "34px", transformOrigin: "bottom center", transform: "rotateX(90deg)", background: "repeating-linear-gradient(to right,#eef6f3 0 2px,#c9e2db 2px 4px)" }} />
-                <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "34px", transformOrigin: "top center", transform: "rotateX(-90deg)", background: "repeating-linear-gradient(to right,#eef6f3 0 2px,#c9e2db 2px 4px)" }} />
-              </div>
-              {pages.map((pg, i) => (
-                <div key={i} className="fb-leaf" style={{ zIndex: pages.length - i }}>
-                  <div className="fb-face">
-                    <Front pg={pg} i={i} />
-                    <div className="fb-shade" style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0, background: "linear-gradient(90deg, rgba(0,0,0,.6), rgba(0,0,0,.1) 45%, transparent 70%)" }} />
+            <div className="fb-persp">
+              <div ref={bookRef} className="fb-book">
+                <div className="fb-thick" style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", zIndex: 0 }}>
+                  <div style={{ position: "absolute", inset: 0, transform: "translateZ(-36px)", borderRadius: "4px 12px 12px 4px", background: "linear-gradient(135deg,#5b3d1e,#3c2812)", boxShadow: "0 45px 80px -26px rgba(0,0,0,.7)" }} />
+                  <div style={{ position: "absolute", top: 0, right: 0, width: "36px", height: "100%", transformOrigin: "right center", transform: "rotateY(-90deg)", background: "repeating-linear-gradient(to bottom,#efe6cf 0 2px,#cdbe98 2px 4px)" }} />
+                  <div style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: "36px", transformOrigin: "bottom center", transform: "rotateX(90deg)", background: "repeating-linear-gradient(to right,#efe6cf 0 2px,#cdbe98 2px 4px)" }} />
+                  <div style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "36px", transformOrigin: "top center", transform: "rotateX(-90deg)", background: "repeating-linear-gradient(to right,#efe6cf 0 2px,#cdbe98 2px 4px)" }} />
+                </div>
+                {pages.map((pg, i) => (
+                  <div key={i} className="fb-leaf" style={{ zIndex: pages.length - i }}>
+                    <LeafFront pg={pg} />
+                    <div className="fb-shade" style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0, background: "linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.08) 45%, transparent 70%)" }} />
+                    <div className="fb-face fb-back" style={{ background: "linear-gradient(90deg,#5b3d1e,#6b4a25)" }} />
                   </div>
-                  <div className="fb-face fb-back" style={{ background: "linear-gradient(90deg,#0b3b34,#0e463d)" }} />
+                ))}
+              </div>
+            </div>
+            <div className="fb-text relative hidden h-[560px] w-[360px] shrink-0 md:block">
+              {pages.map((pg, i) => (
+                <div key={i} data-txt={i} className="absolute inset-0 flex flex-col justify-center transition-opacity duration-500" style={{ opacity: i === 0 ? 1 : 0 }}>
+                  {pg.type === "cover" ? (
+                    <>
+                      <p className="rounded-full bg-white/10 px-3 py-1 text-xs text-emerald-200 ring-1 ring-white/15 w-fit">✨ {t.badge}</p>
+                      <h2 className="font-hero mt-5 text-5xl">{t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span></h2>
+                      <p className="mt-5 text-slate-300">{t.sub}</p>
+                      <p className="mt-8 animate-bounce text-emerald-300">↓ scroll</p>
+                    </>
+                  ) : pg.type === "cta" ? (
+                    <>
+                      <h2 className="font-hero text-4xl leading-tight">{t.ctaT}</h2>
+                      <p className="mt-4 text-slate-300">{t.ctaS}</p>
+                      <a href="/" className="mt-7 w-fit rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-8 py-3 text-lg font-bold text-emerald-950 shadow-lg transition hover:-translate-y-0.5">{t.ctaB} →</a>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="font-hero text-4xl text-emerald-200">{pg.title}</h2>
+                      <div className="mt-3 h-px w-16 bg-emerald-400/50" />
+                      <p className="mt-4 text-lg leading-relaxed text-slate-300">{pg.desc}</p>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         </section>
       ) : (
-        <div className="mx-auto max-w-md space-y-5 px-5 pb-16 pt-24">
+        <div className="mx-auto max-w-md space-y-6 px-5 pb-16 pt-24">
           {pages.map((pg, i) => (
             <div key={i} className="overflow-hidden rounded-3xl ring-1 ring-white/10">
-              <div className="min-h-[60vh]"><Front pg={pg} i={i} /></div>
+              <div className="aspect-[3/4] w-full"><LeafFront pg={pg} /></div>
+              <div className="bg-white/[0.04] p-5">
+                {pg.type === "cta"
+                  ? <><h3 className="font-hero text-2xl">{t.ctaT}</h3><a href="/" className="mt-3 inline-block rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-6 py-2.5 font-bold text-emerald-950">{t.ctaB} →</a></>
+                  : pg.type === "cover"
+                  ? <p className="text-slate-300">{t.sub}</p>
+                  : <><h3 className="font-hero text-2xl text-emerald-200">{pg.title}</h3><p className="mt-2 text-slate-300">{pg.desc}</p></>}
+              </div>
             </div>
           ))}
         </div>
