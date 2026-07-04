@@ -20,6 +20,7 @@ function PracticeInner() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState([]);
+  const [note, setNote] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportNote, setReportNote] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
@@ -34,7 +35,7 @@ function PracticeInner() {
     setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null);
     try {
       if (mode === "review") { const d = await aiFetch("/api/review"); setQuestions(d.questions); }
-      else { const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) }); setQuestions(d.questions); }
+      else { const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) }); setQuestions(d.questions); setNote(d.note || ""); }
     } catch {}
     setBusy(false);
   }
@@ -86,7 +87,7 @@ function PracticeInner() {
   if (busy && !questions.length) return <p className="mt-16 text-center text-slate-400 animate-pulse">{t("AI 正在准备题目…")}</p>;
   if (!questions.length) return mode === "review"
     ? <div className="mt-16 text-center text-slate-400 space-y-3"><p>{t("🎉 没有到期的错题,今天不用重练。")}</p><a className="btn" href="/practice">{t("去做新题")}</a></div>
-    : <p className="mt-16 text-center text-slate-400">{t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</p>;
+    : <p className="mt-16 text-center text-slate-400">{note ? note + " " : t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</p>;
 
   if (idx >= questions.length) {
     const right = done.filter(Boolean).length;
@@ -112,7 +113,10 @@ function PracticeInner() {
     <div className="space-y-3">
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>{mode === "review" ? t("🔁 错题重练 · ") : ""}{idx + 1} / {questions.length} · {t(QTYPE[q.qtype])}</span>
-        <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
+        <span className="flex items-center gap-1.5">
+          {q.is_real ? <span className="badge-material">📜 {t("真题")}</span> : q.origin === "online" ? <span className="badge-material">🌐 {t("网上题")}</span> : <span className="badge-model">🤖 {t("AI出题")}</span>}
+          <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
+        </span>
       </div>
       <div className="card">
         <MD className="font-medium prose-zh">{q.body.stem}</MD>
@@ -141,6 +145,12 @@ function PracticeInner() {
           {result.feedback && <div className="text-sm mt-1"><b>{t("点评:")}</b><MD inline>{result.feedback}</MD></div>}
           <div className="text-sm mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{result.explanation}</MD></div>
           {result.revisedNote && <p className="text-sm mt-1 text-emerald-700">↺ {result.revisedNote}</p>}
+          <p className="text-xs text-slate-400 mt-2">
+            {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:网上题目") : t("题目:AI 生成")}
+            {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
+            {" · "}{t("判卷与解析:AI")}
+            {result.source_url && <> · <a className="underline" href={result.source_url} target="_blank">{t("来源")}</a></>}
+          </p>
         </div>
       )}
 

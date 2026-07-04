@@ -6,8 +6,9 @@ export async function POST(req) {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
-  const { count = 20 } = await req.json().catch(() => ({}));
-  const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
+  const { count = 20, realOnly = false } = await req.json().catch(() => ({}));
+  const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ${realOnly ? "AND is_real=1" : ""} ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
+  if (realOnly && pool.length < 3) return Response.json({ error: "题库里还没有足够的真题。可以让 AI 联网找真题,或先做混合模拟。" }, { status: 400 });
   if (pool.length < 5) return Response.json({ error: "题库太少,请先在练习页多生成一些题,再来模拟考。" }, { status: 400 });
   // 按题型分组均衡抽取
   const byType = {};

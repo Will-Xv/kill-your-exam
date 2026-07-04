@@ -17,10 +17,10 @@ export default function Mock() {
   const [score, setScore] = useState(null);
   const [started, setStarted] = useState(0);
 
-  async function start() {
+  async function start(realOnly = false) {
     setBusy(true);
     try {
-      const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20 }) });
+      const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
       setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
     } catch {}
     setBusy(false);
@@ -42,7 +42,10 @@ export default function Mock() {
       <div className="text-5xl">📝</div>
       <h1 className="text-2xl font-bold">{t("模拟考")}</h1>
       <p className="text-stone-500">{t("按题型比例抽 20 道题,一次做完再看结果,更接近真实考试。")}</p>
-      <button className="btn" onClick={start} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
+      <div className="flex flex-col gap-2 items-center">
+        <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
+        <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用历年真题组卷)")}</button>
+      </div>
     </div>
   );
 
