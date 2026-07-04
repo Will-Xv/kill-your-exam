@@ -107,7 +107,7 @@ export default function Welcome() {
       const vh = window.innerHeight;
       cur += (window.scrollY - cur) * (desktop ? 0.09 : 1);
       setScrolled(cur > 24);
-      prog.current = Math.max(0, Math.min(1, cur / (vh * 1.8)));
+      prog.current = Math.max(0, Math.min(1, cur / (vh * 2.2)));
       if (desktop && content) content.style.transform = `translate3d(0,${(-cur).toFixed(2)}px,0)`;
       const mx = mouse.current.x, my = mouse.current.y;
       const bg = document.getElementById("kye-bg");
@@ -159,18 +159,19 @@ export default function Welcome() {
       const cam = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
       cam.position.z = 12;
       const g = new THREE.Group();
-      const emMat = new THREE.MeshStandardMaterial({ color: 0x0e9f70, metalness: 0.25, roughness: 0.45, emissive: 0x063f39, emissiveIntensity: 0.22 });
-      const paperMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 });
-      const pages = new THREE.Mesh(new THREE.BoxGeometry(2.86, 3.8, 0.8), paperMat);
-      const front = new THREE.Mesh(new THREE.BoxGeometry(3.06, 4.02, 0.09), emMat); front.position.z = 0.43;
-      const back = new THREE.Mesh(new THREE.BoxGeometry(3.06, 4.02, 0.09), emMat); back.position.z = -0.43;
-      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.15, 4.02, 0.95), emMat); spine.position.x = -1.53;
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(3.08, 4.05, 0.97)), new THREE.LineBasicMaterial({ color: 0x5eead4 }));
-      g.add(pages, front, back, spine, edges); g.scale.setScalar(0.92); scene.add(g);
-      scene.add(new THREE.AmbientLight(0x9fdccb, 0.5));
-      const l1 = new THREE.PointLight(0x5eead4, 0.9); l1.position.set(6, 6, 8); scene.add(l1);
+      const emMat = new THREE.MeshStandardMaterial({ color: 0x0e9f70, metalness: 0.25, roughness: 0.45, emissive: 0x063f39, emissiveIntensity: 0.24 });
+      const paperMat = new THREE.MeshStandardMaterial({ color: 0xeef6f3, roughness: 0.92 });
+      const pages = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.82, 0.8), paperMat);
+      const frontPivot = new THREE.Group(); frontPivot.position.set(-1.5, 0, 0.42);
+      const frontCover = new THREE.Mesh(new THREE.BoxGeometry(3.0, 4.02, 0.09), emMat); frontCover.position.x = 1.5; frontPivot.add(frontCover);
+      const backPivot = new THREE.Group(); backPivot.position.set(-1.5, 0, -0.42);
+      const backCover = new THREE.Mesh(new THREE.BoxGeometry(3.0, 4.02, 0.09), emMat); backCover.position.x = 1.5; backPivot.add(backCover);
+      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.16, 4.02, 0.95), emMat); spine.position.x = -1.5;
+      g.add(pages, frontPivot, backPivot, spine); scene.add(g);
+      scene.add(new THREE.AmbientLight(0x9fdccb, 0.55));
+      const l1 = new THREE.PointLight(0x5eead4, 0.95); l1.position.set(6, 6, 8); scene.add(l1);
       const l2 = new THREE.PointLight(0x38bdf8, 0.7); l2.position.set(-8, -4, 4); scene.add(l2);
-      const l3 = new THREE.DirectionalLight(0xffffff, 0.55); l3.position.set(2, 5, 6); scene.add(l3);
+      const l3 = new THREE.DirectionalLight(0xffffff, 0.6); l3.position.set(2, 5, 7); scene.add(l3);
       const resize = () => { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
       resize(); window.addEventListener("resize", resize); cleanupResize = () => window.removeEventListener("resize", resize);
       let mxE = 0, myE = 0, tt = 0;
@@ -179,12 +180,18 @@ export default function Welcome() {
         raf = requestAnimationFrame(frame);
         mxE += (mouse.current.x - mxE) * 0.05; myE += (mouse.current.y - myE) * 0.05;
         const pr = prog.current;
-        g.rotation.x = pr * Math.PI * 2 + myE * 0.6 + Math.sin(tt) * 0.06;
-        g.rotation.y = 0.6 + Math.sin(tt * 0.5) * 0.45 + mxE * 1.1;
-        g.position.y = 0.2 + Math.sin(tt * 0.8) * 0.25 - pr * 2.4;
-        g.position.x = 3.1 + mxE * 1.1;
-        cam.position.x = mxE * 1.6; cam.lookAt(0, 0, 0);
-        canvas.style.opacity = (0.9 - pr * 0.72).toFixed(3);
+        const flip = Math.min(pr / 0.5, 1);
+        const openP = Math.max(0, Math.min((pr - 0.5) / 0.22, 1));
+        const fade = Math.max(0, Math.min((pr - 0.72) / 0.2, 1));
+        g.rotation.x = flip * Math.PI * 6 + myE * 0.3 * (1 - openP);
+        g.rotation.y = (0.5 + Math.sin(tt * 0.5) * 0.16) * (1 - openP) + mxE * 0.8 * (1 - openP);
+        g.position.x = mxE * 0.8 * (1 - openP);
+        g.position.y = -1.4 + flip * 1.4 + Math.sin(tt * 0.8) * 0.15 * (1 - fade) - fade * 1.6;
+        g.scale.setScalar(0.7 + flip * 0.38 + openP * 0.1 - fade * 0.22);
+        frontPivot.rotation.y = -openP * 2.5;
+        backPivot.rotation.y = openP * 2.5;
+        cam.position.x = mxE * 1.2; cam.lookAt(0, 0, 0);
+        canvas.style.opacity = (0.96 * (1 - fade)).toFixed(3);
         renderer.render(scene, cam);
         tt += 0.016;
       };
@@ -251,6 +258,8 @@ export default function Welcome() {
       </section>
 
       {/* why — nanfu-style split with glowing app mock + scroll-scrubbed reasons */}
+      <section aria-hidden="true" className="h-[130vh]" />
+
       <section className="relative mx-auto grid max-w-6xl items-center gap-12 overflow-hidden px-6 py-24 md:grid-cols-2">
         <Dots className="-right-10 bottom-0 h-56 w-56 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
         <div data-scrub data-dir="left" data-dist="80" className="mx-auto w-full max-w-md">
