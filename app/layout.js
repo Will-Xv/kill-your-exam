@@ -5,10 +5,10 @@ import { AiErrorProvider } from "@/components/AiErrorDialog";
 import { I18nProvider } from "@/components/I18n";
 
 export const metadata = {
-  title: "ExamPrep AI",
+  title: "Kill Your Exam",
   description: "你的私人备考管家",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "ExamPrep" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Kill Your Exam" },
   icons: { icon: "/icon-192.png", apple: "/icon-192.png" }
 };
 

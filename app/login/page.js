@@ -34,7 +34,7 @@ export default function Login() {
       <div className="relative z-10 flex items-center justify-between px-6 py-5 md:px-12">
         <div className="flex items-center gap-2 font-bold text-lg tracking-tight">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 border border-white/20">📘</span>
-          <span>ExamPrep <span className="text-emerald-400">AI</span></span>
+          <span>Kill Your <span className="text-emerald-400">Exam</span></span>
         </div>
         <select value={lang} onChange={(e) => setLang(e.target.value)}
           className="rounded-xl bg-white/10 border border-white/20 backdrop-blur px-3 py-2 text-sm text-white focus:outline-none [&>option]:text-slate-800">

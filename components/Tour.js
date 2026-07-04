@@ -17,7 +17,7 @@ export default function Tour({ firstTime }) {
 
   const steps = [
     {
-      icon: "👋", title: t("欢迎使用 ExamPrep AI"),
+      icon: "👋", title: t("欢迎使用 Kill Your Exam"),
       body: t("这是你的私人 AI 备考助手。先花 10 秒了解一下,再开始。"),
       lang: true
     },
