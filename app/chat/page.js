@@ -3,6 +3,7 @@ import { useT } from "@/components/I18n";
 import { useEffect, useRef, useState } from "react";
 import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
+import DropZone from "@/components/DropZone";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 export default function Chat() {
@@ -110,11 +111,11 @@ export default function Chat() {
         <div ref={bottom} />
       </div>
       {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}
-      <div className="flex gap-2 pt-2">
-        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt" /></label>
-        <input className="input flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…")} disabled={!!pending} />
+      <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="flex gap-2 pt-2">
+        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt" /></label>
+        <input className="input flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(可拖拽/粘贴文件)")} disabled={!!pending} />
         <button className="btn" onClick={() => send()} disabled={busy || (!input.trim() && !files.length) || !!pending}>{t("发送")}</button>
-      </div>
+      </DropZone>
     </div>
   );
 }

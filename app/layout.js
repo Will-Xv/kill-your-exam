@@ -1,5 +1,6 @@
 import "./globals.css";
 import Nav from "@/components/Nav";
+import FeedbackButton from "@/components/FeedbackButton";
 import { AiErrorProvider } from "@/components/AiErrorDialog";
 import { I18nProvider } from "@/components/I18n";
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
           <div className="app-bg" />
           <div className="relative z-10 mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20">{children}</div>
           <Nav />
+          <FeedbackButton />
         </AiErrorProvider>
         </I18nProvider>
       </body>

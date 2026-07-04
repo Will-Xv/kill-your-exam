@@ -17,8 +17,7 @@ const more = [
   { href: "/notes", label: "笔记本", icon: "📓", desc: "收藏的题+随手笔记" },
   { href: "/profile", label: "整体画像", icon: "🧭", desc: "跨考试综合评估" },
   { href: "/materials", label: "资料", icon: "📚", desc: "上传/网页采集" },
-  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" },
-  { href: "/feedback", label: "意见反馈", icon: "✉️", desc: "把问题/建议发给开发者" }
+  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
 ];
 
 export default function Nav() {

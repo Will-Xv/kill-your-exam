@@ -1,6 +1,7 @@
 import db, { getDocument } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { retrieve, ragBlock } from "@/lib/rag";
+import { getOverallDoc } from "@/lib/overall";
 import { generateJson, searchWeb, langInstruction } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -63,6 +64,7 @@ export async function POST(req) {
       const genCount = Math.max(need + 3, 5);
       const hits = await retrieve(exam.id, `${chapter} ${kp.title}`, 5);
       const dossier = getDocument(exam.id, "dossier")?.content_md || "";
+      const overallSnip = (getOverallDoc(user) || "").slice(0, 1000);
       let lessons = ""; try { lessons = db.prepare("SELECT text FROM gen_lessons WHERE exam_id=? ORDER BY id DESC LIMIT 12").all(exam.id).map((x) => "- " + x.text).join("\n"); } catch {}
       let qaAnswers = ""; try { const cl = JSON.parse(exam.checklist || "[]"); qaAnswers = cl.filter((c) => c.kind === "qa" && c.answer).map((c) => `${c.item}: ${c.answer}`).join("; "); } catch {}
       const sourceType = hits.length ? "material" : "model";
@@ -71,7 +73,7 @@ export async function POST(req) {
       const genPromise = generateJson(
         `为「${exam.name}」出 ${genCount} 道练习题,考察「${kp.title}」(章节:${chapter})。题型混合,以客观题为主。
 ${hits.length ? "必须依据以下资料:\n" + ragBlock(hits) : "无资料支撑,只出保守的基本概念题,不要编造具体数字或条款。"}
-考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}
+考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}${overallSnip ? "\n考生整体画像(跨所有考试):" + overallSnip : ""}
 single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标准答案;short写评分要点;explanation解释;difficulty 1~3。
 数学公式用 $...$ 包裹,不要裸露反斜杠命令。
 【只出知识性题】严禁答题技巧/应试策略题、需真实感官或图音的技能题、考试规则事务题。

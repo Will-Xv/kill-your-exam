@@ -2,6 +2,7 @@ import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemini";
 import { updateReviewQueue } from "@/lib/mastery";
+import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
@@ -45,6 +46,7 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
     const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
       .run(questionId, exam.id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode);
     updateReviewQueue(questionId, !!correct);
+    maybeAutoUpdateOverall(user); // 里程碑时后台刷新整体画像
     return Response.json({ attemptId: ins.lastInsertRowid, correct: !!correct, score, feedback, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real });
   } catch (e) {
     return aiErrorResponse(e);
