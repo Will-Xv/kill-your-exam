@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --bg: #241a0a;
+  --bg: #2c1e13;
   --ink: #2f2413;
   --parch: #f5eed6;
   --parch-line: #e4d5af;
@@ -18,7 +18,7 @@ body {
   @apply antialiased;
   color: #f0e6cd;                 /* 书背深黄上的默认文字:书页浅黄 */
   min-height: 100vh;
-  background: #3d2b10;             /* 书背深黄(单色,无渐变) */
+  background: #33241a;             /* 古朴深棕(单色,无渐变) */
 }
 /* 细点阵纹理层(暖色微光) */
 .app-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none;
