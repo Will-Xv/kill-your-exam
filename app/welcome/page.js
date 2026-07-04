@@ -211,7 +211,7 @@ export default function Welcome() {
       const total = Math.max(1, scene.offsetHeight - window.innerHeight);
       const p = clamp(-scene.getBoundingClientRect().top / total);
       setScrolled(window.scrollY > 24);
-      const fin = clamp((p - flipEnd) / 0.30);
+      const fin = clamp((p - flipEnd) / 0.22);
       // 书:空翻飞入 → 结尾放大淡出
       let bt = p < somerEnd
         ? `translateZ(${(-2600 * (1 - p / somerEnd)).toFixed(0)}px) rotateX(${((p / somerEnd) * 720).toFixed(1)}deg)`
