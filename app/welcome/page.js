@@ -111,7 +111,7 @@ export default function Welcome() {
       setScrolled(window.scrollY > 24);
       if (p < somerEnd) {
         const q = p / somerEnd;
-        book.style.transform = `translateZ(${(-1700 * (1 - q)).toFixed(0)}px) rotateX(${(q * 720).toFixed(1)}deg)`;
+        book.style.transform = `translateZ(${(-2600 * (1 - q)).toFixed(0)}px) rotateX(${(q * 720).toFixed(1)}deg)`;
       } else {
         book.style.transform = "translateZ(0px) rotateX(0deg)";
       }
