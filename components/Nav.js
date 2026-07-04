@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 
 const primary = [
-  { href: "/", label: "今天", icon: "🏠" },
+  { href: "/exams", label: "我的考试", icon: "🗂️" },
+  { href: "/", label: "首页", icon: "🏠" },
   { href: "/study", label: "学习", icon: "📖" },
   { href: "/practice", label: "自由练习", icon: "✍️" },
   { href: "/chat", label: "问问AI", icon: "💬" }
@@ -13,10 +14,8 @@ const primary = [
 const more = [
   { href: "/mock", label: "模拟考", icon: "📝", desc: "限时全真模拟" },
   { href: "/prep", label: "考前准备", icon: "🎒", desc: "考务/应试自测" },
-  { href: "/knowledge", label: "掌握度", icon: "📊", desc: "看各章强弱" },
   { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
   { href: "/materials", label: "资料", icon: "📚", desc: "上传/网页采集" },
-  { href: "/exams", label: "我的考试", icon: "🗂️", desc: "切换/新建/删除" },
   { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
 ];
 

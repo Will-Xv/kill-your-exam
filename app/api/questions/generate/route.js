@@ -48,6 +48,7 @@ export async function POST(req) {
     const chapter = kp.parent_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.parent_id)?.title : "";
     const hits = await retrieve(exam.id, `${chapter} ${kp.title}`, 5);
     const dossier = getDocument(exam.id, "dossier")?.content_md || "";
+    let lessons = ""; try { lessons = db.prepare("SELECT text FROM gen_lessons WHERE exam_id=? ORDER BY id DESC LIMIT 12").all(exam.id).map((x) => "- " + x.text).join("\n"); } catch {}
     let qaAnswers = "";
     try { const cl = JSON.parse(exam.checklist || "[]"); qaAnswers = cl.filter((c) => c.kind === "qa" && c.answer).map((c) => `${c.item}: ${c.answer}`).join("; "); } catch {}
     const sourceType = hits.length ? "material" : "model";

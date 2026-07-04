@@ -10,6 +10,9 @@ function StudyInner() {
   const t = useT();
   const aiFetch = useAiFetch();
   const [tree, setTree] = useState(null);
+  const [levels, setLevels] = useState({});
+  const [levelCounts, setLevelCounts] = useState({});
+  const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
   const [busy, setBusy] = useState(false);
 
@@ -24,6 +27,11 @@ function StudyInner() {
         }
       }
     });
+    fetch("/api/mastery").then((r) => r.json()).then((d) => {
+      const lv = {}; const cnt = { mastered: 0, ok: 0, weak: 0, unlearned: 0 };
+      (d.matrix || []).forEach((m) => { lv[m.id] = m.level; cnt[m.level] = (cnt[m.level] || 0) + 1; });
+      setLevels(lv); setLevelCounts(cnt); setInsights(d.insights || []);
+    }).catch(() => {});
   }, []);
 
   async function open(kp, refresh = false) {
@@ -63,25 +71,43 @@ function StudyInner() {
   }
 
   const COVER = { covered: "🟢", partial: "🟡", none: "⚪" };
+  const LVDOT = { mastered: "bg-emerald-500", ok: "bg-emerald-300", weak: "bg-red-400", unlearned: "bg-slate-200" };
+  const LVLABEL = { mastered: t("掌握"), ok: t("一般"), weak: t("薄弱"), unlearned: t("未学") };
   return (
-    <div className="space-y-4 md:mt-14">
-      <h1 className="text-2xl font-bold">{t("学习")}</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-black">{t("学习与掌握度")}</h1>
+      <div className="card flex justify-around text-center text-sm">
+        {Object.keys(LVDOT).map((k) => (
+          <div key={k}><div className={`mx-auto h-3 w-3 rounded-full ${LVDOT[k]} mb-1`} /><b>{levelCounts[k] || 0}</b> {LVLABEL[k]}</div>
+        ))}
+      </div>
       {tree.map((ch) => (
         <div key={ch.id} className="card">
           <h2 className="font-bold mb-2">{ch.title}</h2>
           <div className="space-y-1">
             {ch.points.map((p) => (
-              <button key={p.id} onClick={() => open(p)} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-stone-50">
-                <span>{p.title}</span>
-                <span className="text-xs text-stone-400 shrink-0 ml-2">
-                  {p.attempts > 0 && `${p.correct}/${p.attempts} · `}{COVER[p.coverage]}
-                </span>
+              <button key={p.id} onClick={() => open(p)} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-50">
+                <span className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${LVDOT[levels[p.id] || "unlearned"]}`} />{p.title} <span className="text-xs">{COVER[p.coverage]}</span></span>
+                <span className="text-xs text-slate-400 shrink-0 ml-2">{p.attempts > 0 ? `${p.correct}/${p.attempts}` : t("未练")}</span>
               </button>
             ))}
           </div>
         </div>
       ))}
-      <p className="text-xs text-stone-400">{t("🟢 有资料支撑 · 🟡 部分支撑 · ⚪ 无资料(讲解出题靠 AI 记忆,请谨慎)")}</p>
+      {insights.length > 0 && (
+        <div className="card">
+          <h2 className="font-bold text-sm mb-2">🗒️ {t("讨论中沉淀的观察")}</h2>
+          <div className="space-y-1.5">
+            {insights.map((x) => (
+              <div key={x.id} className="text-sm flex gap-2">
+                <span className={x.kind === "gap" ? "badge-model" : "badge-material"}>{x.kind === "gap" ? t("薄弱") : t("理解到位")}</span>
+                <span className="text-slate-600">{x.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="text-xs text-slate-400">{t("点色=掌握度(绿=掌握/浅绿=一般/红=薄弱/灰=未学);🟢🟡⚪=资料覆盖。点知识点看讲解。")}</p>
     </div>
   );
 }

@@ -19,7 +19,9 @@ function PracticeInner() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState([]);
-  const [flagOpen, setFlagOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportNote, setReportNote] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
   // 讨论(追问/争论)
   const [discuss, setDiscuss] = useState(null); // null | array of {role,content}
   const [dInput, setDInput] = useState("");
@@ -58,7 +60,7 @@ function PracticeInner() {
   }
   async function next() {
     await finalizeDiscuss();
-    setResult(null); setSel([]); setText(""); setFlagOpen(false); setIdx((i) => i + 1);
+    setResult(null); setSel([]); setText(""); setReportOpen(false); setReportNote(""); setIdx((i) => i + 1);
   }
   async function sendDiscuss() {
     const msg = dInput.trim(); if (!msg || dBusy) return;
@@ -71,10 +73,13 @@ function PracticeInner() {
     } catch { setDiscuss(hist); }
     setDBusy(false);
   }
-  async function flag(reason) {
-    await fetch("/api/questions/flag", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, reason }) });
-    setFlagOpen(false);
-    alert(t("已标记,感谢反馈。Will 会看到。"));
+  async function submitReport() {
+    setReportBusy(true);
+    try {
+      const d = await aiFetch("/api/questions/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, note: reportNote }) });
+      alert(d.acted ? t("AI 确认这题确有问题,已移除并改进出题。感谢!") : t("AI 没发现这题有明显问题,已忽略(未删除)。若确有问题,请补充说明再提交。"));
+    } catch {}
+    setReportOpen(false); setReportNote(""); setReportBusy(false);
   }
 
   if (busy && !questions.length) return <p className="mt-16 text-center text-slate-400 animate-pulse">{t("AI 正在准备题目…")}</p>;
@@ -168,16 +173,23 @@ function PracticeInner() {
             <button className="btn flex-1" onClick={next}>{t("下一题 →")}</button>
           </>
         )}
-        <div className="relative">
-          <button className="btn-ghost text-xs" onClick={() => setFlagOpen(!flagOpen)}>⚠️ {t("反馈问题")}</button>
-          {flagOpen && (
-            <div className="absolute right-0 bottom-full mb-1 z-10 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg text-sm">
-              <button className="block w-full rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => flag("question")}>{t("题目本身有问题")}</button>
-              <button className="block w-full rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => flag("answer")}>{t("答案或解析有问题")}</button>
-            </div>
-          )}
-        </div>
+        <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
       </div>
+
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setReportOpen(false)}>
+          <div className="card w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold">⚠️ {t("反馈:题目有问题")}</h3>
+            <p className="text-xs text-slate-500 mt-1">{t("如果是答案或解析你不认同,建议直接用上面的“追问/争论”和 AI 讨论。这里只反馈“题目本身”的毛病(如题干歧义、无正确选项、需要图/音频等)。")}</p>
+            <textarea className="input mt-2" rows={3} value={reportNote} onChange={(e) => setReportNote(e.target.value)} placeholder={t("补充说明(可选):这题哪里有问题?写清楚能帮 AI 更准地改进")} />
+            <p className="text-xs text-slate-400 mt-1">{t("提交后 AI 会分析错因,据此改进题库和以后出题。若分析不出问题且你没补充说明,则当误操作、不删题。")}</p>
+            <div className="mt-3 flex gap-2">
+              <button className="btn-ghost flex-1 py-2" onClick={() => setReportOpen(false)} disabled={reportBusy}>{t("取消")}</button>
+              <button className="btn flex-1 py-2" onClick={submitReport} disabled={reportBusy}>{reportBusy ? t("分析中…") : t("提交")}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

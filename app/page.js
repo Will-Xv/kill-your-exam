@@ -57,10 +57,8 @@ export default function Home() {
   const features = [
     { href: "/mock", icon: "📝", title: t("模拟考"), desc: t("限时全真模拟"), grad: "from-orange-400 to-rose-500", tint: "hover:border-orange-300 hover:shadow-orange-500/15", ig: "from-orange-50 to-rose-50" },
     { href: "/prep", icon: "🎒", title: t("考前准备"), desc: t("考务/应试自测"), grad: "from-lime-400 to-green-500", tint: "hover:border-lime-300 hover:shadow-lime-500/15", ig: "from-lime-50 to-green-50" },
-    { href: "/knowledge", icon: "📊", title: t("掌握度"), desc: t("看各章强弱"), grad: "from-violet-400 to-purple-600", tint: "hover:border-violet-300 hover:shadow-violet-500/15", ig: "from-violet-50 to-purple-50" },
     { href: "/mistakes", icon: "📕", title: t("错题本"), desc: t("重练做错的题"), grad: "from-rose-400 to-red-500", tint: "hover:border-rose-300 hover:shadow-rose-500/15", ig: "from-rose-50 to-red-50" },
-    { href: "/materials", icon: "📚", title: t("资料库"), desc: t("上传/网页采集"), grad: "from-amber-400 to-yellow-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-yellow-50" },
-    { href: "/exams", icon: "🗂️", title: t("我的考试"), desc: t("切换/新建/删除"), grad: "from-cyan-400 to-teal-500", tint: "hover:border-cyan-300 hover:shadow-cyan-500/15", ig: "from-cyan-50 to-teal-50" }
+    { href: "/materials", icon: "📚", title: t("资料库"), desc: t("上传/网页采集"), grad: "from-amber-400 to-yellow-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-yellow-50" }
   ];
 
   return (
