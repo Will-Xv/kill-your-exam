@@ -2,7 +2,7 @@
 import { useT } from "@/components/I18n";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import ReactMarkdown from "react-markdown";
+import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import SourceBadge from "@/components/SourceBadge";
 
@@ -57,7 +57,7 @@ function StudyInner() {
             {e && <SourceBadge sourceType={e.source_type} refs={e.source_refs} />}
           </div>
           {!e ? <p className="mt-4 text-stone-400 animate-pulse">{t("AI 正在准备讲解…")}</p> : (
-            <div className="prose-zh mt-3"><ReactMarkdown>{e.content_md}</ReactMarkdown></div>
+            <MD className="prose-zh mt-3">{e.content_md}</MD>
           )}
         </div>
         {e && (

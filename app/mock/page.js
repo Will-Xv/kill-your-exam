@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/components/I18n";
+import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
@@ -84,7 +85,7 @@ export default function Mock() {
         return (
           <div key={q.id} className="card">
             <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}</p>
-            <p className="font-medium whitespace-pre-wrap">{q.body.stem}</p>
+            <MD className="font-medium prose-zh">{q.body.stem}</MD>
             {isChoice ? (
               <div className="mt-2 space-y-1.5">
                 {options.map((op, i) => {

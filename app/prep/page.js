@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
+import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 const CAT = { bring: ["🎒", "要带的"], logistics: ["🕐", "时间地点"], mindset: ["🧘", "心态"], rule: ["📋", "考场规则"] };
@@ -56,7 +57,7 @@ export default function Prep() {
               return (
                 <div key={i} className="rounded-xl bg-white border border-slate-100 p-3">
                   <p className="text-xs text-slate-400">{q.topic} · <span className="text-emerald-600">{RE[q.reason] || q.reason}</span></p>
-                  <p className="text-sm font-medium mt-0.5">{q.stem}</p>
+                  <MD className="text-sm font-medium mt-0.5">{q.stem}</MD>
                   {q.options?.length > 0 && <ul className="mt-1 text-sm text-slate-600">{q.options.map((o, j) => <li key={j}>{o}</li>)}</ul>}
                   <button className="text-xs text-emerald-700 underline mt-1" onClick={() => setReveal({ ...reveal, ["k" + i]: !reveal["k" + i] })}>{reveal["k" + i] ? t("隐藏答案") : t("看答案")}</button>
                   {reveal["k" + i] && <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.answer}<br /><span className="text-slate-600">{q.explanation}</span></p>}
@@ -78,7 +79,7 @@ export default function Prep() {
             {(prep.selfcheck || []).map((q, i) => (
               <div key={i} className="rounded-xl bg-white p-3">
                 <p className="text-xs text-slate-400">{q.area === "rule" ? t("考试规则") : t("应试技巧")}</p>
-                <p className="text-sm font-medium mt-0.5">{q.stem}</p>
+                <MD className="text-sm font-medium mt-0.5">{q.stem}</MD>
                 {q.options?.length > 0 && <ul className="mt-1 text-sm text-slate-600">{q.options.map((o, j) => <li key={j}>{o}</li>)}</ul>}
                 <button className="text-xs text-emerald-700 underline mt-1" onClick={() => setReveal({ ...reveal, [i]: !reveal[i] })}>{reveal[i] ? t("隐藏答案") : t("看答案")}</button>
                 {reveal[i] && <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.answer}<br /><span className="text-slate-600">{q.explanation}</span></p>}

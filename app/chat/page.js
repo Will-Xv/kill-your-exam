@@ -1,7 +1,7 @@
 "use client";
 import { useT } from "@/components/I18n";
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 export default function Chat() {
@@ -72,7 +72,7 @@ export default function Chat() {
             <p key={i} className="text-center text-xs text-emerald-700">⚙️ {m.content}</p>
           ) : (
             <div key={i} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "ml-auto bg-emerald-600 text-white" : "bg-white border border-slate-200"}`}>
-              {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <div className="prose-zh"><ReactMarkdown>{m.content}</ReactMarkdown></div>}
+              {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <MD className="prose-zh">{m.content}</MD>}
             </div>
           )
         )}
