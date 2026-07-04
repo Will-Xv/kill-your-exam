@@ -192,7 +192,7 @@ export default function Welcome() {
     { type: "leaf", scene: 2, title: fe[1][1], desc: fe[1][2] },
     { type: "leaf", scene: 3, title: fe[2][1], desc: fe[2][2] },
     { type: "leaf", scene: 4, title: fe[3][1], desc: fe[3][2] },
-    { type: "leaf", scene: 5, title: "Kill Your Exams!", desc: t.ctaS },
+    { type: "leaf", scene: 5, title: "Kill Your Exam!", desc: t.ctaS },
   ];
 
   useEffect(() => {
