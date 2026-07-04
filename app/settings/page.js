@@ -108,8 +108,8 @@ export default function Settings() {
       </div>
       <a href="/collector" className="card card-hover flex items-center justify-between">
         <div>
-          <h2 className="font-semibold">🧲 {t("浏览器采集 / Agent")}</h2>
-          <p className="text-xs text-stone-500">{t("用扩展把网页资料采进资料库,或让 agent 自动采集")}</p>
+          <h2 className="font-semibold">🧲 {t("浏览器采集扩展")}</h2>
+          <p className="text-xs text-stone-500">{t("安装扩展、拿采集令牌,把网页资料采进资料库")}</p>
         </div>
         <span className="text-slate-300">→</span>
       </a>
