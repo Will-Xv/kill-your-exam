@@ -69,169 +69,99 @@ function Dots({ className, style }) {
 export default function Welcome() {
   const [lang, setLang] = useState("en");
   const [scrolled, setScrolled] = useState(false);
-  const mockRef = useRef(null);
-  const canvasRef = useRef(null);
-  const mouse = useRef({ x: 0, y: 0 });
-  const prog = useRef(0);
+  const [desktop, setDesktop] = useState(true);
+  const sceneRef = useRef(null);
+  const bookRef = useRef(null);
 
   useEffect(() => {
     const saved = typeof localStorage !== "undefined" && localStorage.getItem("kye_welcome_lang");
     if (saved && L[saved]) setLang(saved);
   }, []);
+  function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
 
-  // 这是营销页,强制整页深色底(覆盖应用默认的浅色 body 背景),避免滚到底露出浅色
+  // 营销页强制整页深色底
   useEffect(() => {
     const b = document.body.style.background, h = document.documentElement.style.background;
     document.body.style.background = "#04201f";
     document.documentElement.style.background = "#04201f";
     return () => { document.body.style.background = b; document.documentElement.style.background = h; };
   }, []);
-  function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
-
-  // mouse position for parallax
-  useEffect(() => {
-    const onMove = (e) => { mouse.current = { x: e.clientX / window.innerWidth - 0.5, y: e.clientY / window.innerHeight - 0.5 }; };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
-
-  // smooth inertia scroll (desktop) + scroll-scrub + mouse parallax
-  useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 768px) and (pointer: fine)").matches;
-    const content = document.getElementById("kye-smooth");
-    let raf = 0, cur = window.scrollY, run = true;
-    const setHeight = () => { if (desktop && content) document.body.style.height = content.scrollHeight + "px"; };
-    const html = document.documentElement;
-    const prevOX = html.style.overflowX;
-    html.style.overflowX = "hidden";
-    if (desktop && content) {
-      content.style.position = "fixed"; content.style.top = "0"; content.style.left = "0";
-      content.style.width = "100%"; content.style.willChange = "transform";
-      setHeight();
-    }
-    const loop = () => {
-      if (!run) return;
-      raf = requestAnimationFrame(loop);
-      const vh = window.innerHeight;
-      cur += (window.scrollY - cur) * (desktop ? 0.09 : 1);
-      setScrolled(cur > 24);
-      prog.current = Math.max(0, Math.min(1, cur / (vh * 2.2)));
-      if (desktop && content) content.style.transform = `translate3d(0,${(-cur).toFixed(2)}px,0)`;
-      const mx = mouse.current.x, my = mouse.current.y;
-      const bg = document.getElementById("kye-bg");
-      if (bg) bg.style.transform = `translate3d(${(mx * -30).toFixed(1)}px,${(cur * 0.16 + my * -20).toFixed(1)}px,0)`;
-      document.querySelectorAll("[data-scrub]").forEach((el) => {
-        const r = el.getBoundingClientRect();
-        let p = (vh - r.top) / (vh * 0.62);
-        p = Math.max(0, Math.min(1, p));
-        const floor = parseFloat(el.dataset.floor || "0");
-        const dist = parseFloat(el.dataset.dist || "44");
-        const dir = el.dataset.dir || "up";
-        const mxf = parseFloat(el.dataset.mx || "0");
-        const k = (1 - p) * dist;
-        let x = mx * mxf, y = 0;
-        if (dir === "up") y += k; else if (dir === "down") y -= k;
-        else if (dir === "left") x -= k; else if (dir === "right") x += k;
-        el.style.opacity = (floor + (1 - floor) * p).toFixed(3);
-        el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
-      });
-    };
-    loop();
-    const onResize = () => setHeight();
-    window.addEventListener("resize", onResize);
-    const ht = setTimeout(setHeight, 300);
-    return () => {
-      run = false; cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); clearTimeout(ht);
-      if (desktop && content) { content.style.position = ""; content.style.transform = ""; content.style.width = ""; }
-      document.body.style.height = "";
-      html.style.overflowX = prevOX;
-    };
-  }, [lang]);
-
-  // 3D flipping book (desktop only; graceful no-op if it fails)
-  useEffect(() => {
-    if (!window.matchMedia("(min-width: 768px) and (pointer: fine)").matches) return;
-    let raf = 0, run = true, renderer = null, cleanupResize = () => {};
-    const load = () => new Promise((res, rej) => {
-      if (window.THREE) return res(window.THREE);
-      const sc = document.createElement("script");
-      sc.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
-      sc.onload = () => res(window.THREE); sc.onerror = rej; document.head.appendChild(sc);
-    });
-    (async () => {
-      let THREE; try { THREE = await load(); } catch { return; }
-      const canvas = canvasRef.current; if (!canvas || !run) return;
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
-      cam.position.z = 12;
-      const g = new THREE.Group();
-      const emMat = new THREE.MeshStandardMaterial({ color: 0x0e9f70, metalness: 0.25, roughness: 0.45, emissive: 0x063f39, emissiveIntensity: 0.24 });
-      const paperMat = new THREE.MeshStandardMaterial({ color: 0xeef6f3, roughness: 0.92 });
-      const pages = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.82, 0.8), paperMat);
-      const frontPivot = new THREE.Group(); frontPivot.position.set(-1.5, 0, 0.42);
-      const frontCover = new THREE.Mesh(new THREE.BoxGeometry(3.0, 4.02, 0.09), emMat); frontCover.position.x = 1.5; frontPivot.add(frontCover);
-      const backPivot = new THREE.Group(); backPivot.position.set(-1.5, 0, -0.42);
-      const backCover = new THREE.Mesh(new THREE.BoxGeometry(3.0, 4.02, 0.09), emMat); backCover.position.x = 1.5; backPivot.add(backCover);
-      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.16, 4.02, 0.95), emMat); spine.position.x = -1.5;
-      g.add(pages, frontPivot, backPivot, spine); scene.add(g);
-      scene.add(new THREE.AmbientLight(0x9fdccb, 0.55));
-      const l1 = new THREE.PointLight(0x5eead4, 0.95); l1.position.set(6, 6, 8); scene.add(l1);
-      const l2 = new THREE.PointLight(0x38bdf8, 0.7); l2.position.set(-8, -4, 4); scene.add(l2);
-      const l3 = new THREE.DirectionalLight(0xffffff, 0.6); l3.position.set(2, 5, 7); scene.add(l3);
-      const resize = () => { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
-      resize(); window.addEventListener("resize", resize); cleanupResize = () => window.removeEventListener("resize", resize);
-      let mxE = 0, myE = 0, tt = 0;
-      const frame = () => {
-        if (!run) return;
-        raf = requestAnimationFrame(frame);
-        mxE += (mouse.current.x - mxE) * 0.05; myE += (mouse.current.y - myE) * 0.05;
-        const pr = prog.current;
-        const flip = Math.min(pr / 0.5, 1);
-        const openP = Math.max(0, Math.min((pr - 0.5) / 0.22, 1));
-        const fade = Math.max(0, Math.min((pr - 0.72) / 0.2, 1));
-        g.rotation.x = flip * Math.PI * 6 + myE * 0.3 * (1 - openP);
-        g.rotation.y = (0.6 + Math.sin(tt * 0.5) * 0.14) * (1 - openP) + mxE * 0.7 * (1 - openP);
-        g.position.x = 3.0 * (1 - flip) + mxE * 0.8 * (1 - openP);
-        g.position.y = 0.3 * (1 - flip) + Math.sin(tt * 0.8) * 0.14 * (1 - fade) - fade * 1.6;
-        g.scale.setScalar(0.9 + openP * 0.12 - fade * 0.25);
-        frontPivot.rotation.y = -openP * 2.5;
-        backPivot.rotation.y = openP * 2.5;
-        cam.position.x = mxE * 1.2; cam.lookAt(0, 0, 0);
-        canvas.style.opacity = (0.96 * (1 - fade)).toFixed(3);
-        renderer.render(scene, cam);
-        tt += 0.016;
-      };
-      frame();
-    })();
-    return () => { run = false; cancelAnimationFrame(raf); cleanupResize(); if (renderer && renderer.dispose) renderer.dispose(); };
-  }, []);
-
-  function tilt(e) {
-    const el = mockRef.current; if (!el) return;
-    const r = el.getBoundingClientRect();
-    const rx = ((e.clientY - r.top) / r.height - 0.5) * -10;
-    const ry = ((e.clientX - r.left) / r.width - 0.5) * 12;
-    el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-  }
-  function untilt() { if (mockRef.current) mockRef.current.style.transform = "perspective(900px) rotateX(0) rotateY(0)"; }
 
   const t = L[lang];
   const rtl = lang === "ar";
+  const feats = t.feats.slice(0, 4);
+  // 书页:封面 + 4 内容页 + tryout
+  const pages = [{ type: "cover" }, ...feats.map((f) => ({ type: "feat", f })), { type: "cta" }];
+
+  // 翻书:滚动驱动。顶部静止 → 空翻两圈 → 逐页翻 → tryout
+  useEffect(() => {
+    const isDesk = window.matchMedia("(min-width: 821px) and (pointer: fine)").matches;
+    setDesktop(isDesk);
+    if (!isDesk) return;
+    const scene = sceneRef.current, book = bookRef.current;
+    if (!scene || !book) return;
+    const leaves = [...book.querySelectorAll(".fb-leaf")];
+    const flips = leaves.length - 1;
+    const somerEnd = 0.12;
+    let raf = 0;
+    const upd = () => {
+      raf = 0;
+      const total = Math.max(1, scene.offsetHeight - window.innerHeight);
+      const p = Math.max(0, Math.min(1, -scene.getBoundingClientRect().top / total));
+      setScrolled(window.scrollY > 24);
+      book.style.transform = `rotateX(${(p < somerEnd ? (p / somerEnd) * 720 : 0).toFixed(1)}deg)`;
+      const segLen = (1 - somerEnd) / flips;
+      leaves.forEach((leaf, i) => {
+        if (i === leaves.length - 1) { leaf.style.transform = "rotateY(0deg)"; leaf.style.zIndex = "0"; return; }
+        const local = Math.max(0, Math.min(1, (p - (somerEnd + i * segLen)) / segLen));
+        leaf.style.transform = `rotateY(${(-178 * local).toFixed(1)}deg)`;
+        leaf.style.zIndex = String(local < 0.5 ? 100 - i : 10 + i);
+      });
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(upd); };
+    upd();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    const tm = setTimeout(upd, 120);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); clearTimeout(tm); };
+  }, [lang, desktop]);
+
+  function Front({ pg, i }) {
+    if (pg.type === "cover") return (
+      <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-800 p-8 text-center">
+        <p className="rounded-full bg-white/15 px-3 py-1 text-xs text-emerald-50 ring-1 ring-white/20">✨ {t.badge}</p>
+        <h1 className="font-hero mt-6 text-5xl leading-[1.05]">{t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span></h1>
+        <p className="mt-5 max-w-xs text-sm text-emerald-50/90">{t.sub}</p>
+        <p className="mt-8 animate-bounce text-emerald-100/80">↓</p>
+      </div>
+    );
+    if (pg.type === "cta") return (
+      <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-cyan-700 p-8 text-center">
+        <h2 className="font-hero text-4xl leading-tight text-white">{t.ctaT}</h2>
+        <p className="mt-4 max-w-xs text-emerald-50">{t.ctaS}</p>
+        <a href="/" className="mt-7 rounded-2xl bg-white px-8 py-3 text-lg font-bold text-emerald-800 shadow-lg transition hover:-translate-y-0.5">{t.ctaB} →</a>
+      </div>
+    );
+    const f = pg.f;
+    return (
+      <div className="flex h-full flex-col justify-center bg-gradient-to-br from-[#0d322d] to-[#081f1d] p-9">
+        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/10 text-4xl ring-1 ring-white/15">{f[0]}</div>
+        <h3 className="font-hero mt-5 text-3xl text-white">{f[1]}</h3>
+        <p className="mt-3 text-[15px] leading-relaxed text-slate-300">{f[2]}</p>
+        <div className="mt-auto pt-6 text-xs text-slate-500">{i} / {pages.length - 1}</div>
+      </div>
+    );
+  }
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="relative min-h-screen overflow-x-clip text-white">
+    <div dir={rtl ? "rtl" : "ltr"} className="relative text-white">
       <div className="fixed inset-0 bg-[#04201f]" style={{ zIndex: -20 }} />
-      <div id="kye-bg" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden will-change-transform">
-        <div className="kye-blob h-96 w-96 bg-emerald-500/40" style={{ top: "-6rem", left: "-4rem", animation: "kyeFloat 11s ease-in-out infinite" }} />
-        <div className="kye-blob h-[28rem] w-[28rem] bg-cyan-500/30" style={{ top: "18%", right: "-8rem", animation: "kyeDrift 15s ease-in-out infinite" }} />
-        <div className="kye-blob h-80 w-80 bg-teal-400/30" style={{ bottom: "-6rem", left: "28%", animation: "kyeFloat2 13s ease-in-out infinite" }} />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(45,212,191,.16),transparent_60%)]" />
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: -10 }}>
+        <div className="kye-blob h-96 w-96 bg-emerald-500/40" style={{ top: "-6rem", left: "-4rem", animation: "kyeFloat 12s ease-in-out infinite" }} />
+        <div className="kye-blob h-[28rem] w-[28rem] bg-cyan-500/25" style={{ top: "20%", right: "-8rem", animation: "kyeDrift 16s ease-in-out infinite" }} />
+        <div className="kye-blob h-80 w-80 bg-teal-400/25" style={{ bottom: "-6rem", left: "30%", animation: "kyeFloat2 14s ease-in-out infinite" }} />
       </div>
-      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0" style={{ zIndex: -5 }} />
 
-      {/* sticky frosted nav */}
       <header className={"fixed inset-x-0 top-0 z-50 transition-all duration-300 " + (scrolled ? "bg-[#04201f]/70 backdrop-blur-xl ring-1 ring-white/10" : "")}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2 text-xl font-black">📘 Kill Your <span className="text-emerald-300">Exam</span></div>
@@ -244,107 +174,32 @@ export default function Welcome() {
         </div>
       </header>
 
-      <div id="kye-smooth" className="relative z-0">
-      {/* hero */}
-      <section className="relative mx-auto max-w-6xl px-6 pt-32 pb-24 text-center md:pt-40">
-        <Dots className="left-0 top-24 h-40 w-40 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
-        <p data-scrub data-floor="0" data-mx="30" className="mx-auto mb-6 w-fit rounded-full bg-white/10 px-4 py-1.5 text-sm text-emerald-200 ring-1 ring-white/15">✨ {t.badge}</p>
-        <h1 data-scrub data-floor="0.15" data-dir="left" data-dist="60" data-mx="16" className="font-hero text-6xl leading-[1.04] tracking-tight md:text-8xl">
-          {t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span>
-        </h1>
-        <p data-scrub data-dir="right" data-dist="60" data-mx="-18" className="mx-auto mt-8 max-w-2xl text-lg text-slate-300 md:text-xl">{t.sub}</p>
-        <div data-scrub className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <a href="/" className="group rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-8 py-4 text-lg font-bold text-emerald-950 shadow-xl shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:shadow-2xl">
-            {t.start} <span className="inline-block transition group-hover:translate-x-1">→</span>
-          </a>
-        </div>
-        <div data-scrub className="mx-auto mt-16 grid max-w-xl grid-cols-3 gap-4 text-center">
-          {[["7", t.s1], ["100%", t.s2], ["24/7", t.s3]].map(([a, b]) => (
-            <div key={b} className="rounded-2xl bg-white/5 py-4 ring-1 ring-white/10"><div className="font-hero text-3xl">{a}</div><div className="mt-1 text-xs text-slate-400">{b}</div></div>
-          ))}
-        </div>
-      </section>
-
-      {/* why — nanfu-style split with glowing app mock + scroll-scrubbed reasons */}
-      <section aria-hidden="true" className="h-[130vh]" />
-
-      <section className="relative mx-auto grid max-w-6xl items-center gap-12 overflow-hidden px-6 py-24 md:grid-cols-2">
-        <Dots className="-right-10 bottom-0 h-56 w-56 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
-        <div data-scrub data-dir="left" data-dist="80" className="mx-auto w-full max-w-md">
-        <div ref={mockRef} onMouseMove={tilt} onMouseLeave={untilt} className="relative transition-transform duration-200 will-change-transform">
-          <div className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-emerald-400/30 to-cyan-400/20 blur-2xl" />
-          <div className="relative rounded-[2rem] bg-[#0a2b2a] p-5 ring-1 ring-white/10 shadow-2xl">
-            <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white">
-              <div className="text-lg font-black">MAT235 midterm</div>
-              <div className="mt-1 text-emerald-100 text-sm">Kill in <span className="font-hero text-3xl align-middle text-white">2</span> days</div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                {[["12","today"],["86%","acc."],["7","streak"]].map(([a,b])=>(<div key={b} className="rounded-xl bg-white/10 py-2"><div className="font-bold">{a}</div><div className="text-emerald-100/80">{b}</div></div>))}
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              {["✓  Review due mistakes","2  Vectors & planes","3  Free practice (0/10)"].map((r,i)=>(
-                <div key={i} className={"rounded-xl px-3 py-2.5 text-sm ring-1 " + (i===0?"bg-emerald-500/15 text-emerald-200 ring-emerald-400/20":"bg-white/5 text-slate-300 ring-white/10")}>{r}</div>
+      {desktop ? (
+        <section ref={sceneRef} style={{ height: `${pages.length * 108}vh` }} className="relative">
+          <div className="fb-stage">
+            <div ref={bookRef} className="fb-book">
+              {pages.map((pg, i) => (
+                <div key={i} className="fb-leaf" style={{ zIndex: pages.length - i }}>
+                  <div className="fb-face"><Front pg={pg} i={i} /></div>
+                  <div className="fb-face fb-back" style={{ background: "linear-gradient(90deg,#0b3b34,#0e463d)" }} />
+                </div>
               ))}
             </div>
           </div>
-        </div>
-        </div>
-        <div>
-          <h2 data-scrub data-floor="0.12" data-dir="right" data-dist="60" className="font-hero text-4xl md:text-6xl">{t.whyT}</h2>
-          <div className="mt-8 space-y-7">
-            {t.why.map((w, i) => (
-              <div key={i} data-scrub data-dir="right" data-dist="50" className="border-l-2 border-emerald-400/60 pl-5 rtl:border-l-0 rtl:border-r-2 rtl:pr-5 rtl:pl-0">
-                <h3 className="text-xl font-bold text-emerald-200">{w[0]}</h3>
-                <p className="mt-1 text-slate-300">{w[1]}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* features */}
-      <section id="features" className="mx-auto max-w-6xl px-6 py-24">
-        <h2 data-scrub data-floor="0.12" className="font-hero text-center text-4xl md:text-5xl">{t.featT}</h2>
-        <p data-scrub className="mx-auto mt-3 max-w-xl text-center text-slate-400">{t.featS}</p>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {t.feats.map((f, i) => (
-            <div key={i} data-scrub data-dir={["left","up","right"][i%3]} data-dist="56" className="kye-card rounded-3xl bg-white/[0.04] p-6 ring-1 ring-white/10 backdrop-blur">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-cyan-500/20 text-3xl ring-1 ring-white/15">{f[0]}</div>
-              <h3 className="mt-4 text-xl font-bold">{f[1]}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{f[2]}</p>
+        </section>
+      ) : (
+        <div className="mx-auto max-w-md space-y-5 px-5 pb-16 pt-24">
+          {pages.map((pg, i) => (
+            <div key={i} className="overflow-hidden rounded-3xl ring-1 ring-white/10">
+              <div className="min-h-[60vh]"><Front pg={pg} i={i} /></div>
             </div>
           ))}
         </div>
-      </section>
+      )}
 
-      {/* steps */}
-      <section className="mx-auto max-w-6xl px-6 py-24">
-        <h2 data-scrub data-floor="0.12" className="font-hero text-center text-4xl md:text-5xl">{t.stepT}</h2>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {t.steps.map((s, i) => (
-            <div key={i} data-scrub data-dir={["left","up","right"][i%3]} data-dist="56" className="rounded-3xl bg-white/5 p-8 ring-1 ring-white/10">
-              <div className="font-hero text-6xl text-emerald-300/40">{i + 1}</div>
-              <h3 className="mt-2 text-2xl font-bold">{s[0]}</h3>
-              <p className="mt-2 text-slate-300">{s[1]}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* final cta */}
-      <section className="mx-auto max-w-4xl px-6 py-24 text-center">
-        <div data-scrub className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 p-12 ring-1 ring-white/15 backdrop-blur">
-          <Dots className="right-4 top-4 h-40 w-40 opacity-30 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
-          <h2 className="font-hero text-4xl md:text-6xl">{t.ctaT}</h2>
-          <p className="mx-auto mt-4 max-w-xl text-slate-300">{t.ctaS}</p>
-          <a href="/" className="mt-8 inline-block rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-10 py-4 text-lg font-bold text-emerald-950 shadow-xl shadow-emerald-500/30 transition hover:-translate-y-0.5">{t.ctaB} →</a>
-        </div>
-      </section>
-
-      <footer className="mx-auto max-w-6xl px-6 py-10 text-center text-sm text-slate-500">
+      <footer className="relative z-10 mx-auto max-w-6xl px-6 py-10 text-center text-sm text-slate-500">
         © 2026 Kill Your Exam · <a href="/privacy" className="underline hover:text-slate-300">{t.priv}</a> · <a href="/" className="underline hover:text-slate-300">{t.enter}</a>
       </footer>
-      </div>
     </div>
   );
 }
