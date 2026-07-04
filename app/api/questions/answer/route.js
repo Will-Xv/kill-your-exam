@@ -1,12 +1,12 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generateJson, langInstruction } from "@/lib/gemini";
+import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemini";
 import { updateReviewQueue } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
   try {
-    const { questionId, userAnswer, mode = "practice" } = await req.json();
+    const { questionId, userAnswer, mode = "practice", attachments } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
     if (!q) return Response.json({ error: "not found" }, { status: 404 });
     const { user, exam } = await requireUser();
@@ -15,17 +15,20 @@ export async function POST(req) {
     const ans = JSON.parse(q.answer);
     let correct, score, feedback = "";
     if (q.qtype === "short") {
-      const g = await generateJson(
-        `你是阅卷老师。题目:${JSON.parse(q.body).stem}
+      const gradeSchema = { type: "object", properties: { score: { type: "integer" }, feedback: { type: "string" } }, required: ["score", "feedback"] };
+      const gradePrompt = `你是阅卷老师。题目:${JSON.parse(q.body).stem}
 评分要点:${ans.answer}
-考生答案:${userAnswer || "(未作答)"}
-按要点给 0~100 分,并指出答对了什么、缺了什么。` + langInstruction(user.lang),
-        {
-          type: "object",
-          properties: { score: { type: "integer" }, feedback: { type: "string" } },
-          required: ["score", "feedback"]
-        }
-      );
+考生答案:${userAnswer || "(见附件)"}
+${attachments && attachments.length ? "考生以图片/文件形式作答(见附件),请识别其中内容再评分。" : ""}
+按要点给 0~100 分,并指出答对了什么、缺了什么。数学公式用 $...$ 包裹。` + langInstruction(user.lang);
+      const ap = attachParts(attachments);
+      let g;
+      if (ap.length) {
+        const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }].concat(ap) }], jsonSchema: gradeSchema });
+        g = JSON.parse(res.text);
+      } else {
+        g = await generateJson(gradePrompt, gradeSchema);
+      }
       score = Math.max(0, Math.min(100, g.score));
       correct = score >= 60 ? 1 : 0;
       feedback = g.feedback;

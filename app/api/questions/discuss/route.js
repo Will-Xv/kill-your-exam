@@ -1,6 +1,6 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generate, langInstruction } from "@/lib/gemini";
+import { generate, langInstruction, attachParts } from "@/lib/gemini";
 import { retrieve, ragBlock } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -11,7 +11,7 @@ export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    const { questionId, userAnswer, history } = await req.json();
+    const { questionId, userAnswer, history, attachments } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
     if (!q || !exam || q.exam_id !== exam.id) return forbidden();
     const body = JSON.parse(q.body), ans = JSON.parse(q.answer);
@@ -36,6 +36,8 @@ ${body.options?.length ? "选项:" + body.options.join(" | ") : ""}
 ${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
 
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
+    const ap = attachParts(attachments);
+    if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: contents[contents.length - 1].parts[0].text }, ...ap];
     const res = await generate(null, { contents, system });
     const reply = res.text || "(未生成回复)";
     return Response.json({ reply });

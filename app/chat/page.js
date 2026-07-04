@@ -2,6 +2,7 @@
 import { useT } from "@/components/I18n";
 import { useEffect, useRef, useState } from "react";
 import MD from "@/components/MD";
+import { filesToAttachments } from "@/lib/attach";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 export default function Chat() {
@@ -9,6 +10,7 @@ export default function Chat() {
   const aiFetch = useAiFetch();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(null); // { token, actions, approve:{idx:bool} }
   const [bjobs, setBjobs] = useState([]);
@@ -35,11 +37,12 @@ export default function Chat() {
 
   async function send(textOverride) {
     const text = (textOverride || input).trim();
-    if (!text || busy || pending) return;
-    setInput("");
-    setMessages((m) => [...m, { role: "user", content: text }]);
+    if ((!text && !files.length) || busy || pending) return;
+    const attachments = await filesToAttachments(files);
+    setInput(""); setFiles([]);
+    setMessages((m) => [...m, { role: "user", content: text + (attachments.length ? " 📎" + attachments.length : "") }]);
     setBusy(true);
-    try { applyResult(await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) })); }
+    try { applyResult(await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments }) })); }
     catch { setMessages((m) => m.slice(0, -1)); setInput(text); }
     setBusy(false);
   }
@@ -106,9 +109,11 @@ export default function Chat() {
         {busy && <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-400 animate-pulse">{t("正在思考(可能需要查资料/改文档,请稍候)…")}</div>}
         <div ref={bottom} />
       </div>
+      {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}
       <div className="flex gap-2 pt-2">
+        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt" /></label>
         <input className="input flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…")} disabled={!!pending} />
-        <button className="btn" onClick={() => send()} disabled={busy || !input.trim() || !!pending}>{t("发送")}</button>
+        <button className="btn" onClick={() => send()} disabled={busy || (!input.trim() && !files.length) || !!pending}>{t("发送")}</button>
       </div>
     </div>
   );

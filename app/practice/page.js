@@ -5,6 +5,7 @@ import { useAiFetch } from "@/components/AiErrorDialog";
 import { useT } from "@/components/I18n";
 import SourceBadge from "@/components/SourceBadge";
 import MD from "@/components/MD";
+import { filesToAttachments } from "@/lib/attach";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 
@@ -28,6 +29,8 @@ function PracticeInner() {
   const [discuss, setDiscuss] = useState(null); // null | array of {role,content}
   const [dInput, setDInput] = useState("");
   const [dBusy, setDBusy] = useState(false);
+  const [aFiles, setAFiles] = useState([]);
+  const [dFiles, setDFiles] = useState([]);
   const bottom = useRef(null);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
 
@@ -46,7 +49,8 @@ function PracticeInner() {
     const ans = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
     setBusy(true);
     try {
-      const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans }) });
+      const attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
+      const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
       setResult(d); setDone((arr) => [...arr, d.correct]);
     } catch {}
     setBusy(false);
@@ -65,12 +69,13 @@ function PracticeInner() {
     setResult(null); setSel([]); setText(""); setReportOpen(false); setReportNote(""); setIdx((i) => i + 1);
   }
   async function sendDiscuss() {
-    const msg = dInput.trim(); if (!msg || dBusy) return;
+    const msg = dInput.trim(); if ((!msg && !dFiles.length) || dBusy) return;
     const ua = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
-    const hist = [...(discuss || []), { role: "user", content: msg }];
-    setDiscuss(hist); setDInput(""); setDBusy(true);
+    const attachments = await filesToAttachments(dFiles);
+    const hist = [...(discuss || []), { role: "user", content: (msg || "(见附件)") + (attachments.length ? " 📎" + attachments.length : "") }];
+    setDiscuss(hist); setDInput(""); setDFiles([]); setDBusy(true);
     try {
-      const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ua, history: hist }) });
+      const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ua, history: hist, attachments }) });
       setDiscuss([...hist, { role: "model", content: d.reply }]);
     } catch { setDiscuss(hist); }
     setDBusy(false);
@@ -134,6 +139,12 @@ function PracticeInner() {
           </div>
         )}
         {!isChoice && <textarea className="input mt-3" rows={q.qtype === "short" ? 5 : 2} placeholder={q.qtype === "short" ? t("写下你的回答(口语化也行)") : t("填写答案")} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />}
+        {q.qtype === "short" && !result && (
+          <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+            <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setAFiles([...e.target.files])} /></label>
+            {aFiles.length > 0 && <span>{aFiles.length} {t("个文件")} <button className="underline" onClick={() => setAFiles([])}>{t("清除")}</button></span>}
+          </div>
+        )}
       </div>
 
       {result && (
@@ -168,9 +179,11 @@ function PracticeInner() {
             {dBusy && <div className="max-w-[88%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400 animate-pulse">{t("思考中…")}</div>}
             <div ref={bottom} />
           </div>
+          {dFiles.length > 0 && <p className="text-xs text-slate-500 mt-2">📎 {dFiles.length} {t("个文件")} <button className="underline" onClick={() => setDFiles([])}>{t("清除")}</button></p>}
           <div className="mt-2 flex gap-2">
+            <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片")}>📎<input type="file" multiple hidden accept="image/*,.pdf,.txt" onChange={(e) => setDFiles([...e.target.files])} /></label>
             <input className="input flex-1" value={dInput} onChange={(e) => setDInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendDiscuss()} placeholder={t("例如:我觉得我这样答也对,因为…")} />
-            <button className="btn px-4" onClick={sendDiscuss} disabled={dBusy || !dInput.trim()}>{t("发送")}</button>
+            <button className="btn px-4" onClick={sendDiscuss} disabled={dBusy || (!dInput.trim() && !dFiles.length)}>{t("发送")}</button>
           </div>
         </div>
       )}

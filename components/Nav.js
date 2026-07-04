@@ -14,8 +14,10 @@ const more = [
   { href: "/mock", label: "模拟考", icon: "📝", desc: "限时全真模拟" },
   { href: "/prep", label: "考前准备", icon: "🎒", desc: "考务/应试自测" },
   { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
+  { href: "/profile", label: "整体画像", icon: "🧭", desc: "跨考试综合评估" },
   { href: "/materials", label: "资料", icon: "📚", desc: "上传/网页采集" },
-  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
+  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" },
+  { href: "/feedback", label: "意见反馈", icon: "✉️", desc: "把问题/建议发给开发者" }
 ];
 
 export default function Nav() {
