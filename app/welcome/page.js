@@ -247,7 +247,7 @@ export default function Welcome() {
         const zoom = clamp((fin - 0.66) / 0.20);   // 长时间停留看清后才放大(突脸)
         const ty = (62 - rise * 88).toFixed(0);   // 62% -> -26%
         const sc = (0.95 + rise * 0.37 + zoom * 1.15).toFixed(3); // 停留~1.32,突脸~2.5
-        const fade = clamp((fin - 0.72) / 0.16);   // 放大之后才淡出
+        const fade = clamp((fin - 0.80) / 0.14);   // 放大后停留更久,更晚才虚化淡出
         fs.style.transform = `translate(-50%, ${ty}%) scale(${sc})`;
         fs.style.opacity = fin < 0.06 ? "0" : (1 - fade).toFixed(2);
       }
