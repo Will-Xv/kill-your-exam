@@ -77,7 +77,7 @@ export default function Home() {
         <div className="relative z-10 mt-4 grid grid-cols-3 gap-3 text-center">
           <div className="rounded-2xl bg-[#3d2b10]/[0.06] py-2 ring-1 ring-[#dbc999]"><div className="text-xl font-bold">{stats.todayCount}</div><div className="text-[11px] text-[#7a5a2a]">{t("今日做题")}</div></div>
           <div className="rounded-2xl bg-[#3d2b10]/[0.06] py-2 ring-1 ring-[#dbc999]"><div className="text-xl font-bold">{acc == null ? "—" : acc + "%"}</div><div className="text-[11px] text-[#7a5a2a]">{t("总正确率")}</div></div>
-          <Link href="/materials" className="block rounded-2xl bg-[#2f2413]/72 py-2 ring-1 ring-[#2f2413]/30 transition hover:bg-[#2f2413]/85"><div className="text-xl font-bold text-[#f6efdd]" style={{ textShadow: "0 1px 3px rgba(0,0,0,.6)" }}>{stats.matCount}</div><div className="text-[11px] text-[#ecdcb6]" style={{ textShadow: "0 1px 2px rgba(0,0,0,.55)" }}>{t("资料数")}</div></Link>
+          <Link href="/materials" className="block rounded-2xl py-2 ring-1 ring-black/10 transition hover:brightness-110" style={{ background: "rgba(47,36,19,.78)" }}><div className="text-xl font-bold text-[#f6efdd]" style={{ textShadow: "0 1px 3px rgba(0,0,0,.65)" }}>{stats.matCount}</div><div className="text-[11px] text-[#ecdcb6]" style={{ textShadow: "0 1px 2px rgba(0,0,0,.6)" }}>{t("资料数")}</div></Link>
         </div>
       </div>
 
