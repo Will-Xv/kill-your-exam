@@ -259,7 +259,10 @@ export default function Welcome() {
           <div className="relative flex h-full flex-col p-7">
             <h3 className="font-hero text-center text-2xl" style={{ color: INK }}>{pg.title}</h3>
             <div className="mx-auto mt-1 h-px w-24" style={{ background: INK, opacity: .5 }} />
-            <div className="mt-2 flex-1"><InkScene i={pg.scene} /></div>
+            <div className="relative mt-2 flex-1">
+              <InkScene i={pg.scene} />
+              <img src={`/illustrations/${pg.scene}.png`} alt="" className="absolute inset-0 h-full w-full object-contain" style={{ mixBlendMode: "multiply" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            </div>
             <div className="text-center text-[11px] tracking-widest" style={{ opacity: .6 }}>· {pages.findIndex((x) => x === pg)} / {pages.length - 1} ·</div>
           </div>
         )}
