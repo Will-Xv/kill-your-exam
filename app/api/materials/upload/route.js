@@ -2,6 +2,7 @@ import db from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { parseUpload } from "@/lib/parse";
 import { indexMaterial, afterMaterialsChanged } from "@/lib/rag";
+import { augmentKnowledgeTree } from "@/lib/generators";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveMat, delMat, guessMime, kindOf } from "@/lib/files";
 
@@ -42,7 +43,8 @@ export async function POST(req) {
       }
     }
     db.prepare("UPDATE materials SET status='ready' WHERE id=?").run(materialId);
-    await afterMaterialsChanged(examId); // 重算覆盖度 + 刷新今日计划
+    try { const exRow = db.prepare("SELECT id FROM exams WHERE id=?").get(examId); if (exRow) await augmentKnowledgeTree(exRow, user.lang); } catch {} // 按新资料补充知识点(学习目标增)
+    await afterMaterialsChanged(examId); // 重算覆盖度/掌握度 + 刷新今日计划
     return Response.json({ ok: true, materialId, chunks });
   } catch (e) {
     const msg = String(e?.message || e).slice(0, 300);

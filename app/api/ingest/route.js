@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { indexMaterial, afterMaterialsChanged } from "@/lib/rag";
+import { augmentKnowledgeTree } from "@/lib/generators";
 import { getActiveExam } from "@/lib/db";
 import { aiErrorResponse } from "@/lib/errors";
 import { parseUpload } from "@/lib/parse";
@@ -57,7 +58,8 @@ export async function POST(req) {
         saved++;
       } catch {}
     }
-    await afterMaterialsChanged(exam.id); // 重算覆盖度 + 刷新今日计划
+    try { await augmentKnowledgeTree(exam, user.lang); } catch {}
+    await afterMaterialsChanged(exam.id); // 重算覆盖度/掌握度 + 刷新今日计划
     return Response.json({ ok: true, chunks, media: saved, exam: exam.name }, { headers: corsHeaders() });
   } catch (e) {
     const r = aiErrorResponse(e);
