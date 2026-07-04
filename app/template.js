@@ -2,17 +2,17 @@
 import { usePathname } from "next/navigation";
 
 const ACCENTS = {
-  "/": "rgba(16,185,129,.16)",
-  "/study": "rgba(56,189,248,.18)",
-  "/practice": "rgba(16,185,129,.18)",
-  "/mock": "rgba(251,146,60,.18)",
-  "/knowledge": "rgba(139,92,246,.18)",
-  "/mistakes": "rgba(244,63,94,.18)",
-  "/materials": "rgba(245,158,11,.18)",
-  "/chat": "rgba(34,211,238,.18)",
-  "/exams": "rgba(100,116,139,.16)",
-  "/settings": "rgba(100,116,139,.16)",
-  "/collector": "rgba(236,72,153,.16)"
+  "/": "rgba(214,178,104,.22)",
+  "/study": "rgba(201,154,78,.22)",
+  "/practice": "rgba(224,186,112,.22)",
+  "/mock": "rgba(230,168,70,.22)",
+  "/knowledge": "rgba(190,146,74,.22)",
+  "/mistakes": "rgba(210,150,80,.22)",
+  "/materials": "rgba(245,196,120,.22)",
+  "/chat": "rgba(222,182,112,.22)",
+  "/exams": "rgba(184,142,82,.20)",
+  "/settings": "rgba(184,142,82,.20)",
+  "/collector": "rgba(212,160,92,.20)"
 };
 
 export default function Template({ children }) {
@@ -22,7 +22,6 @@ export default function Template({ children }) {
   const key = Object.keys(ACCENTS).find((k) => (k === "/" ? path === "/" : path.startsWith(k))) || "/";
   return (
     <div key={path} className="page-enter">
-      <div className="page-accent" style={{ background: `radial-gradient(600px 260px at 50% -60px, ${ACCENTS[key]}, transparent 70%)` }} />
       {children}
     </div>
   );

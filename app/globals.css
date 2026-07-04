@@ -16,14 +16,9 @@
 html { scroll-behavior: smooth; }
 body {
   @apply antialiased;
-  color: #ece0c3;                 /* 深绿底上的默认文字:浅羊皮纸色 */
+  color: #f0e6cd;                 /* 书背深黄上的默认文字:书页浅黄 */
   min-height: 100vh;
-  background:
-    radial-gradient(1100px 720px at 8% -8%, rgba(150,104,42,.50), transparent 55%),
-    radial-gradient(1000px 700px at 100% 0%, rgba(176,128,54,.42), transparent 52%),
-    radial-gradient(900px 800px at 50% 120%, rgba(214,178,104,.20), transparent 55%),
-    linear-gradient(180deg, #2c1f0d, #241a0a);
-  background-attachment: fixed;
+  background: #3d2b10;             /* 书背深黄(单色,无渐变) */
 }
 /* 细点阵纹理层(暖色微光) */
 .app-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -75,7 +70,7 @@ body {
 @keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(201,154,78,.45);} 70%{ box-shadow:0 0 0 12px rgba(201,154,78,0);} 100%{ box-shadow:0 0 0 0 rgba(201,154,78,0);} }
 .pulse-ring { animation: pulseRing 2s infinite; }
 
-.grad-hero { color: #fff; background: radial-gradient(1200px 600px at 15% -10%, #7a5220 0%, transparent 55%), radial-gradient(1000px 520px at 100% 0%, #9a6a24 0%, transparent 48%), radial-gradient(700px 500px at 80% 120%, rgba(214,178,104,.55) 0%, transparent 55%), linear-gradient(180deg,#3c2a12,#2c1f0e); }
+.grad-hero { color: #fff; background: #4a3411; }
 
 /* 页面切换过渡 */
 @keyframes pageEnter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; } }
