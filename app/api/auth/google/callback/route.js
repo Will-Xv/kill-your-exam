@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { createSession, getSessionUser } from "@/lib/auth";
-import { exchangeCode, fetchUserInfo } from "@/lib/googleAuth";
+import { exchangeCode, fetchUserInfo, getOrigin } from "@/lib/googleAuth";
 
 function uniqueUsername(base) {
   let name = (base || "user").replace(/[^A-Za-z0-9_]/g, "").slice(0, 16) || "user";
@@ -20,14 +20,15 @@ function setSession(res, userId) {
 
 export async function GET(req) {
   const url = new URL(req.url);
+  const origin = getOrigin(req);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const cookieState = req.cookies.get("g_oauth_state")?.value;
-  const home = new URL("/", req.url);
+  const home = new URL("/", origin);
 
-  if (url.searchParams.get("error")) return NextResponse.redirect(new URL("/login?err=google_denied", req.url));
+  if (url.searchParams.get("error")) return NextResponse.redirect(new URL("/login?err=google_denied", origin));
   if (!code || !state || !cookieState || state !== cookieState) {
-    return NextResponse.redirect(new URL("/login?err=google_state", req.url));
+    return NextResponse.redirect(new URL("/login?err=google_state", origin));
   }
   const bind = state.split(".")[1] === "1";
 
@@ -36,21 +37,21 @@ export async function GET(req) {
     const tokens = await exchangeCode(req, code);
     profile = await fetchUserInfo(tokens.access_token);
   } catch {
-    return NextResponse.redirect(new URL("/login?err=google_exchange", req.url));
+    return NextResponse.redirect(new URL("/login?err=google_exchange", origin));
   }
   const sub = profile.sub;
   const email = (profile.email || "").toLowerCase();
-  if (!sub) return NextResponse.redirect(new URL("/login?err=google_nosub", req.url));
+  if (!sub) return NextResponse.redirect(new URL("/login?err=google_nosub", origin));
 
   // 绑定到当前已登录账号
   if (bind) {
     const current = await getSessionUser();
     if (current) {
       const taken = db.prepare("SELECT id FROM users WHERE google_sub=? AND id!=?").get(sub, current.id);
-      if (taken) return NextResponse.redirect(new URL("/settings?bind=taken", req.url));
+      if (taken) return NextResponse.redirect(new URL("/settings?bind=taken", origin));
       db.prepare("UPDATE users SET google_sub=?, email=COALESCE(email,?), name=COALESCE(name,?), avatar_url=? WHERE id=?")
         .run(sub, email || null, profile.name || null, profile.picture || null, current.id);
-      const res = NextResponse.redirect(new URL("/settings?bind=ok", req.url));
+      const res = NextResponse.redirect(new URL("/settings?bind=ok", origin));
       res.cookies.delete("g_oauth_state");
       return res;
     }
@@ -76,7 +77,7 @@ export async function GET(req) {
     ).run(username, "", "", isFirst ? 1 : 0, "en", sub, email || null, profile.name || null, profile.picture || null);
     user = db.prepare("SELECT * FROM users WHERE id=?").get(info.lastInsertRowid);
   }
-  if (user.deleted_at) return NextResponse.redirect(new URL("/login?err=account_deleted", req.url));
+  if (user.deleted_at) return NextResponse.redirect(new URL("/login?err=account_deleted", origin));
 
   const res = NextResponse.redirect(home);
   res.cookies.delete("g_oauth_state");

@@ -1,10 +1,10 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { authUrl } from "@/lib/googleAuth";
+import { authUrl, getOrigin } from "@/lib/googleAuth";
 
 export async function GET(req) {
   if (!process.env.GOOGLE_CLIENT_ID) {
-    return NextResponse.redirect(new URL("/login?err=google_not_configured", req.url));
+    return NextResponse.redirect(new URL("/login?err=google_not_configured", getOrigin(req)));
   }
   const url = new URL(req.url);
   const bind = url.searchParams.get("bind") === "1" ? "1" : "0";
