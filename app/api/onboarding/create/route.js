@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { upsertDocument } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 
 // 快速创建考试(不跑 AI),收集完整信息。可传 examId 复用草稿避免重复创建。
@@ -22,12 +22,14 @@ export async function POST(req) {
     if (e) {
       db.prepare("UPDATE exams SET name=?, exam_date=?, daily_minutes=?, exam_type=?, school=?, notes=? WHERE id=?")
         .run(nm, examDate || null, dailyMinutes || 60, examType || null, school || null, notes || null, examId);
+      if (examType === "study") { upsertDocument(examId, "dossier", `# ${nm}\n\n${notes || "(用户只想学习这个主题,无需考试信息)"}`); db.prepare("UPDATE exams SET assess_status='done' WHERE id=?").run(examId); }
       return Response.json({ examId });
     }
   }
   // 归档旧的 active,建新的
   db.prepare("UPDATE exams SET status='archived' WHERE user_id=? AND status='active'").run(user.id);
   const info = db.prepare(`INSERT INTO exams(name,exam_date,daily_minutes,exam_type,school,notes,status,assess_status,user_id)
-    VALUES(?,?,?,?,?,?,'active','pending',?)`).run(nm, examDate || null, dailyMinutes || 60, examType || null, school || null, notes || null, user.id);
+    VALUES(?,?,?,?,?,?,'active',?,?)`).run(nm, examDate || null, dailyMinutes || 60, examType || null, school || null, notes || null, examType === "study" ? "done" : "pending", user.id);
+  if (examType === "study") upsertDocument(info.lastInsertRowid, "dossier", `# ${nm}\n\n${notes || "(用户只想学习这个主题,无需考试信息)"}`);
   return Response.json({ examId: info.lastInsertRowid });
 }

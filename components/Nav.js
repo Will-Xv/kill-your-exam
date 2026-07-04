@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 
 const primary = [
-  { href: "/exams", label: "我的猎杀", icon: "🗂️" },
+  { href: "/exams", label: "追杀计划", icon: "🗂️" },
   { href: "/", label: "首页", icon: "🏠" },
   { href: "/study", label: "学习", icon: "📖" },
   { href: "/chat", label: "问问杀手", icon: "💬" }
 ];
 const more = [
   { href: "/mock", label: "模拟考", icon: "📝", desc: "限时全真模拟" },
-  { href: "/prep", label: "考前准备", icon: "🎒", desc: "考务/应试自测" },
+  { href: "/prep", label: "屠杀准备", icon: "🎒", desc: "考务/应试自测" },
   { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
   { href: "/notes", label: "笔记本", icon: "📓", desc: "收藏的题+随手笔记" },
   { href: "/profile", label: "你的全部杀技", icon: "🧭", desc: "跨考试综合评估" },

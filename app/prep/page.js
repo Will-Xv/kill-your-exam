@@ -25,9 +25,9 @@ export default function Prep() {
   if (!prep) return (
     <div className="mt-16 text-center space-y-4">
       <div className="text-5xl">🎒</div>
-      <h1 className="text-2xl font-black">{t("考前准备与自测")}</h1>
+      <h1 className="text-2xl font-black">{t("屠杀准备与自测")}</h1>
       <p className="text-slate-500">{t("考前该带什么、考场规则、应试技巧——这些不该混进平时知识练习,放在这里,考前再看。")}</p>
-      <button className="btn" onClick={gen} disabled={busy}>{busy ? t("生成中…") : t("生成考前准备")}</button>
+      <button className="btn" onClick={gen} disabled={busy}>{busy ? t("生成中…") : t("生成屠杀准备")}</button>
     </div>
   );
 
@@ -36,7 +36,7 @@ export default function Prep() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black">🎒 {t("考前准备与自测")}</h1>
+        <h1 className="text-2xl font-black">🎒 {t("屠杀准备与自测")}</h1>
         <button className="btn-ghost py-2 text-xs" onClick={gen} disabled={busy}>{busy ? "…" : t("重新生成")}</button>
       </div>
 

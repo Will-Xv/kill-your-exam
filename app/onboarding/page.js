@@ -8,7 +8,8 @@ const TYPES = [
   ["cert", "📜", "职业资格/证书"],
   ["language", "🗣️", "语言考试"],
   ["grad", "🎓", "升学考试"],
-  ["other", "📝", "其他"]
+  ["other", "📝", "其他"],
+  ["study", "📚", "只学习(无需搜索考试信息)"]
 ];
 
 export default function Onboarding() {
@@ -122,7 +123,15 @@ export default function Onboarding() {
         </div>
       )}
 
-      {step === 3 && (
+      {step === 3 && examType === "study" && (
+        <div className="card space-y-3 text-center">
+          <div className="text-4xl">📚</div>
+          <h2 className="font-bold">{t("这是一个「只学习」的目标")}</h2>
+          <p className="text-sm text-slate-500">{t("不需要联网搜索考试信息——名称只作为标题,相关信息以你上传的资料和补充说明为准。AI 会据此直接生成学习地图和计划。(练习题仍会正常出题/搜题)")}</p>
+          <button className="btn w-full" onClick={finalize} disabled={busy}>{t("生成学习地图和计划")}</button>
+        </div>
+      )}
+      {step === 3 && examType !== "study" && (
         <div className="card space-y-3 text-center">
           <div className="text-4xl">🤖</div>
           <h2 className="font-bold">{t("准备好了,让 AI 分析这门考试")}</h2>

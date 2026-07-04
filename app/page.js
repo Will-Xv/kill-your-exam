@@ -56,7 +56,7 @@ export default function Home() {
 
   const features = [
     { href: "/mock", icon: "📝", title: t("模拟考"), desc: t("限时全真模拟"), grad: "from-orange-400 to-rose-500", tint: "hover:border-orange-300 hover:shadow-orange-500/15", ig: "from-orange-50 to-rose-50" },
-    { href: "/prep", icon: "🎒", title: t("考前准备"), desc: t("考务/应试自测"), grad: "from-lime-400 to-green-500", tint: "hover:border-lime-300 hover:shadow-lime-500/15", ig: "from-lime-50 to-green-50" },
+    { href: "/prep", icon: "🎒", title: t("屠杀准备"), desc: t("考务/应试自测"), grad: "from-lime-400 to-green-500", tint: "hover:border-lime-300 hover:shadow-lime-500/15", ig: "from-lime-50 to-green-50" },
     { href: "/mistakes", icon: "📕", title: t("错题本"), desc: t("重练做错的题"), grad: "from-rose-400 to-red-500", tint: "hover:border-rose-300 hover:shadow-rose-500/15", ig: "from-rose-50 to-red-50" },
     { href: "/notes", icon: "📓", title: t("笔记本"), desc: t("收藏的题+随手笔记"), grad: "from-sky-400 to-blue-500", tint: "hover:border-sky-300 hover:shadow-sky-500/15", ig: "from-sky-50 to-blue-50" },
     { href: "/profile", icon: "🧭", title: t("你的全部杀技"), desc: t("跨考试的你"), grad: "from-violet-400 to-purple-500", tint: "hover:border-violet-300 hover:shadow-violet-500/15", ig: "from-violet-50 to-purple-50" },
@@ -72,7 +72,7 @@ export default function Home() {
         <div className="relative flex items-end justify-between">
           <div>
             <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline">{exam.name}</Link>
-            {days != null && <p className="mt-1 text-emerald-100">{t("距考试")} <span className="text-4xl font-black text-white">{days}</span> {t("天")}</p>}
+            {days != null && <p className="mt-1 text-emerald-100">{t("距猎杀")} <span className="text-4xl font-black text-white">{days}</span> {t("天")}</p>}
           </div>
           {daily && <div className="text-right text-emerald-100 text-sm">🔥 {daily.activeDays} {t("天")}</div>}
         </div>

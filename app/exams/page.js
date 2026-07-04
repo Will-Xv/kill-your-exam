@@ -24,7 +24,7 @@ export default function Exams() {
   return (
     <div className="space-y-4 md:mt-14">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("我的猎杀")}</h1>
+        <h1 className="text-2xl font-bold">{t("追杀计划")}</h1>
         <a href="/onboarding" className="btn py-2 text-sm">+ {t("新考试")}</a>
       </div>
       {live.map((e) => (
