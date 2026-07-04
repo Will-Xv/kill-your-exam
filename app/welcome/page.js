@@ -365,9 +365,9 @@ export default function Welcome() {
       {desktop && (
         <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
           <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 20%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
-          <img id="fin-scare" src="/illustrations/scare.png" alt="" className="absolute bottom-0 left-1/2 h-[112vh] w-auto max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0, mixBlendMode: "multiply" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0 }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
           <div id="fin-text" className="absolute inset-x-0 top-[11vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
-            <div className="rounded-[2rem] bg-[#efe7d2]/85 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20 backdrop-blur-sm">
+            <div className="rounded-[2rem] bg-[#efe7d2]/90 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20">
               <h2 className="font-hero text-5xl leading-[1.05] text-[#2e2013] md:text-7xl">{t.ctaT}</h2>
               <a href="/" className="mt-8 inline-block rounded-2xl bg-[#2e2013] px-12 py-4 text-xl font-black text-[#efe7d2] shadow-xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
             </div>
