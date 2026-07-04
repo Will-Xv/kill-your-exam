@@ -11,7 +11,7 @@ export async function POST(req) {
   if (db.prepare("SELECT id FROM users WHERE username=?").get(name)) return Response.json({ error: "用户名已被使用" }, { status: 400 });
   const isFirst = db.prepare("SELECT COUNT(*) n FROM users").get().n === 0;
   const { salt, hash } = hashPassword(password);
-  const info = db.prepare("INSERT INTO users(username,password_hash,salt,is_admin,lang) VALUES(?,?,?,?,?)").run(name, hash, salt, isFirst ? 1 : 0, "en");
+  const info = db.prepare("INSERT INTO users(username,password_hash,salt,is_admin,is_developer,lang) VALUES(?,?,?,?,?,?)").run(name, hash, salt, isFirst ? 1 : 0, isFirst ? 1 : 0, "en");
   await setSessionCookie(createSession(info.lastInsertRowid));
   return Response.json({ ok: true, isAdmin: isFirst });
 }

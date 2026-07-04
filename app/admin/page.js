@@ -1,6 +1,31 @@
 "use client";
 import { useT } from "@/components/I18n";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+
+function DevAccount({ t }) {
+  const [u, setU] = React.useState("");
+  const [p, setP] = React.useState("");
+  const [msg, setMsg] = React.useState("");
+  async function create() {
+    setMsg("");
+    const r = await fetch("/api/admin/create-dev", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, password: p }) });
+    const d = await r.json();
+    setMsg(r.ok ? t("开发者子账号已创建 ✓") : (d.error || "error"));
+    if (r.ok) { setU(""); setP(""); }
+  }
+  return (
+    <div className="card space-y-2">
+      <h2 className="font-semibold">🛠️ {t("开发者子账号")}</h2>
+      <p className="text-xs text-stone-500">{t("开发者子账号拥有 AI 密钥配置和调试工具。管理员本身只能看使用情况。")}</p>
+      <div className="flex flex-wrap gap-2">
+        <input className="input flex-1 min-w-[120px]" placeholder={t("用户名")} value={u} onChange={(e) => setU(e.target.value)} />
+        <input className="input flex-1 min-w-[120px]" type="password" placeholder={t("密码")} value={p} onChange={(e) => setP(e.target.value)} />
+        <button className="btn py-2 text-sm" onClick={create} disabled={!u || !p}>{t("创建")}</button>
+      </div>
+      {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+    </div>
+  );
+}
 
 export default function Admin() {
   const t = useT();
@@ -22,6 +47,7 @@ export default function Admin() {
     <div className="space-y-4 md:mt-14">
       <h1 className="text-2xl font-bold">{t("管理员 · 使用频率")}</h1>
       <p className="text-xs text-stone-400">{t("出于隐私考虑,这里只显示使用频率,看不到任何人的学习内容。")}</p>
+      <DevAccount t={t} />
       {data.users.map((u) => (
         <div key={u.id} className="card">
           <div className="flex items-center justify-between">
