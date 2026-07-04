@@ -70,6 +70,9 @@ export default function Welcome() {
   const [lang, setLang] = useState("en");
   const [scrolled, setScrolled] = useState(false);
   const mockRef = useRef(null);
+  const canvasRef = useRef(null);
+  const mouse = useRef({ x: 0, y: 0 });
+  const prog = useRef(0);
 
   useEffect(() => {
     const saved = typeof localStorage !== "undefined" && localStorage.getItem("kye_welcome_lang");
@@ -77,15 +80,35 @@ export default function Welcome() {
   }, []);
   function pick(l) { setLang(l); try { localStorage.setItem("kye_welcome_lang", l); } catch {} }
 
+  // mouse position for parallax
   useEffect(() => {
-    let raf = 0;
-    const scrub = () => {
-      raf = 0;
+    const onMove = (e) => { mouse.current = { x: e.clientX / window.innerWidth - 0.5, y: e.clientY / window.innerHeight - 0.5 }; };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+
+  // smooth inertia scroll (desktop) + scroll-scrub + mouse parallax
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px) and (pointer: fine)").matches;
+    const content = document.getElementById("kye-smooth");
+    let raf = 0, cur = window.scrollY, run = true;
+    const setHeight = () => { if (desktop && content) document.body.style.height = content.scrollHeight + "px"; };
+    if (desktop && content) {
+      content.style.position = "fixed"; content.style.top = "0"; content.style.left = "0";
+      content.style.width = "100%"; content.style.willChange = "transform";
+      setHeight();
+    }
+    const loop = () => {
+      if (!run) return;
+      raf = requestAnimationFrame(loop);
       const vh = window.innerHeight;
-      const sy = window.scrollY;
-      setScrolled(sy > 24);
+      cur += (window.scrollY - cur) * (desktop ? 0.09 : 1);
+      setScrolled(cur > 24);
+      prog.current = Math.max(0, Math.min(1, cur / (vh * 1.8)));
+      if (desktop && content) content.style.transform = `translate3d(0,${(-cur).toFixed(2)}px,0)`;
+      const mx = mouse.current.x, my = mouse.current.y;
       const bg = document.getElementById("kye-bg");
-      if (bg) bg.style.transform = `translateY(${(sy * 0.16).toFixed(1)}px)`;
+      if (bg) bg.style.transform = `translate3d(${(mx * -30).toFixed(1)}px,${(cur * 0.16 + my * -20).toFixed(1)}px,0)`;
       document.querySelectorAll("[data-scrub]").forEach((el) => {
         const r = el.getBoundingClientRect();
         let p = (vh - r.top) / (vh * 0.62);
@@ -93,26 +116,74 @@ export default function Welcome() {
         const floor = parseFloat(el.dataset.floor || "0");
         const dist = parseFloat(el.dataset.dist || "44");
         const dir = el.dataset.dir || "up";
+        const mxf = parseFloat(el.dataset.mx || "0");
         const k = (1 - p) * dist;
-        let x = 0, y = 0;
-        if (dir === "up") y = k; else if (dir === "down") y = -k;
-        else if (dir === "left") x = -k; else if (dir === "right") x = k;
+        let x = mx * mxf, y = 0;
+        if (dir === "up") y += k; else if (dir === "down") y -= k;
+        else if (dir === "left") x -= k; else if (dir === "right") x += k;
         el.style.opacity = (floor + (1 - floor) * p).toFixed(3);
         el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
       });
-      document.querySelectorAll("[data-para]").forEach((el) => {
-        const r = el.getBoundingClientRect();
-        const center = r.top + r.height / 2 - vh / 2;
-        el.style.transform = `translate3d(0,${(-center * parseFloat(el.dataset.para)).toFixed(1)}px,0)`;
-      });
     };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(scrub); };
-    scrub();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    const t = setTimeout(scrub, 60);
-    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); clearTimeout(t); };
+    loop();
+    const onResize = () => setHeight();
+    window.addEventListener("resize", onResize);
+    const ht = setTimeout(setHeight, 300);
+    return () => {
+      run = false; cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); clearTimeout(ht);
+      if (desktop && content) { content.style.position = ""; content.style.transform = ""; content.style.width = ""; }
+      document.body.style.height = "";
+    };
   }, [lang]);
+
+  // 3D flipping book (desktop only; graceful no-op if it fails)
+  useEffect(() => {
+    if (!window.matchMedia("(min-width: 768px) and (pointer: fine)").matches) return;
+    let raf = 0, run = true, renderer = null, cleanupResize = () => {};
+    const load = () => new Promise((res, rej) => {
+      if (window.THREE) return res(window.THREE);
+      const sc = document.createElement("script");
+      sc.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+      sc.onload = () => res(window.THREE); sc.onerror = rej; document.head.appendChild(sc);
+    });
+    (async () => {
+      let THREE; try { THREE = await load(); } catch { return; }
+      const canvas = canvasRef.current; if (!canvas || !run) return;
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      const scene = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+      cam.position.z = 9;
+      const g = new THREE.Group();
+      const cover = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 0.55), new THREE.MeshStandardMaterial({ color: 0x0f766e, metalness: 0.5, roughness: 0.3, emissive: 0x053b36, emissiveIntensity: 0.5 }));
+      const pages = new THREE.Mesh(new THREE.BoxGeometry(2.72, 3.7, 0.62), new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.85 }));
+      pages.position.x = 0.16;
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(3.03, 4.03, 0.57)), new THREE.LineBasicMaterial({ color: 0x5eead4 }));
+      g.add(pages); g.add(cover); g.add(edges); scene.add(g);
+      scene.add(new THREE.AmbientLight(0x99ddcc, 0.65));
+      const l1 = new THREE.PointLight(0x2dd4bf, 1.4); l1.position.set(6, 6, 6); scene.add(l1);
+      const l2 = new THREE.PointLight(0x38bdf8, 1.1); l2.position.set(-7, -3, 5); scene.add(l2);
+      const resize = () => { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+      resize(); window.addEventListener("resize", resize); cleanupResize = () => window.removeEventListener("resize", resize);
+      let mxE = 0, myE = 0, tt = 0;
+      const frame = () => {
+        if (!run) return;
+        raf = requestAnimationFrame(frame);
+        mxE += (mouse.current.x - mxE) * 0.05; myE += (mouse.current.y - myE) * 0.05;
+        const pr = prog.current;
+        g.rotation.x = pr * Math.PI * 2 + myE * 0.6 + Math.sin(tt) * 0.06;
+        g.rotation.y = tt * 0.45 + mxE * 1.1;
+        g.position.y = Math.sin(tt * 0.8) * 0.25 - pr * 2.2;
+        g.position.x = 2.6 + mxE * 1.2;
+        cam.position.x = mxE * 1.6; cam.lookAt(0, 0, 0);
+        canvas.style.opacity = (0.9 - pr * 0.72).toFixed(3);
+        renderer.render(scene, cam);
+        tt += 0.016;
+      };
+      frame();
+    })();
+    return () => { run = false; cancelAnimationFrame(raf); cleanupResize(); if (renderer && renderer.dispose) renderer.dispose(); };
+  }, []);
 
   function tilt(e) {
     const el = mockRef.current; if (!el) return;
@@ -134,6 +205,7 @@ export default function Welcome() {
         <div className="kye-blob h-80 w-80 bg-teal-400/30" style={{ bottom: "-6rem", left: "28%", animation: "kyeFloat2 13s ease-in-out infinite" }} />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(45,212,191,.16),transparent_60%)]" />
       </div>
+      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0" style={{ zIndex: -5 }} />
 
       {/* sticky frosted nav */}
       <header className={"fixed inset-x-0 top-0 z-50 transition-all duration-300 " + (scrolled ? "bg-[#04201f]/70 backdrop-blur-xl ring-1 ring-white/10" : "")}>
@@ -148,14 +220,15 @@ export default function Welcome() {
         </div>
       </header>
 
+      <div id="kye-smooth" className="relative z-0">
       {/* hero */}
       <section className="relative mx-auto max-w-6xl px-6 pt-32 pb-24 text-center md:pt-40">
         <Dots className="left-0 top-24 h-40 w-40 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
-        <p data-scrub data-floor="0" className="mx-auto mb-6 w-fit rounded-full bg-white/10 px-4 py-1.5 text-sm text-emerald-200 ring-1 ring-white/15">✨ {t.badge}</p>
-        <h1 data-scrub data-floor="0.15" data-dir="left" data-dist="60" className="font-hero text-6xl leading-[1.04] tracking-tight md:text-8xl">
+        <p data-scrub data-floor="0" data-mx="30" className="mx-auto mb-6 w-fit rounded-full bg-white/10 px-4 py-1.5 text-sm text-emerald-200 ring-1 ring-white/15">✨ {t.badge}</p>
+        <h1 data-scrub data-floor="0.15" data-dir="left" data-dist="60" data-mx="16" className="font-hero text-6xl leading-[1.04] tracking-tight md:text-8xl">
           {t.h1a}<br /><span className="kye-gradtext">{t.h1b}</span>
         </h1>
-        <p data-scrub data-dir="right" data-dist="60" className="mx-auto mt-8 max-w-2xl text-lg text-slate-300 md:text-xl">{t.sub}</p>
+        <p data-scrub data-dir="right" data-dist="60" data-mx="-18" className="mx-auto mt-8 max-w-2xl text-lg text-slate-300 md:text-xl">{t.sub}</p>
         <div data-scrub className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <a href="/" className="group rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 px-8 py-4 text-lg font-bold text-emerald-950 shadow-xl shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:shadow-2xl">
             {t.start} <span className="inline-block transition group-hover:translate-x-1">→</span>
@@ -245,6 +318,7 @@ export default function Welcome() {
       <footer className="mx-auto max-w-6xl px-6 py-10 text-center text-sm text-slate-500">
         © 2026 Kill Your Exam · <a href="/privacy" className="underline hover:text-slate-300">{t.priv}</a> · <a href="/" className="underline hover:text-slate-300">{t.enter}</a>
       </footer>
+      </div>
     </div>
   );
 }
