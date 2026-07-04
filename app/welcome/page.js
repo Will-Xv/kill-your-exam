@@ -192,7 +192,7 @@ export default function Welcome() {
     { type: "leaf", scene: 2, title: fe[1][1], desc: fe[1][2] },
     { type: "leaf", scene: 3, title: fe[2][1], desc: fe[2][2] },
     { type: "leaf", scene: 4, title: fe[3][1], desc: fe[3][2] },
-    { type: "cta", scene: 5, title: t.ctaT, desc: t.ctaS },
+    { type: "leaf", scene: 5, title: "Kill Your Exams!", desc: t.ctaS },
   ];
 
   useEffect(() => {
@@ -210,9 +210,13 @@ export default function Welcome() {
       const total = Math.max(1, scene.offsetHeight - window.innerHeight);
       const p = Math.max(0, Math.min(1, -scene.getBoundingClientRect().top / total));
       setScrolled(window.scrollY > 24);
-      if (p < somerEnd) { const q = p / somerEnd; book.style.transform = `translateZ(${(-2600 * (1 - q)).toFixed(0)}px) rotateX(${(q * 720).toFixed(1)}deg)`; }
-      else book.style.transform = "translateZ(0px) rotateX(0deg)";
-      const segLen = (1 - somerEnd) / flips;
+      const flipEnd = 0.72;
+      const fin = Math.max(0, Math.min(1, (p - flipEnd) / 0.24));
+      let bt = p < somerEnd ? `translateZ(${(-2600 * (1 - p / somerEnd)).toFixed(0)}px) rotateX(${((p / somerEnd) * 720).toFixed(1)}deg)` : "translateZ(0px) rotateX(0deg)";
+      if (fin > 0) bt += ` scale(${(1 + fin * 0.6).toFixed(3)})`;
+      book.style.transform = bt;
+      book.style.opacity = (1 - Math.min(1, fin * 1.9)).toFixed(2);
+      const segLen = (flipEnd - somerEnd) / flips;
       const depth = 34;
       let current = 0;
       leaves.forEach((leaf, i) => {
@@ -231,6 +235,10 @@ export default function Welcome() {
       // 右侧文字随当前页切换
       const blocks = scene.querySelectorAll("[data-txt]");
       blocks.forEach((b) => { b.style.opacity = Number(b.dataset.txt) === current ? "1" : "0"; b.style.pointerEvents = Number(b.dataset.txt) === current ? "auto" : "none"; });
+      // 结尾惊吓桥段
+      const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = Math.min(1, fin * 1.7).toFixed(2);
+      const fs = document.getElementById("fin-scare"); if (fs) { const rise = Math.max(0, 1 - Math.max(0, fin - 0.15) / 0.5); fs.style.transform = `translate(-50%, ${(rise * 100).toFixed(0)}%)`; fs.style.opacity = fin > 0.12 ? "1" : "0"; }
+      const ft = document.getElementById("fin-text"); if (ft) { const o = Math.max(0, Math.min(1, (fin - 0.6) / 0.34)); ft.style.opacity = o.toFixed(2); ft.style.transform = `translateY(${((1 - o) * 24).toFixed(0)}px)`; ft.style.pointerEvents = o > 0.5 ? "auto" : "none"; }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(upd); };
     upd();
@@ -356,9 +364,20 @@ export default function Welcome() {
         </div>
       )}
 
-      <footer className="relative z-10 mx-auto max-w-6xl px-6 py-10 text-center text-sm text-slate-500">
+      {desktop && (
+        <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+          <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 120%, #f2dc86 0%, #dcbb54 55%, #c9a844 100%)" }} />
+          <img id="fin-scare" src="/illustrations/scare.png" alt="" className="absolute bottom-0 left-1/2 h-[86vh] max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0, mixBlendMode: "multiply" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <div id="fin-text" className="absolute inset-x-0 top-[16vh] z-10 text-center" style={{ opacity: 0 }}>
+            <h2 className="font-hero text-5xl leading-tight text-[#3a2a17] md:text-7xl">{t.ctaT}</h2>
+            <a href="/" className="mt-7 inline-block rounded-2xl bg-[#3a2a17] px-10 py-4 text-lg font-bold text-[#f2dc86] shadow-2xl transition hover:-translate-y-0.5">{t.ctaB} →</a>
+            <p className="mt-6 text-xs text-[#5a4327]">© 2026 Kill Your Exam · <a href="/privacy" className="underline">{t.priv}</a></p>
+          </div>
+        </div>
+      )}
+      {!desktop && <footer className="relative z-10 mx-auto max-w-6xl px-6 py-10 text-center text-sm text-slate-500">
         © 2026 Kill Your Exam · <a href="/privacy" className="underline hover:text-slate-300">{t.priv}</a> · <a href="/" className="underline hover:text-slate-300">{t.enter}</a>
-      </footer>
+      </footer>}
     </div>
   );
 }
