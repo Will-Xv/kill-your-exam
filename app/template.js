@@ -18,7 +18,7 @@ const ACCENTS = {
 export default function Template({ children }) {
   const path = usePathname();
   // 登录/导引页有自己的全屏固定布局,不套过渡动画(避免 transform 破坏 fixed 定位)
-  if (path === "/login" || path.startsWith("/onboarding")) return <>{children}</>;
+  if (path === "/login" || path === "/welcome" || path === "/privacy" || path.startsWith("/onboarding")) return <>{children}</>;
   const key = Object.keys(ACCENTS).find((k) => (k === "/" ? path === "/" : path.startsWith(k))) || "/";
   return (
     <div key={path} className="page-enter">
