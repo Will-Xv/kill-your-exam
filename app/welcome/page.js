@@ -236,9 +236,20 @@ export default function Welcome() {
       const blocks = scene.querySelectorAll("[data-txt]");
       blocks.forEach((b) => { b.style.opacity = Number(b.dataset.txt) === current ? "1" : "0"; b.style.pointerEvents = Number(b.dataset.txt) === current ? "auto" : "none"; });
       // 结尾惊吓桥段
-      const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = Math.min(1, fin * 1.7).toFixed(2);
-      const fs = document.getElementById("fin-scare"); if (fs) { const rise = Math.max(0, 1 - Math.max(0, fin - 0.15) / 0.5); fs.style.transform = `translate(-50%, ${(rise * 100).toFixed(0)}%)`; fs.style.opacity = fin > 0.12 ? "1" : "0"; }
-      const ft = document.getElementById("fin-text"); if (ft) { const o = Math.max(0, Math.min(1, (fin - 0.5) / 0.34)); ft.style.opacity = o.toFixed(2); ft.style.transform = `translateY(${((1 - o) * 24).toFixed(0)}px)`; ft.style.pointerEvents = o > 0.5 ? "auto" : "none"; }
+      const fy = document.getElementById("fin-yellow"); if (fy) fy.style.opacity = Math.min(1, fin / 0.22).toFixed(2);
+      const fs = document.getElementById("fin-scare"); if (fs) {
+        const rise = Math.max(0, Math.min(1, (fin - 0.06) / 0.4));   // 上冲
+        const sc2 = 0.8 + rise * 0.9;                                // 放大(突脸)
+        const out = Math.max(0, Math.min(1, (fin - 0.52) / 0.2));    // 之后淡出
+        fs.style.transform = `translate(-50%, ${((1 - rise) * 100).toFixed(0)}%) scale(${sc2.toFixed(2)})`;
+        fs.style.opacity = fin < 0.06 ? "0" : (1 - out).toFixed(2);
+      }
+      const ft = document.getElementById("fin-text"); if (ft) {   // 图消失后浮现
+        const o = Math.max(0, Math.min(1, (fin - 0.74) / 0.2));
+        ft.style.opacity = o.toFixed(2);
+        ft.style.transform = `translateY(${((1 - o) * 28).toFixed(0)}px)`;
+        ft.style.pointerEvents = o > 0.5 ? "auto" : "none";
+      }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(upd); };
     upd();
@@ -365,7 +376,7 @@ export default function Welcome() {
       {desktop && (
         <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
           <div id="fin-yellow" className="absolute inset-0" style={{ opacity: 0, background: "radial-gradient(130% 130% at 50% 20%, #efe7d2 0%, #e6dabb 55%, #dccdab 100%)" }} />
-          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0 }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <img id="fin-scare" src="/illustrations/scary.png" alt="" className="absolute bottom-0 left-1/2 h-[100vh] w-auto max-w-none" style={{ transform: "translate(-50%,100%)", opacity: 0, transformOrigin: "center center" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
           <div id="fin-text" className="absolute inset-x-0 top-[11vh] z-10 flex flex-col items-center px-6 text-center" style={{ opacity: 0 }}>
             <div className="rounded-[2rem] bg-[#efe7d2]/90 px-10 py-8 shadow-2xl ring-1 ring-[#2e2013]/20">
               <h2 className="font-hero text-5xl leading-[1.05] text-[#2e2013] md:text-7xl">{t.ctaT}</h2>
