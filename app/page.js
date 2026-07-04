@@ -69,7 +69,7 @@ export default function Home() {
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
         {/* 手绘刺客贴纸(墨线+一点血),集中右上角 */}
-        <img src="/illustrations/sticker.png" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute -right-2 top-0 w-[52%] max-w-[360px] select-none" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.18))" }} />
+        <img src="/illustrations/sticker.png" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute -right-2 -top-[58px] w-[50%] max-w-[350px] select-none" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.18))" }} />
         <div className="relative z-10">
           <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{exam.name}</Link>
           {days != null && <p className="mt-1 text-[#6b4a25]">{t("距猎杀")} <span className="text-4xl font-black text-[#2f2413]">{days}</span> {t("天")}{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</p>}
