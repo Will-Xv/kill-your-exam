@@ -27,27 +27,6 @@ function DevAccount({ t }) {
   );
 }
 
-function Feedback({ t }) {
-  const [items, setItems] = React.useState(null);
-  React.useEffect(() => { fetch("/api/feedback").then((r) => r.ok ? r.json() : { items: [] }).then((d) => setItems(d.items || [])); }, []);
-  if (!items) return null;
-  return (
-    <div className="card space-y-2">
-      <h2 className="font-semibold">✉️ {t("用户反馈")} <span className="text-xs text-stone-400">({items.length})</span></h2>
-      {items.length === 0 && <p className="text-xs text-stone-400">{t("还没有反馈。")}</p>}
-      {items.map((f) => (
-        <div key={f.id} className="rounded-xl border border-stone-100 p-2 text-sm">
-          <div className="flex items-center justify-between text-xs text-stone-400">
-            <span>{f.username} · {f.created_at?.slice(0, 16)}</span>
-            <span>{f.hasAttach ? "📎 " : ""}{f.emailed ? t("已邮件") : t("仅存档")}</span>
-          </div>
-          <p className="mt-1 whitespace-pre-wrap">{f.message || t("(仅附件)")}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function Admin() {
   const t = useT();
   const [data, setData] = useState(null);
@@ -69,7 +48,6 @@ export default function Admin() {
       <h1 className="text-2xl font-bold">{t("管理员 · 使用频率")}</h1>
       <p className="text-xs text-stone-400">{t("出于隐私考虑,这里只显示使用频率,看不到任何人的学习内容。")}</p>
       <DevAccount t={t} />
-      <Feedback t={t} />
       {data.users.map((u) => (
         <div key={u.id} className="card">
           <div className="flex items-center justify-between">

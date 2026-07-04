@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const t = useT();
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
   const load = () => fetch("/api/profile/overall").then((r) => r.json()).then(setData);
   useEffect(() => { load(); }, []);
 
@@ -29,6 +31,16 @@ export default function ProfilePage() {
       if (d.ai) setData((p) => ({ ...p, ai: d.ai }));
     } catch {}
     setBusy(false);
+  }
+
+  async function syncTo(examId) {
+    setSyncMsg("");
+    try {
+      const r = await fetch("/api/profile/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId }) });
+      const d = await r.json();
+      setSyncMsg(r.ok ? t("已同步到") + " " + d.examName + " " + t("的进度档案 ✓") : t("同步失败"));
+      if (r.ok) setSyncOpen(false);
+    } catch { setSyncMsg(t("同步失败")); }
   }
 
   if (!data) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
@@ -90,6 +102,22 @@ export default function ProfilePage() {
             </div>
           )}
           <p className="text-[10px] text-stone-300">{t("生成于")} {ai.generatedAt?.slice(0, 16).replace("T", " ")}</p>
+          <div className="border-t border-stone-100 pt-3">
+            {!syncOpen ? (
+              <button className="btn-ghost text-sm" onClick={() => { setSyncOpen(true); setSyncMsg(""); }}>📎 {t("同步到考试")}</button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-stone-500">{t("把这份画像写进哪个考试的进度档案?")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {data.exams.map((e) => (
+                    <button key={e.id} className="btn-ghost text-sm" onClick={() => syncTo(e.id)}>{e.name}</button>
+                  ))}
+                  <button className="text-sm text-stone-400 underline" onClick={() => setSyncOpen(false)}>{t("取消")}</button>
+                </div>
+              </div>
+            )}
+            {syncMsg && <p className="mt-2 text-sm text-emerald-700">{syncMsg}</p>}
+          </div>
         </div>
       ) : data.exams.length > 0 ? (
         <p className="card text-center text-sm text-stone-400">{t("点上面「生成画像」,让 AI 综合你所有考试给一份整体评估。")}</p>

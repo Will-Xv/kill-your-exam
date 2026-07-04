@@ -56,43 +56,52 @@ export async function POST(req) {
     const chapter = kp.parent_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.parent_id)?.title : "";
     const insQ = db.prepare("INSERT INTO questions(exam_id,kp_id,qtype,body,answer,difficulty,source_type,source_refs,origin,answer_origin,source_url,is_real) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
     let honesty = "";
+    const need = count - results.length;
 
-    // 2) 在线搜题(真题/在线题)
-    let need = count - results.length;
     if (need > 0) {
-      const online = await searchOnline(exam, kp, chapter, need, user.lang);
-      if (online.note) honesty = online.note;
-      for (const q of (online.found || []).slice(0, need)) {
-        if (!q.stem || !q.answer) continue;
-        const info = insQ.run(exam.id, kp.id, q.qtype, JSON.stringify({ stem: q.stem, options: q.options || [] }),
-          JSON.stringify({ answer: q.answer, explanation: q.explanation || "" }), 2, "web", "[]",
-          "online", q.hasAnswer ? "provided" : "ai", q.sourceUrl || null, q.isReal ? 1 : 0);
-        results.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
-      }
-    }
-
-    // 3) 生成兜底
-    need = count - results.length;
-    if (need > 0) {
+      // 多出几道存进题库,下次直接命中、无需再等 AI(出题提速)
+      const genCount = Math.max(need + 3, 5);
       const hits = await retrieve(exam.id, `${chapter} ${kp.title}`, 5);
       const dossier = getDocument(exam.id, "dossier")?.content_md || "";
       let lessons = ""; try { lessons = db.prepare("SELECT text FROM gen_lessons WHERE exam_id=? ORDER BY id DESC LIMIT 12").all(exam.id).map((x) => "- " + x.text).join("\n"); } catch {}
       let qaAnswers = ""; try { const cl = JSON.parse(exam.checklist || "[]"); qaAnswers = cl.filter((c) => c.kind === "qa" && c.answer).map((c) => `${c.item}: ${c.answer}`).join("; "); } catch {}
       const sourceType = hits.length ? "material" : "model";
-      const out = await generateJson(
-        `为「${exam.name}」出 ${need} 道练习题,考察「${kp.title}」(章节:${chapter})。题型混合,以客观题为主。
+
+      // 在线搜题 与 生成兜底 并行,减少等待时间
+      const genPromise = generateJson(
+        `为「${exam.name}」出 ${genCount} 道练习题,考察「${kp.title}」(章节:${chapter})。题型混合,以客观题为主。
 ${hits.length ? "必须依据以下资料:\n" + ragBlock(hits) : "无资料支撑,只出保守的基本概念题,不要编造具体数字或条款。"}
 考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}
 single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标准答案;short写评分要点;explanation解释;difficulty 1~3。
 数学公式用 $...$ 包裹,不要裸露反斜杠命令。
 【只出知识性题】严禁答题技巧/应试策略题、需真实感官或图音的技能题、考试规则事务题。
 【防泄题】组内不得答案泄露、不要高度相似。${lessons ? "\n【避免已知毛病】\n" + lessons : ""}` + langInstruction(user.lang),
-        genSchema);
+        genSchema).catch(() => ({ questions: [] }));
+      const onlinePromise = searchOnline(exam, kp, chapter, need, user.lang).catch(() => ({ found: [], note: "" }));
+      const [online, out] = await Promise.all([onlinePromise, genPromise]);
+      if (online.note) honesty = online.note;
+
+      // 先放真题/在线题(命中优先),再放生成题补足;多余的生成题也入库供下次复用
+      const onlineQs = [];
+      for (const q of (online.found || [])) {
+        if (!q.stem || !q.answer) continue;
+        const info = insQ.run(exam.id, kp.id, q.qtype, JSON.stringify({ stem: q.stem, options: q.options || [] }),
+          JSON.stringify({ answer: q.answer, explanation: q.explanation || "" }), 2, "web", "[]",
+          "online", q.hasAnswer ? "provided" : "ai", q.sourceUrl || null, q.isReal ? 1 : 0);
+        onlineQs.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
+      }
       const refs = JSON.stringify(hits.map((h) => ({ chunk_id: h.id, filename: h.filename, heading: h.heading_path })));
-      for (const q of out.questions.slice(0, need)) {
+      const genQs = [];
+      for (const q of (out.questions || [])) {
+        if (!q.stem || !q.answer) continue;
         const info = insQ.run(exam.id, kp.id, q.qtype, JSON.stringify({ stem: q.stem, options: q.options || [] }),
           JSON.stringify({ answer: q.answer, explanation: q.explanation }), q.difficulty || 2, sourceType, refs, "generated", "ai", null, 0);
-        results.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
+        genQs.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
+      }
+      // 本轮返回:先真题后生成,补足到 need;剩下的留在题库
+      for (const q of [...onlineQs, ...genQs]) {
+        if (results.length >= count) break;
+        results.push(q);
       }
     }
 

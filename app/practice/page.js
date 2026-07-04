@@ -31,16 +31,35 @@ function PracticeInner() {
   const [dBusy, setDBusy] = useState(false);
   const [aFiles, setAFiles] = useState([]);
   const [dFiles, setDFiles] = useState([]);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteBody, setNoteBody] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
   const bottom = useRef(null);
+  const prefetched = useRef(null);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
 
+  async function fetchBatch() {
+    if (mode === "review") { const d = await aiFetch("/api/review"); return { questions: d.questions || [], note: "" }; }
+    const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) });
+    return { questions: d.questions || [], note: d.note || "" };
+  }
+  // 后台预取下一批,存起来,"再来一轮"时秒开
+  function prefetchNext() {
+    if (mode === "review") return;
+    prefetched.current = null;
+    fetchBatch().then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
+  }
   async function loadQuestions() {
     setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null);
-    try {
-      if (mode === "review") { const d = await aiFetch("/api/review"); setQuestions(d.questions); }
-      else { const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) }); setQuestions(d.questions); setNote(d.note || ""); }
-    } catch {}
+    // 若有预取好的一批,直接用,零等待
+    if (prefetched.current && prefetched.current.questions.length) {
+      const b = prefetched.current; prefetched.current = null;
+      setQuestions(b.questions); setNote(b.note || ""); setBusy(false); prefetchNext(); return;
+    }
+    try { const b = await fetchBatch(); setQuestions(b.questions); setNote(b.note || ""); }
+    catch {}
     setBusy(false);
+    prefetchNext();
   }
   useEffect(() => { loadQuestions(); }, []);
   const q = questions[idx];
@@ -66,7 +85,7 @@ function PracticeInner() {
   }
   async function next() {
     await finalizeDiscuss();
-    setResult(null); setSel([]); setText(""); setReportOpen(false); setReportNote(""); setIdx((i) => i + 1);
+    setResult(null); setSel([]); setText(""); setReportOpen(false); setReportNote(""); setNoteOpen(false); setNoteBody(""); setNoteSaved(false); setIdx((i) => i + 1);
   }
   async function sendDiscuss() {
     const msg = dInput.trim(); if ((!msg && !dFiles.length) || dBusy) return;
@@ -107,6 +126,13 @@ function PracticeInner() {
         </div>
       </div>
     );
+  }
+
+  async function saveNote() {
+    try {
+      await aiFetch("/api/notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, body: noteBody.trim() }) });
+      setNoteSaved(true); setNoteOpen(false);
+    } catch {}
   }
 
   const letters = ["A", "B", "C", "D", "E", "F"];
@@ -197,8 +223,20 @@ function PracticeInner() {
             <button className="btn flex-1" onClick={next}>{t("下一题 →")}</button>
           </>
         )}
+        {result && <button className="btn-ghost text-xs" onClick={() => { setNoteOpen((v) => !v); }}>📝 {noteSaved ? t("已记入笔记本 · 再记") : t("记笔记")}</button>}
         <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
       </div>
+      {noteOpen && (
+        <div className="card space-y-2">
+          <p className="text-sm font-medium">📝 {t("给这道题记点笔记")}</p>
+          <p className="text-xs text-stone-400">{t("这道题会连同你的笔记收进笔记本(错题本不受影响)。")}</p>
+          <textarea className="input" rows={3} placeholder={t("比如:这里我总是记错,注意…")} value={noteBody} onChange={(e) => setNoteBody(e.target.value)} />
+          <div className="flex gap-2">
+            <button className="btn text-sm py-1.5" onClick={saveNote}>{t("保存到笔记本")}</button>
+            <button className="btn-ghost text-sm py-1.5" onClick={() => setNoteOpen(false)}>{t("取消")}</button>
+          </div>
+        </div>
+      )}
 
       {reportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setReportOpen(false)}>
