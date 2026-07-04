@@ -3,7 +3,7 @@ const setS = (el, msg, cls = "muted") => { const s = $(el); s.textContent = msg;
 const logA = (msg) => { const s = $("astatus"); s.textContent = (s.textContent + "\n" + msg).split("\n").slice(-40).join("\n"); s.className = "muted"; s.scrollTop = s.scrollHeight; };
 
 chrome.storage.local.get(["base", "token"], (d) => {
-  $("base").value = d.base || "https://beikao-app-production.up.railway.app";
+  $("base").value = d.base || "https://killyourexam.up.railway.app";
   $("token").value = d.token || "";
 });
 const save = () => chrome.storage.local.set({ base: $("base").value.trim().replace(/\/$/, ""), token: $("token").value.trim() });
