@@ -13,7 +13,8 @@ const COVER = { covered: "🟢", partial: "🟡", none: "⚪" };
 export default function Knowledge() {
   const t = useT();
   const [matrix, setMatrix] = useState(null);
-  useEffect(() => { fetch("/api/mastery").then((r) => r.json()).then((d) => setMatrix(d.matrix)); }, []);
+  const [insights, setInsights] = useState([]);
+  useEffect(() => { fetch("/api/mastery").then((r) => r.json()).then((d) => { setMatrix(d.matrix); setInsights(d.insights || []); }); }, []);
   if (!matrix) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
   const chapters = {};
   for (const kp of matrix) (chapters[kp.chapter || "未分章"] ||= []).push(kp);

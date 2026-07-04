@@ -39,10 +39,10 @@ export async function POST(req) {
       }
       score = correct ? 100 : 0;
     }
-    db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
+    const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
       .run(questionId, exam.id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode);
     updateReviewQueue(questionId, !!correct);
-    return Response.json({ correct: !!correct, score, feedback, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs });
+    return Response.json({ attemptId: ins.lastInsertRowid, correct: !!correct, score, feedback, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs });
   } catch (e) {
     return aiErrorResponse(e);
   }

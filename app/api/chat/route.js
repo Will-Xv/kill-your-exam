@@ -83,7 +83,9 @@ async function execTool(name, args, exam, _lang) {
         FROM knowledge_points kp LEFT JOIN knowledge_points ch ON ch.id=kp.parent_id
         LEFT JOIN attempts a ON a.kp_id=kp.id
         WHERE kp.exam_id=? AND kp.parent_id IS NOT NULL GROUP BY kp.id`).all(exam.id);
-      return { stats: rows.map((r) => `${r.chapter}/${r.title}: 练${r.n}次,对${r.c}次`).join("\n") || "(还没有练习记录)" };
+      const insights = db.prepare("SELECT text, kind FROM insights WHERE exam_id=? ORDER BY id DESC LIMIT 15").all(exam.id);
+      const insText = insights.length ? "\n\n讨论中沉淀的观察:\n" + insights.map((x) => `[${x.kind === "gap" ? "薄弱" : "理解"}] ${x.text}`).join("\n") : "";
+      return { stats: (rows.map((r) => `${r.chapter}/${r.title}: 练${r.n}次,对${r.c}次`).join("\n") || "(还没有练习记录)") + insText };
     }
     case "web_search_and_ingest": {
       const r = await searchWeb(`围绕「${args.query}」搜索并综合出一份可用于备考的结构化资料(要点、定义、考点),尽量完整。`);
