@@ -22,7 +22,7 @@ function DevAccount({ t }) {
         <input className="input flex-1 min-w-[120px]" type="password" placeholder={t("密码")} value={p} onChange={(e) => setP(e.target.value)} />
         <button className="btn py-2 text-sm" onClick={create} disabled={!u || !p}>{t("创建")}</button>
       </div>
-      {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+      {msg && <p className="text-sm text-amber-700">{msg}</p>}
     </div>
   );
 }
@@ -58,7 +58,7 @@ export default function Admin() {
             <div className="flex items-center gap-3">
               <p className="text-xs text-stone-400">{t("注册于")} {u.createdAt?.slice(0, 10)}</p>
               {!u.isAdmin && !u.deletedAt && <button className="text-xs text-red-500 underline" onClick={() => act("delete", u.id)}>{t("删除账号")}</button>}
-              {u.deletedAt && <button className="text-xs text-emerald-600 underline" onClick={() => act("restore", u.id)}>{t("恢复账号")}</button>}
+              {u.deletedAt && <button className="text-xs text-amber-600 underline" onClick={() => act("restore", u.id)}>{t("恢复账号")}</button>}
             </div>
           </div>
           <div className="mt-2 grid grid-cols-4 gap-2 text-center text-sm">
@@ -71,7 +71,7 @@ export default function Admin() {
             <div className="mt-3 flex items-end gap-1 h-12">
               {u.week.map((d) => (
                 <div key={d.d} className="flex-1 text-center">
-                  <div className="mx-auto w-full max-w-8 rounded-t bg-emerald-400" style={{ height: `${Math.min(100, d.n * 8)}%` }} title={`${d.d}: ${d.n} 题`} />
+                  <div className="mx-auto w-full max-w-8 rounded-t bg-amber-500" style={{ height: `${Math.min(100, d.n * 8)}%` }} title={`${d.d}: ${d.n} 题`} />
                   <div className="text-[9px] text-stone-400">{d.d.slice(5)}</div>
                 </div>
               ))}

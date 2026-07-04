@@ -81,7 +81,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="text-2xl font-black mt-2">{t("设置考试")} <span className="text-sm font-normal text-slate-400">{step > 5 ? 5 : step} / 5</span></h1>
-      {busy && busyText && <div className="card border-emerald-300 bg-emerald-50 text-emerald-800 text-sm animate-pulse">{busyText}</div>}
+      {busy && busyText && <div className="card border-amber-400 bg-amber-50 text-amber-800 text-sm animate-pulse">{busyText}</div>}
 
       {step === 1 && (
         <div className="card space-y-3">
@@ -92,7 +92,7 @@ export default function Onboarding() {
             <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {TYPES.map(([v, icon, label]) => (
                 <button key={v} type="button" onClick={() => setExamType(v)}
-                  className={`rounded-xl border px-3 py-2 text-sm ${examType === v ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-medium" : "border-slate-200 text-slate-600"}`}>
+                  className={`rounded-xl border px-3 py-2 text-sm ${examType === v ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-600"}`}>
                   {icon} {t(label)}
                 </button>
               ))}

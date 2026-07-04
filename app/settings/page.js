@@ -60,7 +60,7 @@ export default function Settings() {
         <div className="mt-2 flex flex-wrap gap-2">
           {LANGS.map(([code, label]) => (
             <button key={code} onClick={() => setLang(code)}
-              className={`rounded-full border px-4 py-1.5 text-sm ${lang === code ? "border-emerald-600 bg-emerald-50 text-emerald-700 font-medium" : "border-stone-300 text-stone-600"}`}>
+              className={`rounded-full border px-4 py-1.5 text-sm ${lang === code ? "border-amber-600 bg-amber-50 text-amber-700 font-medium" : "border-stone-300 text-stone-600"}`}>
               {label}
             </button>
           ))}
@@ -69,7 +69,7 @@ export default function Settings() {
       <div className="card flex items-center justify-between">
         <p className="text-sm">{t("当前账号:")}<b>{info.username}</b>{info.isAdmin ? t("(管理员)") : ""}</p>
         <div className="flex gap-3 items-center">
-          {info.isAdmin && <a className="text-sm text-emerald-700 font-medium" href="/admin">{t("管理面板")}</a>}
+          {info.isAdmin && <a className="text-sm text-amber-700 font-medium" href="/admin">{t("管理面板")}</a>}
           {info.isDeveloper && <a className="text-sm text-indigo-600 font-medium" href="/dev">{t("开发者工具")}</a>}
           <button className="text-sm text-stone-400 underline" onClick={logout}>{t("退出登录")}</button>
         </div>
@@ -81,7 +81,7 @@ export default function Settings() {
             <p className="text-xs text-stone-400">{info.googleLinked ? (t("已绑定") + (info.email ? " · " + info.email : "")) : t("绑定后可以用 Google 一键登录")}</p>
           </div>
           {info.googleLinked
-            ? <span className="text-sm text-emerald-700">✓ {t("已绑定")}</span>
+            ? <span className="text-sm text-amber-700">✓ {t("已绑定")}</span>
             : <a href="/api/auth/google/start?bind=1" className="btn-ghost text-sm py-2">{t("绑定 Google")}</a>}
         </div>
       )}
@@ -97,14 +97,14 @@ export default function Settings() {
           <button className="btn" onClick={save} disabled={busy}>{t("保存")}</button>
           <button className="btn-ghost" onClick={test} disabled={busy || !info.hasKey}>{t("测试连接")}</button>
         </div>
-        {msg && <p className="text-sm text-emerald-700">{msg}</p>}
+        {msg && <p className="text-sm text-amber-700">{msg}</p>}
       </div>}
       <div className="card space-y-2">
         <h2 className="font-semibold">🏫 {t("我的档案")}</h2>
         <label className="text-xs text-slate-500">{t("学校/课程信息")}</label>
         <input className="input" value={school} onChange={(e) => setSchool(e.target.value)} placeholder={t("例如:XX大学 数据结构 期末考")} />
         <button className="btn-ghost text-sm py-2" onClick={saveProfile}>{t("保存")}</button>
-        {profileMsg && <p className="text-sm text-emerald-700">{profileMsg}</p>}
+        {profileMsg && <p className="text-sm text-amber-700">{profileMsg}</p>}
       </div>
       <a href="/collector" className="card card-hover flex items-center justify-between">
         <div>
@@ -120,7 +120,7 @@ export default function Settings() {
       </div>
       <div className="card text-sm text-stone-500 space-y-1">
         <p>{t("遇到任何解决不了的问题,直接联系 Will:")}</p>
-        <a className="text-emerald-700 font-medium" href="mailto:xuy413682@gmail.com">xuy413682@gmail.com</a>
+        <a className="text-amber-700 font-medium" href="mailto:xuy413682@gmail.com">xuy413682@gmail.com</a>
       </div>
     </div>
   );

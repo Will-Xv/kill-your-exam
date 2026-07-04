@@ -28,7 +28,7 @@ export default function Exams() {
         <a href="/onboarding" className="btn py-2 text-sm">+ {t("新考试")}</a>
       </div>
       {live.map((e) => (
-        <div key={e.id} className={`card ${e.status === "active" ? "border-emerald-400" : ""}`}>
+        <div key={e.id} className={`card ${e.status === "active" ? "border-amber-500" : ""}`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold">{e.name} {e.status === "completed" && <span className="badge-material">{t("已完成")}</span>}</p>
@@ -53,7 +53,7 @@ export default function Exams() {
                   <p className="text-xs text-amber-700">{daysLeft(e.deleted_at)} {t("天后永久清除")}</p>
                 </div>
                 <div className="flex gap-3 text-xs">
-                  <button className="text-emerald-600 underline" onClick={() => manage("restore", e.id)}>{t("恢复")}</button>
+                  <button className="text-amber-600 underline" onClick={() => manage("restore", e.id)}>{t("恢复")}</button>
                   <button className="text-red-500 underline" onClick={() => manage("purge_now", e.id, t("立即永久删除?此操作不可撤销。"))}>{t("立即删除")}</button>
                 </div>
               </div>

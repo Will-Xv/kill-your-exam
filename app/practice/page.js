@@ -158,7 +158,7 @@ function PracticeInner() {
               const v = optValue(i); const active = sel.includes(v);
               return (
                 <button key={i} disabled={!!result} onClick={() => setSel(q.qtype === "multi" ? (active ? sel.filter((x) => x !== v) : [...sel, v]) : [v])}
-                  className={`block w-full rounded-xl border px-4 py-3 text-left text-sm transition ${active ? "border-emerald-500 bg-emerald-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                  className={`block w-full rounded-xl border px-4 py-3 text-left text-sm transition ${active ? "border-amber-500 bg-amber-50" : "border-slate-200 hover:bg-slate-50"}`}>
                   {q.qtype !== "judge" && <b className="mr-2">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : <MD inline>{op}</MD>}
                 </button>
               );
@@ -175,14 +175,14 @@ function PracticeInner() {
       </div>
 
       {result && (
-        <div className={`card ${result.correct ? "border-emerald-300 bg-emerald-50" : (result.score >= 40 ? "border-amber-300 bg-amber-50" : "border-red-300 bg-red-50")}`}>
+        <div className={`card ${result.correct ? "border-amber-400 bg-amber-50" : (result.score >= 40 ? "border-amber-300 bg-amber-50" : "border-red-300 bg-red-50")}`}>
           <p className="font-bold">
             {q.qtype === "short" ? `${result.score} ${t("分")}` : (result.correct ? t("✓ 答对了") : t("✗ 不对"))}
           </p>
           <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.qtype === "judge" ? t(result.answer) : <MD inline>{result.answer}</MD>}</p>
           {result.feedback && <div className="text-sm mt-1"><b>{t("点评:")}</b><MD inline>{result.feedback}</MD></div>}
           <div className="text-sm mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{result.explanation}</MD></div>
-          {result.revisedNote && <p className="text-sm mt-1 text-emerald-700">↺ {result.revisedNote}</p>}
+          {result.revisedNote && <p className="text-sm mt-1 text-amber-700">↺ {result.revisedNote}</p>}
           <p className="text-xs text-slate-400 mt-2">
             {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:网上题目") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
@@ -201,7 +201,7 @@ function PracticeInner() {
           </div>
           <div className="max-h-72 overflow-y-auto space-y-2">
             {discuss.map((m, i) => (
-              <div key={i} className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "ml-auto bg-emerald-600 text-white" : "bg-slate-100"}`}>{m.role === "user" ? m.content : <MD inline>{m.content}</MD>}</div>
+              <div key={i} className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "ml-auto bg-amber-600 text-white" : "bg-slate-100"}`}>{m.role === "user" ? m.content : <MD inline>{m.content}</MD>}</div>
             ))}
             {dBusy && <div className="max-w-[88%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400 animate-pulse">{t("思考中…")}</div>}
             <div ref={bottom} />

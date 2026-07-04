@@ -7,7 +7,7 @@ export default function DropZone({ onFiles, className = "", children }) {
   const [over, setOver] = useState(false);
   return (
     <div
-      className={`${className} ${over ? "rounded-2xl ring-2 ring-emerald-400" : ""}`}
+      className={`${className} ${over ? "rounded-2xl ring-2 ring-amber-500" : ""}`}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {

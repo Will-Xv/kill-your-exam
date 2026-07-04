@@ -47,7 +47,7 @@ export default function Materials() {
       <div className="card space-y-2">
         <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp" />
         {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}
-        {log && <p className="text-sm text-emerald-700 animate-pulse">{log}</p>}
+        {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
       </div>
       {checklist.length > 0 && (
@@ -58,7 +58,7 @@ export default function Materials() {
               <p className="text-sm">{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">— {t("直接回答")}</span></p>
               <div className="mt-1 flex gap-2">
                 <input className="input py-2 text-sm" value={c.answer || ""} onChange={(e) => setAnswer(i, e.target.value)} onBlur={() => saveAnswer(i)} placeholder={c.why} />
-                {c.done && <span className="text-emerald-600 text-sm self-center">✓</span>}
+                {c.done && <span className="text-amber-600 text-sm self-center">✓</span>}
               </div>
             </div>
           ) : (

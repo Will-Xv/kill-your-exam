@@ -71,7 +71,7 @@ function StudyInner() {
   }
 
   const COVER = { covered: "🟢", partial: "🟡", none: "⚪" };
-  const LVDOT = { mastered: "bg-emerald-500", ok: "bg-emerald-300", weak: "bg-red-400", unlearned: "bg-slate-200" };
+  const LVDOT = { mastered: "bg-amber-500", ok: "bg-amber-400", weak: "bg-red-400", unlearned: "bg-slate-200" };
   const LVLABEL = { mastered: t("掌握"), ok: t("一般"), weak: t("薄弱"), unlearned: t("未学") };
   return (
     <div className="space-y-4">

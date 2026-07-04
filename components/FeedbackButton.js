@@ -12,7 +12,7 @@ export default function FeedbackButton() {
     <Link
       href="/feedback"
       title={t("意见反馈")}
-      className="fixed bottom-24 right-4 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:-translate-y-0.5 hover:shadow-xl md:bottom-6 md:right-6"
+      className="fixed bottom-24 right-4 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition hover:-translate-y-0.5 hover:shadow-xl md:bottom-6 md:right-6"
     >
       ✉️ <span>{t("反馈")}</span>
     </Link>

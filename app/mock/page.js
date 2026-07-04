@@ -52,17 +52,17 @@ export default function Mock() {
   if (stage === "done" && score) {
     return (
       <div className="space-y-4 md:mt-14">
-        <div className="card text-center bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-0">
-          <p className="text-sm text-emerald-100">{t("模拟考成绩")}</p>
+        <div className="card text-center bg-gradient-to-br from-amber-600 to-amber-700 text-white border-0">
+          <p className="text-sm text-amber-100">{t("模拟考成绩")}</p>
           <p className="text-5xl font-bold my-2">{score.pct}%</p>
-          <p className="text-emerald-100">{score.got} / {score.total}</p>
+          <p className="text-amber-100">{score.got} / {score.total}</p>
         </div>
         <div className="card">
           <h2 className="font-bold mb-2">{t("各章得分")}</h2>
           {Object.entries(score.byChapter).map(([ch, s]) => (
             <div key={ch} className="mb-2">
               <div className="flex justify-between text-sm"><span>{ch}</span><span>{s.got}/{s.total}</span></div>
-              <div className="h-2 rounded-full bg-stone-100"><div className="h-2 rounded-full bg-emerald-500" style={{ width: `${(s.got / s.total) * 100}%` }} /></div>
+              <div className="h-2 rounded-full bg-stone-100"><div className="h-2 rounded-full bg-amber-500" style={{ width: `${(s.got / s.total) * 100}%` }} /></div>
             </div>
           ))}
         </div>
@@ -95,7 +95,7 @@ export default function Mock() {
                   const v = q.qtype === "judge" ? op : letters[i];
                   const active = q.qtype === "multi" ? (cur || "").includes(v) : cur === v;
                   return <button key={i} onClick={() => setA(q.id, q.qtype === "multi" ? (active ? (cur || "").replace(v, "") : (cur || "") + v) : v)}
-                    className={`block w-full rounded-lg border px-3 py-2 text-left text-sm ${active ? "border-emerald-500 bg-emerald-50" : "border-stone-200"}`}>
+                    className={`block w-full rounded-lg border px-3 py-2 text-left text-sm ${active ? "border-amber-500 bg-amber-50" : "border-stone-200"}`}>
                     {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : op}</button>;
                 })}
               </div>

@@ -40,7 +40,7 @@ export default function Tour({ firstTime }) {
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
       <div className="animate-in w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-2xl">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 text-4xl">{s.icon}</div>
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-amber-50 text-4xl">{s.icon}</div>
         <h2 className="mt-4 text-xl font-black">{s.title}</h2>
         <p className="mt-2 text-slate-600">{s.body}</p>
 
@@ -50,14 +50,14 @@ export default function Tour({ firstTime }) {
             <div className="flex flex-wrap justify-center gap-1.5">
               {LANGS.map(([code, label]) => (
                 <button key={code} onClick={() => setLang(code)}
-                  className={`rounded-full border px-3 py-1 text-xs ${lang === code ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold" : "border-slate-200 text-slate-500"}`}>{label}</button>
+                  className={`rounded-full border px-3 py-1 text-xs ${lang === code ? "border-amber-500 bg-amber-50 text-amber-700 font-semibold" : "border-slate-200 text-slate-500"}`}>{label}</button>
               ))}
             </div>
           </div>
         )}
 
         <div className="mt-6 flex items-center justify-center gap-1.5">
-          {steps.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? "w-5 bg-emerald-500" : "w-1.5 bg-slate-200"}`} />)}
+          {steps.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? "w-5 bg-amber-500" : "w-1.5 bg-slate-200"}`} />)}
         </div>
         <div className="mt-5 flex gap-2">
           <button onClick={skip} className="btn-ghost flex-1 py-2.5 text-sm">{t("跳过")}</button>

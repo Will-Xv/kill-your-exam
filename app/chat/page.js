@@ -73,9 +73,9 @@ export default function Chat() {
         )}
         {messages.map((m, i) =>
           m.role === "tool_note" ? (
-            <p key={i} className="text-center text-xs text-emerald-700">⚙️ {m.content}</p>
+            <p key={i} className="text-center text-xs text-amber-700">⚙️ {m.content}</p>
           ) : (
-            <div key={i} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "ml-auto bg-emerald-600 text-white" : "bg-[#f5eed6] border border-[#e4d5af] text-[#2f2413]"}`}>
+            <div key={i} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "ml-auto bg-amber-600 text-white" : "bg-[#f5eed6] border border-[#e4d5af] text-[#2f2413]"}`}>
               {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <MD className="prose-zh">{m.content}</MD>}
             </div>
           )
@@ -88,7 +88,7 @@ export default function Chat() {
           </div>
         ))}
         {bjobs.filter((j) => j.status === "done").slice(0, 1).map((j) => (
-          <p key={j.id} className="text-center text-xs text-emerald-700">🌐 {t("采集完成")}:{j.goal}({t("共")} {j.collected} {t("页")})</p>
+          <p key={j.id} className="text-center text-xs text-amber-700">🌐 {t("采集完成")}:{j.goal}({t("共")} {j.collected} {t("页")})</p>
         ))}
         {pending && (
           <div className="card border-amber-300 bg-amber-50/70">

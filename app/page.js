@@ -32,7 +32,7 @@ export default function Home() {
       <>
         <Tour firstTime />
         <div className="mx-auto flex min-h-[75vh] max-w-md flex-col items-center justify-center px-4 text-center">
-          <div className="animate-in grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-4xl shadow-xl shadow-emerald-500/30">📘</div>
+          <div className="animate-in grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-amber-500 to-amber-600 text-4xl shadow-xl shadow-amber-500/30">📘</div>
           <h1 className="animate-in d1 mt-6 text-3xl font-black">{t("欢迎!先设置一门考试")}</h1>
           <p className="animate-in d2 mt-3 text-[#cdbfa0]">{t("还没有设置考试。花 5 分钟告诉我你要考什么,")}{t("我会先坦白我知道什么、不知道什么。")}</p>
           <Link href="/onboarding" className="btn animate-in d3 mt-7 text-base">🚀 {t("开始设置考试")}</Link>
@@ -68,18 +68,18 @@ export default function Home() {
       <Tour />
       {/* hero */}
       <div className="animate-in grad-hero relative overflow-hidden rounded-3xl p-6 text-white shadow-xl">
-        <div className="blob absolute -right-10 -top-10 h-40 w-40 rounded-full bg-emerald-400/30 blur-2xl" />
+        <div className="blob absolute -right-10 -top-10 h-40 w-40 rounded-full bg-amber-500/30 blur-2xl" />
         <div className="relative flex items-end justify-between">
           <div>
             <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline">{exam.name}</Link>
-            {days != null && <p className="mt-1 text-emerald-100">{t("距猎杀")} <span className="text-4xl font-black text-white">{days}</span> {t("天")}</p>}
+            {days != null && <p className="mt-1 text-amber-100">{t("距猎杀")} <span className="text-4xl font-black text-white">{days}</span> {t("天")}</p>}
           </div>
-          {daily && <div className="text-right text-emerald-100 text-sm">🔥 {daily.activeDays} {t("天")}</div>}
+          {daily && <div className="text-right text-amber-100 text-sm">🔥 {daily.activeDays} {t("天")}</div>}
         </div>
         <div className="relative mt-4 grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{stats.todayCount}</div><div className="text-[11px] text-emerald-100">{t("今日做题")}</div></div>
-          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{acc == null ? "—" : acc + "%"}</div><div className="text-[11px] text-emerald-100">{t("总正确率")}</div></div>
-          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{stats.matCount}</div><div className="text-[11px] text-emerald-100">{t("资料数")}</div></div>
+          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{stats.todayCount}</div><div className="text-[11px] text-amber-100">{t("今日做题")}</div></div>
+          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{acc == null ? "—" : acc + "%"}</div><div className="text-[11px] text-amber-100">{t("总正确率")}</div></div>
+          <div className="rounded-2xl bg-white/10 py-2"><div className="text-xl font-bold">{stats.matCount}</div><div className="text-[11px] text-amber-100">{t("资料数")}</div></div>
         </div>
       </div>
 
@@ -87,13 +87,13 @@ export default function Home() {
       <div id="tour-today" className="card animate-in d1 mt-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-bold">📋 {t("今日任务")}</h2>
-          {allDone && <span className="text-sm font-semibold text-emerald-700">{t("全部完成 🎉")}</span>}
+          {allDone && <span className="text-sm font-semibold text-amber-700">{t("全部完成 🎉")}</span>}
         </div>
         {!daily ? <div className="shimmer h-10 rounded-xl" /> : (
           <div className="space-y-1">
             {items.map((it, i) => (
               <Link key={i} href={linkFor(it)} className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition ${it.done ? "text-slate-400" : "hover:bg-slate-50"}`}>
-                <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs ${it.done ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300"}`}>{it.done ? "✓" : i + 1}</span>
+                <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs ${it.done ? "border-amber-500 bg-amber-500 text-white" : "border-slate-300"}`}>{it.done ? "✓" : i + 1}</span>
                 <span className={it.done ? "line-through" : "font-medium"}>{labelFor(it)}</span>
               </Link>
             ))}
@@ -126,7 +126,7 @@ export default function Home() {
           {!sugg && <button className="btn-ghost py-2 text-xs" onClick={loadSugg} disabled={suggBusy}>{suggBusy ? t("分析中…") : t("看看我的进度建议")}</button>}
         </div>
         {sugg?.none && <p className="mt-2 text-sm text-slate-400">{t("先做一些练习,AI 才能根据你的表现给建议。")}</p>}
-        {sugg?.adopted && <p className="mt-2 text-sm text-emerald-700">{t("已采纳,备考策略已更新 ✓")}</p>}
+        {sugg?.adopted && <p className="mt-2 text-sm text-amber-700">{t("已采纳,备考策略已更新 ✓")}</p>}
         {sugg?.suggestions && (
           <div className="mt-2 space-y-2">
             <ul className="list-disc pl-5 text-sm text-slate-600">{sugg.suggestions.map((x, i) => <li key={i}>{x}</li>)}</ul>
