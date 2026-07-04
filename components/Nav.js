@@ -8,7 +8,6 @@ const primary = [
   { href: "/exams", label: "我的考试", icon: "🗂️" },
   { href: "/", label: "首页", icon: "🏠" },
   { href: "/study", label: "学习", icon: "📖" },
-  { href: "/practice", label: "自由练习", icon: "✍️" },
   { href: "/chat", label: "问问AI", icon: "💬" }
 ];
 const more = [

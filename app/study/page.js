@@ -75,7 +75,10 @@ function StudyInner() {
   const LVLABEL = { mastered: t("掌握"), ok: t("一般"), weak: t("薄弱"), unlearned: t("未学") };
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-black">{t("学习与掌握度")}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black">{t("学习与掌握度")}</h1>
+        <a href="/practice" className="btn py-2 text-sm">✍️ {t("开始自由练习")}</a>
+      </div>
       <div className="card flex justify-around text-center text-sm">
         {Object.keys(LVDOT).map((k) => (
           <div key={k}><div className={`mx-auto h-3 w-3 rounded-full ${LVDOT[k]} mb-1`} /><b>{levelCounts[k] || 0}</b> {LVLABEL[k]}</div>
