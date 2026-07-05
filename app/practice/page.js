@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, Suspense, useRef } from "react";
+import PerformTask from "@/components/PerformTask";
 import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import { useT } from "@/components/I18n";
@@ -140,6 +141,18 @@ function PracticeInner() {
   const isChoice = q.qtype === "single" || q.qtype === "multi" || q.qtype === "judge";
   const options = q.qtype === "judge" ? ["对", "错"] : q.body.options || [];
   const optValue = (i) => (q.qtype === "judge" ? options[i] : letters[i]);
+
+  if (q.qtype === "perform") {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-sm text-slate-500">
+          <span>{idx + 1} / {questions.length} · {t("表演任务")}</span>
+          <span className="badge-model">🤖 {t("AI出题")}</span>
+        </div>
+        <PerformTask key={q.id} q={q} onNext={next} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
