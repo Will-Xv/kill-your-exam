@@ -166,6 +166,9 @@ export default function PerformTask({ q, onNext }) {
       {mediaSrc && phase === "idle" && (
         <button className="btn-ghost text-sm py-1.5" onClick={togglePreview}>🎵 {t("试听所给音乐(录制时会自动播放)")}</button>
       )}
+      {!mediaSrc && (analyzeAudio === "music" || analyzeAudio === "both") && phase === "idle" && (
+        <p className="text-[11px] text-slate-500">🎵 {t("这道题需要配乐,但暂时没找到合适曲目。请像真实艺考那样自备伴奏、录制时用手机/音响外放,录像会连同音乐一起录进去评分。")}</p>
+      )}
 
       {isVideo && (phase === "countdown" || phase === "recording") && (
         <video ref={liveVideoRef} autoPlay playsInline muted className="w-full max-h-72 rounded-xl bg-black" />

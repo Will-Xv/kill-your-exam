@@ -5,6 +5,7 @@ import { getOverallDoc } from "@/lib/overall";
 import { generateJson, searchWeb, langInstruction, examLangInstruction } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 import { resolveExamLang } from "@/lib/examlang";
+import { findAndStoreMusic } from "@/lib/music";
 
 const genSchema = { type: "object", properties: { questions: { type: "array", items: { type: "object", properties: {
   qtype: { type: "string", enum: ["single", "multi", "judge", "fill", "short", "perform"] }, stem: { type: "string" },
@@ -130,7 +131,9 @@ single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标�
         if (q.qtype === "perform") {
           const p = q.perform || {};
           const cap = p.captureType === "video" ? "video" : "audio"; const aa = p.analyzeAudio || (cap === "video" && p.mediaMaterialId ? "music" : "recorded");
-          const body = JSON.stringify({ stem: q.stem, captureType: cap, mediaMaterialId: p.mediaMaterialId || null, analyzeAudio: aa, countdownSec: p.countdownSec || 3, autoStopAfterMediaSec: p.autoStopAfterMediaSec || 7, maxDurationSec: 300, rubric: p.rubric || [], instructions: p.instructions || "" });
+          let mediaMaterialId = p.mediaMaterialId || null;
+          if (!mediaMaterialId && (aa === "music" || aa === "both")) { try { mediaMaterialId = await findAndStoreMusic(exam.id, `${kp.title} ${q.stem}`); } catch { mediaMaterialId = null; } }
+          const body = JSON.stringify({ stem: q.stem, captureType: cap, mediaMaterialId, analyzeAudio: aa, countdownSec: p.countdownSec || 3, autoStopAfterMediaSec: p.autoStopAfterMediaSec || 7, maxDurationSec: 300, rubric: p.rubric || [], instructions: p.instructions || "" });
           const answer = JSON.stringify({ rubric: p.rubric || [], notes: q.explanation || "" });
           const info = insQ.run(exam.id, kp.id, "perform", body, answer, q.difficulty || 2, sourceType, refs, "generated", "ai", null, 0);
           genQs.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
