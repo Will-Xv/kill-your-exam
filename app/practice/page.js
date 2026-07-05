@@ -44,7 +44,6 @@ function PracticeInner() {
   const [draftOpen, setDraftOpen] = useState(false);
   const [answers, setAnswers] = useState({});
   const [drafts, setDrafts] = useState({});
-  const [discussions, setDiscussions] = useState({}); // 每题的追问聊天记录(qid->array),刷新可恢复
   const [hands, setHands] = useState({}); // 已提交的手写作答(qid->dataURL),提交后仍能看见
   const padRef = useRef(null);
   const draftRef = useRef(null);
@@ -65,7 +64,7 @@ function PracticeInner() {
   }
   function reroll() { try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {} prefetched.current = null; loadQuestions(); }
   async function loadQuestions() {
-    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setDiscussions({}); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
+    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
     // 若有预取好的一批,直接用,零等待
     if (prefetched.current && prefetched.current.questions.length) {
       const b = prefetched.current; prefetched.current = null;
@@ -98,11 +97,10 @@ function PracticeInner() {
           let drf = {}; try { drf = JSON.parse(localStorage.getItem(storeKey + ":drafts") || "{}"); } catch {}
           setDrafts(drf);
           try { setHands(JSON.parse(localStorage.getItem(storeKey + ":hands") || "{}")); } catch {}
-          const dsc = saved.discussions || {}; setDiscussions(dsc);
           const cur = saved.questions[saved.idx || 0];
           const st = cur && ans[cur.id];
           if (st) { setSel(st.sel || []); setText(st.text || ""); setResult(st.result || null); }
-          if (cur && Array.isArray(dsc[cur.id])) setDiscuss(dsc[cur.id]);
+          if (Array.isArray(saved.discuss)) setDiscuss(saved.discuss); // 只恢复当前这道正在进行的追问,刷新不丢
           if (cur && drf[cur.id]) setDraftOpen(true);
           setBusy(false); prefetchNext();
           return;
@@ -114,8 +112,8 @@ function PracticeInner() {
   // 批次/进度变化时存下来,刷新可恢复
   useEffect(() => {
     if (!questions.length) return;
-    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, discussions, ts: Date.now() })); } catch {}
-  }, [questions, idx, done, note, answers, discussions]); // eslint-disable-line
+    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, discuss, ts: Date.now() })); } catch {}
+  }, [questions, idx, done, note, answers, discuss]); // eslint-disable-line
   useEffect(() => { try { localStorage.setItem(storeKey + ":drafts", JSON.stringify(drafts)); } catch {} }, [drafts]); // eslint-disable-line
   useEffect(() => { try { localStorage.setItem(storeKey + ":hands", JSON.stringify(hands)); } catch {} }, [hands]); // eslint-disable-line
   // 当前题的作答状态(选项/文字/批改结果)随时存,刷新可恢复
@@ -152,7 +150,6 @@ function PracticeInner() {
     setResult(ns?.result ?? null); setSel(ns?.sel ?? []); setText(ns?.text ?? "");
     setReportOpen(false); setReportNote(""); setNoteOpen(false); setNoteBody(""); setNoteSaved(false);
     setDraftOpen(nq ? !!drafts[nq.id] : false);
-    setDiscuss(nq && Array.isArray(discussions[nq.id]) ? discussions[nq.id] : null);
     setIdx(ni);
   }
   async function sendDiscuss() {
@@ -160,10 +157,10 @@ function PracticeInner() {
     const ua = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
     const attachments = await filesToAttachments(dFiles);
     const hist = [...(discuss || []), { role: "user", content: (msg || "(见附件)") + (attachments.length ? " 📎" + attachments.length : "") }];
-    setDiscuss(hist); setDiscussions((dd) => ({ ...dd, [q.id]: hist })); setDInput(""); setDFiles([]); setDBusy(true);
+    setDiscuss(hist); setDInput(""); setDFiles([]); setDBusy(true);
     try {
       const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ua, history: hist, attachments }) });
-      const full = [...hist, { role: "model", content: d.reply }]; setDiscuss(full); setDiscussions((dd) => ({ ...dd, [q.id]: full }));
+      setDiscuss([...hist, { role: "model", content: d.reply }]);
     } catch { setDiscuss(hist); }
     setDBusy(false);
   }
