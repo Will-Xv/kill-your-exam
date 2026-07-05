@@ -74,7 +74,10 @@ export default function PerformTask({ q, onNext }) {
     }
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia(isVideo ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } } : { audio: true });
+      // 给定音乐的舞蹈/形体题:评分用的是"干净原曲"而非录进去的声音,所以【不采麦克风】——
+      // 否则手机/平板一旦占用麦克风就会抢走音频焦点、把正在外放的音乐掐掉,考生就听不见音乐了。
+      const micNeeded = !(isVideo && analyzeAudio === "music");
+      stream = await navigator.mediaDevices.getUserMedia(isVideo ? { audio: micNeeded, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } } : { audio: true });
     } catch (e) {
       setErr(t("无法访问摄像头/麦克风,请在浏览器允许权限后重试。")); return;
     }
@@ -168,7 +171,7 @@ export default function PerformTask({ q, onNext }) {
       <p className="text-[11px] text-amber-700">⚠️ {t("AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。")}</p>
       <p className="text-[11px] text-slate-500">🔎 {isVideo
         ? t("我们会把你的整段录像交给 AI,按每秒 5 帧分析画面(整段都看,没有张数上限);") + (analyzeAudio === "music"
-            ? t("舞蹈/形体类:只用所给音乐原曲判断你是否踩上节拍,录像里录到的原声不单独分析。")
+            ? t("舞蹈/形体类:只用所给音乐原曲判断你是否踩上节拍。为保证你在录制时能听见音乐,本题录像不开麦克风、不收声,只看画面。")
             : analyzeAudio === "both"
             ? t("并用所给音乐原曲对齐节拍、同时分析你录进去的声音。")
             : t("并分析你录像里录到的声音(如台词/演唱)。"))
