@@ -40,13 +40,13 @@ export default function Tour() {
   const s = steps[step] || steps[0];
   const last = step === steps.length - 1;
 
-  function done(redirect) {
-    fetch("/api/guide", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: mode }) }).catch(() => {});
+  function done(redirect, read) {
+    fetch("/api/guide", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: mode, read }) }).catch(() => {});
     setMode(null);
     if (redirect) location.href = "/onboarding";
   }
-  function next() { if (last) done(mode === "tour" && !hasExam); else setStep(step + 1); }
-  function skip() { done(false); }
+  function next() { if (last) done(mode === "tour" && !hasExam, true); else setStep(step + 1); }
+  function skip() { done(false, false); }
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">

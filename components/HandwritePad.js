@@ -85,7 +85,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         <button type="button" onClick={undo} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">↺ {t("撤销")}</button>
         <button type="button" onClick={clear} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">🗑 {t("清空")}</button>
         <div className="ml-1 inline-flex rounded-full border border-slate-200 p-0.5 text-xs" title={t("手指是用来书写,还是用来滑动/缩放页面(用笔时建议选『滑动』)")}>
-          <button type="button" onClick={() => setFingerScroll(false)} className={`rounded-full px-2.5 py-1 transition ${!fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>✍️ {t("手指书写")}</button>
+          <button type="button" onClick={() => setFingerScroll(false)} className={`rounded-full px-2.5 py-1 transition ${!fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>👆 {t("手指书写")}</button>
           <button type="button" onClick={() => setFingerScroll(true)} className={`rounded-full px-2.5 py-1 transition ${fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>✋ {t("手指滑动")}</button>
         </div>
         <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面")}</span>
