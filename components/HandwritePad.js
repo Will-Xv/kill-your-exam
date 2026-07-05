@@ -15,7 +15,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   const undoStack = useRef([]);
   const dirty = useRef(false);
   const [tool, setTool] = useState("pen"); // pen | eraser
-  const [fingerScroll, setFingerScroll] = useState(false); // true: 手指用于滚动页面(只用笔书写),Samsung 习惯
+  const [fingerScroll, setFingerScroll] = useState(() => { if (typeof window === "undefined") return false; try { return localStorage.getItem("kye_finger_scroll") === "1"; } catch { return false; } }); // 手指用于滚动/缩放(只用笔书写);跨题跨考试记住
 
   function setup() {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -32,6 +32,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     if (initial) { const im = new Image(); im.onload = () => { try { ctx.drawImage(im, 0, 0, cssW, cssH); dirty.current = true; } catch {} }; im.src = initial; }
   }
   useEffect(() => { setup(); }, []); // eslint-disable-line
+  useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} }, [fingerScroll]);
 
   function pos(e) { const r = canvasRef.current.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
   function snapshot() { try { const c = canvasRef.current; undoStack.current.push(c.getContext("2d").getImageData(0, 0, c.width, c.height)); if (undoStack.current.length > 25) undoStack.current.shift(); } catch {} }
@@ -81,7 +82,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面")}</span>
       </div>
       <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} onPointerCancel={up}
-        className="w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: fingerScroll ? "pan-y" : "none" }} />
+        className="w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: fingerScroll ? "manipulation" : "none" }} />
     </div>
   );
 });
