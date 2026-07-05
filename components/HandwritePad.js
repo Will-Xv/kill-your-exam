@@ -15,6 +15,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   const undoStack = useRef([]);
   const dirty = useRef(false);
   const [tool, setTool] = useState("pen"); // pen | eraser
+  const [fingerScroll, setFingerScroll] = useState(false); // true: 手指用于滚动页面(只用笔书写),Samsung 习惯
 
   function setup() {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -36,8 +37,8 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   function snapshot() { try { const c = canvasRef.current; undoStack.current.push(c.getContext("2d").getImageData(0, 0, c.width, c.height)); if (undoStack.current.length > 25) undoStack.current.shift(); } catch {} }
 
   function down(e) {
-    if (e.pointerType === "pen") penSeen.current = true;
-    if (e.pointerType === "touch" && penSeen.current) return; // 用过笔后忽略手指(防手掌误触)
+    if (e.pointerType === "pen") { penSeen.current = true; if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
+    if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return; // 手指用于滚动/防手掌误触,不当作书写
     e.preventDefault();
     snapshot();
     drawing.current = true; last.current = pos(e);
@@ -45,7 +46,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   }
   function move(e) {
     if (!drawing.current) return;
-    if (e.pointerType === "touch" && penSeen.current) return;
+    if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return;
     e.preventDefault();
     const ctx = ctxRef.current; const p = pos(e);
     const pressure = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
@@ -76,10 +77,11 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         <button type="button" onClick={() => setTool("eraser")} className={`rounded-full border px-3 py-1 ${tool === "eraser" ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-500"}`}>🧽 {t("橡皮擦")}</button>
         <button type="button" onClick={undo} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">↺ {t("撤销")}</button>
         <button type="button" onClick={clear} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">🗑 {t("清空")}</button>
-        <span className="text-xs text-slate-400">{t("可用触控笔/手写板/鼠标书写")}</span>
+        <button type="button" onClick={() => setFingerScroll((v) => !v)} title={t("切换:手指是用来书写,还是用来滑动页面(用笔时建议选滑动)")} className={`rounded-full border px-3 py-1 ${fingerScroll ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-500"}`}>{fingerScroll ? t("✋ 手指滑动") : t("✍️ 手指书写")}</button>
+        <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面")}</span>
       </div>
       <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} onPointerCancel={up}
-        className="w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: "none" }} />
+        className="w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: fingerScroll ? "pan-y" : "none" }} />
     </div>
   );
 });
