@@ -175,7 +175,7 @@ export default function PerformTask({ q, onNext }) {
         <button className="btn-ghost text-sm py-1.5" onClick={togglePreview}>🎵 {t("试听所给音乐(录制时会自动播放)")}</button>
       )}
       {!mediaSrc && (analyzeAudio === "music" || analyzeAudio === "both") && phase === "idle" && (
-        <p className="text-[11px] text-slate-500">🎵 {t("这道题需要配乐,但暂时没找到合适曲目。请像真实艺考那样自备伴奏、录制时用手机/音响外放,录像会连同音乐一起录进去评分。")}</p>
+        <p className="text-[11px] text-slate-500">🎵 {t("这道题是跟着给定音乐即兴,但暂时没找到合适曲目。可以让杀手重新出题换一首,或自己随便外放一段音乐来即兴练习(录像会连同音乐一起录进去)。")}</p>
       )}
 
       {isVideo && (phase === "countdown" || phase === "recording") && (
