@@ -151,6 +151,7 @@ function PracticeInner() {
     try {
       const d = await aiFetch("/api/questions/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, note: reportNote }) });
       alert(d.acted ? t("AI 确认这题确有问题,已移除并改进出题。感谢!") : t("AI 没发现这题有明显问题,已忽略(未删除)。若确有问题,请补充说明再提交。"));
+      if (d.acted) { setReportOpen(false); setReportNote(""); setReportBusy(false); next(); return; } // 题目已被移除 -> 直接跳到下一题
     } catch {}
     setReportOpen(false); setReportNote(""); setReportBusy(false);
   }
@@ -208,6 +209,7 @@ function PracticeInner() {
                 <button className="btn-ghost flex-1 py-2" onClick={() => setReportOpen(false)} disabled={reportBusy}>{t("取消")}</button>
                 <button className="btn flex-1 py-2" onClick={submitReport} disabled={reportBusy}>{reportBusy ? t("分析中…") : t("提交")}</button>
               </div>
+              <button className="btn-ghost w-full py-2 mt-2 text-sm text-slate-500" onClick={() => { setReportOpen(false); next(); }} disabled={reportBusy}>{t("跳过这道题 →")}</button>
             </div>
           </div>
         )}
@@ -341,6 +343,7 @@ function PracticeInner() {
               <button className="btn-ghost flex-1 py-2" onClick={() => setReportOpen(false)} disabled={reportBusy}>{t("取消")}</button>
               <button className="btn flex-1 py-2" onClick={submitReport} disabled={reportBusy}>{reportBusy ? t("分析中…") : t("提交")}</button>
             </div>
+            <button className="btn-ghost w-full py-2 mt-2 text-sm text-slate-500" onClick={() => { setReportOpen(false); next(); }} disabled={reportBusy}>{t("跳过这道题 →")}</button>
           </div>
         </div>
       )}
