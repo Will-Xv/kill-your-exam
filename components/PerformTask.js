@@ -63,6 +63,13 @@ export default function PerformTask({ q, onNext }) {
 
   async function begin() {
     setErr("");
+    // 在用户点击这个手势里先"解锁"配乐音频:静音播一下再暂停,规避浏览器对定时器里自动播放的限制
+    if (mediaSrc) {
+      try {
+        const a = mediaRef.current || new Audio(mediaSrc); mediaRef.current = a;
+        a.muted = true; await a.play(); a.pause(); a.currentTime = 0; a.muted = false;
+      } catch {}
+    }
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia(isVideo ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } } : { audio: true });
@@ -106,13 +113,14 @@ export default function PerformTask({ q, onNext }) {
     timersRef.current.push(cap);
     // 播放媒体(若有)
     if (mediaSrc) {
-      const a = new Audio(mediaSrc); mediaRef.current = a;
+      const a = mediaRef.current || new Audio(mediaSrc); mediaRef.current = a;
       a.onended = () => {
         // 媒体结束 → autoStopAfterMediaSec 倒计时后自动停
         let left = body.autoStopAfterMediaSec || 7; setAutoLeft(left);
         const iv = setInterval(() => { left -= 1; setAutoLeft(left); if (left <= 0) { clearInterval(iv); stopRecording(); } }, 1000);
         timersRef.current.push(iv);
       };
+      try { a.currentTime = 0; } catch {}
       a.play().catch(() => {});
     }
   }
