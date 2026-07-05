@@ -7,7 +7,8 @@ export async function POST(req) {
   if (!user) return unauthorized();
   if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
   const { count = 20, realOnly = false } = await req.json().catch(() => ({}));
-  const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ${realOnly ? "AND is_real=1" : ""} ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
+  const perfExam = exam.exam_type === "performance"; // 艺术/表演类考试:模拟卷也只用录音录像题,不掺笔试
+  const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ${perfExam ? "AND qtype='perform'" : ""} ${realOnly ? "AND is_real=1" : ""} ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
   if (realOnly && pool.length < 3) return Response.json({ error: "题库里还没有足够的真题。可以让 AI 联网找真题,或先做混合模拟。" }, { status: 400 });
   if (pool.length < 5) return Response.json({ error: "题库太少,请先在练习页多生成一些题,再来模拟考。" }, { status: 400 });
   // 按题型分组均衡抽取
