@@ -27,6 +27,15 @@ function DevAccount({ t }) {
   );
 }
 
+// SQLite 的 created_at 是 UTC(无时区)。按 UTC 解析,再显示成浏览器本地时间,避免出现"未来时间"。
+function fmtLocal(ts) {
+  if (!ts) return "—";
+  const d = new Date(String(ts).replace(" ", "T") + "Z");
+  if (isNaN(d)) return String(ts).slice(5, 16);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export default function Admin() {
   const t = useT();
   const [data, setData] = useState(null);
@@ -65,7 +74,7 @@ export default function Admin() {
             <div><b>{u.attempts}</b><div className="text-xs text-stone-400">{t("总做题")}</div></div>
             <div><b>{u.activeDays}</b><div className="text-xs text-stone-400">{t("活跃天数")}</div></div>
             <div><b>{u.chats}</b><div className="text-xs text-stone-400">{t("聊天条数")}</div></div>
-            <div><b className="text-xs">{u.lastActive ? u.lastActive.slice(5, 16) : "—"}</b><div className="text-xs text-stone-400">{t("最近活跃")}</div></div>
+            <div><b className="text-xs">{fmtLocal(u.lastActive)}</b><div className="text-xs text-stone-400">{t("最近活跃")}</div></div>
           </div>
           {u.week.length > 0 && (
             <div className="mt-3 flex items-end gap-1 h-12">
