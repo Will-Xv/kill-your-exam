@@ -75,18 +75,31 @@ export async function POST(req) {
       const audioList = audioMats.map((m) => `[${m.id}] ${m.filename}`).join(" ; ");
       const performBlock = `\n【表演/技能类】若这门考试考的是表演/技能(表演、播音主持、舞蹈、声乐、朗诵、口语、演讲等),可出 qtype="perform" 的表演任务题(考生用录音或录像作答),按真实考试规则设计 perform 字段:captureType(audio 录音 / video 录像)、mediaMaterialId(要播放的音频素材 id,从下面列表选,没有就填 0)、analyzeAudio(舞蹈/形体填 music=只用所给音乐原曲判断合拍、不单独分析录像里录到的原声;声乐/台词/朗诵/演讲填 recorded=分析录进去的人声;两者都要填 both)、countdownSec(开始前倒计时,一般 3)、autoStopAfterMediaSec(所放音频结束后再录几秒自动停,一般 7;无音频则当作固定录制时长)、rubric(评分维度数组)、instructions(给考生的说明);stem 写命题(如"跟随所给音乐即兴舞蹈")。可选音频素材:${audioList || "(暂无,mediaMaterialId 填 0)"}。纯知识类考试【不要】出 perform。`;
 
-      // 在线搜题 与 生成兜底 并行,减少等待时间
+      // 考生的format硬性要求(其他文件或说明 + 考试补充说明)——最高优先级
+      let otherNote = ""; try { const cl = JSON.parse(exam.checklist || "[]"); otherNote = (cl.find((c) => c.item === "其他文件或说明")?.answer || ""); } catch {}
+      const noteText = `${otherNote} ${exam.notes || ""}`;
+      const perfExam = exam.exam_type === "performance";
+      const performOnly = /(只|仅)[^。;\n]{0,12}(音视频|视频|录音|录像|表演|演唱|朗诵|舞蹈|口语|弹奏|演奏)/.test(noteText)
+        || /(不要|别出|不出|无需|不需要|不考|去掉)[^。;\n]{0,12}(选择|判断|填空|简答|笔试|客观|文字|理论)/.test(noteText)
+        || /only[^.;\n]{0,24}(perform|record|video|audio|audition|sing|danc|speak|recit)/i.test(noteText);
       const examLang = await resolveExamLang(exam);
       const langRule = examLang ? `\n【出题语言 · 必须遵守】题干、选项、标准答案、评分要点、解析全部用 ${examLang} 书写(这是这门考试真正考试时用的语言),不要用界面语言。` : examLangInstruction();
-      const genPrompt = `为「${exam.name}」出 ${genCount} 道练习题,考察「${kp.title}」(章节:${chapter})。题型混合,以客观题为主。
+      const directive = performOnly
+        ? `【最高优先级 · 必须严格遵守】这门考试只要表演题:请【只出 qtype="perform" 的录音/录像作答题】,一道 single/multi/judge/fill/short(笔试/客观/文字题)都不要出。${otherNote ? "\n考生原话:" + otherNote : ""}\n`
+        : ((otherNote ? `【考生补充要求 · 优先遵守】${otherNote}\n` : "") + (perfExam ? `【本考试是艺术/表演/技能类:务必包含 qtype="perform" 的录音/录像作答题(表演/朗诵/演唱/舞蹈/即兴演讲等);笔试题只用于确需的知识性内容。】\n` : ""));
+      const genPrompt = performOnly
+        ? directive + `为「${exam.name}」出 ${genCount} 道【表演任务题】(qtype 全部为 "perform"),围绕「${kp.title}」(章节:${chapter}),按这门考试真实的考试规则设计。${performBlock}
+考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}
+每题必须填全 perform 字段;stem 写命题(如"命题即兴表演:……"、"跟随所给音乐即兴舞蹈"、"朗诵指定材料");绝不要输出选择/判断/填空/简答等任何笔试题。` + langRule
+        : directive + `为「${exam.name}」出 ${genCount} 道练习题,考察「${kp.title}」(章节:${chapter})。题型按这门考试的性质来定。
 ${hits.length ? "必须依据以下资料:\n" + ragBlock(hits) : "无资料支撑,只出保守的基本概念题,不要编造具体数字或条款。"}
 考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}${overallSnip ? "\n考生整体画像(跨所有考试):" + overallSnip : ""}
 single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标准答案;short写评分要点;explanation解释;difficulty 1~3。
 数学公式用 $...$ 包裹,不要裸露反斜杠命令。
-【只出知识性题】严禁答题技巧/应试策略题、考试规则事务题。${mparts.length ? "\n【多模态】本考试有图片/音频原件(见附件),鼓励据此出听力/看图题:题干注明「请听/看附件」,答案依据附件;同一音频可出多套。" : "严禁需真实感官或图音的技能题。"}
+严禁答题技巧/应试策略题、考试规则事务题(这些归考前准备)。${mparts.length ? "\n【多模态】本考试有图片/音频原件(见附件),鼓励据此出听力/看图题:题干注明「请听/看附件」,答案依据附件;同一音频可出多套。" : ""}
 【防泄题】组内不得答案泄露、不要高度相似。${lessons ? "\n【避免已知毛病】\n" + lessons : ""}` + (mparts.length ? "\n考生资料库中的图片/音频原件已作为附件提供,可据此出题。" : "") + performBlock + langRule;
       const genPromise = generateJson(genPrompt, genSchema, mparts.length ? { contents: [{ role: "user", parts: [{ text: genPrompt }, ...mparts] }] } : {}).catch(() => ({ questions: [] }));
-      const onlinePromise = searchOnline(exam, kp, chapter, need, user.lang).catch(() => ({ found: [], note: "" }));
+      const onlinePromise = performOnly ? Promise.resolve({ found: [], note: "" }) : searchOnline(exam, kp, chapter, need, user.lang).catch(() => ({ found: [], note: "" }));
       const [online, out] = await Promise.all([onlinePromise, genPromise]);
       if (online.note) honesty = online.note;
 
