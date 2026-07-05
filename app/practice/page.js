@@ -195,6 +195,22 @@ function PracticeInner() {
           <span className="badge-model">🤖 {t("AI出题")}</span>
         </div>
         <PerformTask key={q.id} q={q} onNext={next} />
+        <div className="flex justify-end">
+          <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
+        </div>
+        {reportOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setReportOpen(false)}>
+            <div className="card w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-bold">⚠️ {t("反馈:题目有问题")}</h3>
+              <p className="text-xs text-slate-500 mt-1">{t("比如:配乐与题目要求的风格不符、题目要求不合理、录制方式有问题等。")}</p>
+              <textarea className="input mt-2" rows={3} value={reportNote} onChange={(e) => setReportNote(e.target.value)} placeholder={t("补充说明(可选):这题哪里有问题?写清楚能帮 AI 更准地改进")} />
+              <div className="mt-3 flex gap-2">
+                <button className="btn-ghost flex-1 py-2" onClick={() => setReportOpen(false)} disabled={reportBusy}>{t("取消")}</button>
+                <button className="btn flex-1 py-2" onClick={submitReport} disabled={reportBusy}>{reportBusy ? t("分析中…") : t("提交")}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
