@@ -5,8 +5,6 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
 // 把裸露的 LaTeX(如 \frac{x^2}{16}、x^2)自动用 $...$ 包裹,让 KaTeX 能渲染。
-// 触发条件:出现 \命令,或 紧跟在字母/数字/}/) 后面的 ^ 或 _(即真正的上下标),
-// 避免把填空下划线"______"误当公式。
 function autoMath(s) {
   if (!s || s.includes("$")) return s; // 已带定界符则不处理
   s = s.replace(/\\\(/g, () => "$").replace(/\\\)/g, () => "$").replace(/\\\[/g, () => "$$").replace(/\\\]/g, () => "$$");
@@ -22,12 +20,35 @@ function autoMath(s) {
   });
 }
 
+// 定界符纠错:$$ 或 $ 数量为奇数时(AI 常写坏),转义成普通字符,
+// 否则一个没闭合的公式会把后面整段 Markdown(标题/列表)全吞进去、渲染成一大片红字。
+function balanceDelims(s) {
+  if (!s) return s;
+  const blocks = (s.match(/\$\$/g) || []).length;
+  const singles = (s.replace(/\$\$/g, "").match(/\$/g) || []).length;
+  if (blocks % 2 !== 0) s = s.replace(/\$\$/g, "\\$\\$");         // 块公式未闭合 -> 直接当文字
+  if (singles % 2 !== 0) s = s.replace(/(?<!\$)\$(?!\$)/g, "\\$"); // 行内公式未闭合 -> 当文字
+  return s;
+}
+
+// 单块公式即便闭合,但里面混进了 Markdown 结构(标题/多段)也不是真公式,拆掉 $$ 让其正常渲染
+function unwrapProseMath(s) {
+  return s.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
+    if (/(^|\n)\s*#{1,6}\s|\n\s*\n|(^|\n)\s*[*-]\s/.test(inner)) return inner; // 含标题/空行/列表 => 不是公式
+    return m;
+  });
+}
+
+const KATEX_OPTS = { strict: false, throwOnError: false, errorColor: "#9a7b4f", maxExpand: 1000 };
+
 export default function MD({ children, className = "", inline = false }) {
-  const s = autoMath(String(children ?? ""));
+  let s = autoMath(String(children ?? ""));
+  s = unwrapProseMath(s);
+  s = balanceDelims(s);
   const comps = inline ? { p: ({ children }) => <>{children}</> } : {};
   return (
     <div className={className}>
-      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={comps}>{s}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, KATEX_OPTS]]} components={comps}>{s}</ReactMarkdown>
     </div>
   );
 }
