@@ -38,6 +38,7 @@ function PracticeInner() {
   const [noteBody, setNoteBody] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
   const padRef = useRef(null);
   const bottom = useRef(null);
   const prefetched = useRef(null);
@@ -195,6 +196,10 @@ function PracticeInner() {
             {handOpen && <HandwritePad key={q.id} ref={padRef} />}
           </div>
         )}
+        <div className="mt-2 border-t border-slate-100 pt-2">
+          <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
+          {draftOpen && <HandwritePad key={"draft-" + q.id} />}
+        </div>
       </div>
 
       {result && (
