@@ -312,7 +312,7 @@ function PracticeInner() {
           </div>
           {dFiles.length > 0 && <p className="text-xs text-slate-500 mt-2">📎 {dFiles.length} {t("个文件")} <button className="underline" onClick={() => setDFiles([])}>{t("清除")}</button></p>}
           <DropZone onFiles={(fs) => setDFiles((p) => [...p, ...fs])} className="mt-2 flex gap-2">
-            <button type="button" className="btn-ghost px-3" title={t("把草稿纸发给 AI")} onClick={() => { const h = draftRef.current && draftRef.current.getImage(); if (h) { const f = b64ToFile(h); if (f) setDFiles((p) => [...p, f]); } else { setDraftOpen(true); } }}>🖉</button>
+            <button type="button" className="btn-ghost px-3 whitespace-nowrap text-sm" title={t("把你在草稿纸上手写的内容发给 AI")} onClick={() => { const h = draftRef.current && draftRef.current.getImage(); if (h) { const f = b64ToFile(h); if (f) setDFiles((p) => [...p, f]); } else { setDraftOpen(true); } }}>📝 {t("发草稿纸")}</button>
             <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden accept="image/*,.pdf,.txt" onChange={(e) => setDFiles([...e.target.files])} /></label>
             <input className="input flex-1" value={dInput} onChange={(e) => setDInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendDiscuss()} placeholder={t("例如:我觉得我这样答也对,因为…")} />
             <button className="btn px-4" onClick={sendDiscuss} disabled={dBusy || (!dInput.trim() && !dFiles.length)}>{t("发送")}</button>
