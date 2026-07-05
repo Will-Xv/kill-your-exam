@@ -3,7 +3,7 @@ import { requireUser, unauthorized } from "@/lib/auth";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { getOverallDoc } from "@/lib/overall";
 import { generateJson, searchWeb, langInstruction, examLangInstruction } from "@/lib/gemini";
-import { aiErrorResponse } from "@/lib/errors";
+import { aiErrorResponse, AiError } from "@/lib/errors";
 import { resolveExamLang } from "@/lib/examlang";
 import { findAndStoreMusic } from "@/lib/music";
 
@@ -132,7 +132,7 @@ single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标�
           const p = q.perform || {};
           const cap = p.captureType === "video" ? "video" : "audio"; const aa = p.analyzeAudio || (cap === "video" && p.mediaMaterialId ? "music" : "recorded");
           let mediaMaterialId = p.mediaMaterialId || null; let autoMusic = false;
-          if (!mediaMaterialId && (aa === "music" || aa === "both")) { try { const _mid = await findAndStoreMusic(exam.id, `${kp.title} ${q.stem}`); if (_mid) { mediaMaterialId = _mid; autoMusic = true; } } catch {} }
+          if (!mediaMaterialId && (aa === "music" || aa === "both")) { const _mid = await findAndStoreMusic(exam.id, `${kp.title} ${q.stem}`); if (!_mid) throw new AiError("music", "given-music perform task: music source failed"); mediaMaterialId = _mid; autoMusic = true; }
           const body = JSON.stringify({ stem: q.stem, captureType: cap, mediaMaterialId, analyzeAudio: aa, countdownSec: p.countdownSec || 3, autoStopAfterMediaSec: p.autoStopAfterMediaSec || 7, maxDurationSec: 300, rubric: p.rubric || [], instructions: (p.instructions || "") + (autoMusic ? " 【说明】这类题练的就是「现场给定音乐即兴发挥」:所给音乐由系统随机附上、你事先并不知道风格,正是要练的临场反应;重点是快速抓住它的节奏与情绪并即兴贴合,不必在意具体是哪首曲子。" : "") });
           const answer = JSON.stringify({ rubric: p.rubric || [], notes: q.explanation || "" });
           const info = insQ.run(exam.id, kp.id, "perform", body, answer, q.difficulty || 2, sourceType, refs, "generated", "ai", null, 0);
