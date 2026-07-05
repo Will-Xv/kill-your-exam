@@ -63,12 +63,14 @@ export default function PerformTask({ q, onNext }) {
 
   async function begin() {
     setErr("");
-    // 在用户点击这个手势里先"解锁"配乐音频:静音播一下再暂停,规避浏览器对定时器里自动播放的限制
+    // 在用户点击这个手势里先"解锁"配乐音频。关键:必须是"非静音"的 play() 才能解锁后续自动播放,
+    // 用 volume=0 代替 muted 做到既解锁又听不见;无论成败都用 finally 把音量恢复,避免录制时静音。
     if (mediaSrc) {
-      try {
-        const a = mediaRef.current || new Audio(mediaSrc); mediaRef.current = a;
-        a.muted = true; await a.play(); a.pause(); a.currentTime = 0; a.muted = false;
-      } catch {}
+      const a = mediaRef.current || new Audio(mediaSrc); mediaRef.current = a;
+      a.muted = false;
+      try { a.volume = 0; await a.play(); a.pause(); a.currentTime = 0; }
+      catch {}
+      finally { a.volume = 1; }
     }
     let stream;
     try {
@@ -114,6 +116,7 @@ export default function PerformTask({ q, onNext }) {
     // 播放媒体(若有)
     if (mediaSrc) {
       const a = mediaRef.current || new Audio(mediaSrc); mediaRef.current = a;
+      a.muted = false; a.volume = 1;
       a.onended = () => {
         // 媒体结束 → autoStopAfterMediaSec 倒计时后自动停
         let left = body.autoStopAfterMediaSec || 7; setAutoLeft(left);
