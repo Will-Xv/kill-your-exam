@@ -12,7 +12,9 @@ export default function Login() {
   const [invite, setInvite] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [isCN, setIsCN] = useState(false); // 来访 IP 在中国大陆:隐藏用不了的 Google 登录
 
+  useEffect(() => { fetch("/api/geo").then((r) => r.json()).then((d) => setIsCN(!!d.cn)).catch(() => {}); }, []);
   useEffect(() => {
     const e = new URLSearchParams(window.location.search).get("err");
     if (!e) return;
@@ -81,12 +83,16 @@ export default function Login() {
             {tab === "register" && <input className="input" placeholder={t("邀请码(问 Will 要)")} value={invite} onChange={(e) => setInvite(e.target.value)} />}
             {err && <p className="text-sm text-red-600">{err}</p>}
             <button className="btn w-full" disabled={busy || !username || !password}>{busy ? "…" : tab === "login" ? t("登录") : t("注册并进入")}</button>
-            <div className="flex items-center gap-3 py-1 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />{t("或")}<span className="h-px flex-1 bg-slate-200" /></div>
-            <a href="/api/auth/google/start" className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-2.5 font-medium text-slate-700 transition hover:bg-slate-50">
-              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.3 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.9 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16.5z"/><path fill="#FBBC05" d="M10.4 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.6-2.1 15.5-5.7l-7.1-5.5c-2 1.3-4.5 2.1-8.4 2.1-6.4 0-11.8-3.7-13.6-8.9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
-              {t("用 Google 继续")}
-            </a>
-            {lang === "zh" && <p className="text-center text-[11px] leading-snug text-slate-400">{t("在中国大陆无法使用 Google 登录(需要海外网络)。请直接用上方的用户名 + 密码注册/登录。")}</p>}
+            {!isCN && (
+              <>
+                <div className="flex items-center gap-3 py-1 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />{t("或")}<span className="h-px flex-1 bg-slate-200" /></div>
+                <a href="/api/auth/google/start" className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-2.5 font-medium text-slate-700 transition hover:bg-slate-50">
+                  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.4 30.3 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.9 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16.5z"/><path fill="#FBBC05" d="M10.4 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.6-2.1 15.5-5.7l-7.1-5.5c-2 1.3-4.5 2.1-8.4 2.1-6.4 0-11.8-3.7-13.6-8.9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
+                  {t("用 Google 继续")}
+                </a>
+              </>
+            )}
+            {isCN && <p className="text-center text-[11px] leading-snug text-slate-400">{t("检测到你在中国大陆,已隐藏无法使用的 Google 登录。请用上方的用户名 + 密码注册/登录。")}</p>}
           </div>
           <p className="mt-4 text-center text-xs text-slate-400">{t("登录一次,这台设备一年内免登录")}</p>
           <p className="mt-2 text-center text-xs"><a href="/welcome" className="text-amber-600 underline">{t("了解这个网站能做什么 →")}</a></p>
