@@ -55,7 +55,7 @@ export default function PerformTask({ q, onNext }) {
     setErr("");
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia(isVideo ? { audio: true, video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } } : { audio: true });
+      stream = await navigator.mediaDevices.getUserMedia(isVideo ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } } : { audio: true });
     } catch (e) {
       setErr(t("无法访问摄像头/麦克风,请在浏览器允许权限后重试。")); return;
     }
@@ -75,7 +75,7 @@ export default function PerformTask({ q, onNext }) {
     const stream = streamRef.current; if (!stream) return;
     chunksRef.current = [];
     let rec;
-    try { const mt = pickMime(isVideo); rec = new MediaRecorder(stream, { ...(mt ? { mimeType: mt } : {}), videoBitsPerSecond: 900000, audioBitsPerSecond: 96000 }); }
+    try { const mt = pickMime(isVideo); rec = new MediaRecorder(stream, { ...(mt ? { mimeType: mt } : {}), videoBitsPerSecond: 1800000, audioBitsPerSecond: 96000 }); }
     catch { try { rec = new MediaRecorder(stream); } catch { setErr(t("此浏览器不支持录制,建议用最新版 Chrome。")); return; } }
     recRef.current = rec;
     rec.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
@@ -122,7 +122,7 @@ export default function PerformTask({ q, onNext }) {
 
   async function submit() {
     if (!blobRef.current) return;
-    if (blobRef.current.size > 18 * 1024 * 1024) { setErr(t("录制文件过大(约超过 18MB),建议缩短时长或降低清晰度后重录。")); return; }
+    if (blobRef.current.size > 300 * 1024 * 1024) { setErr(t("录制文件太大(超过 300MB),请缩短时长后重录。")); return; }
     setPhase("grading"); setErr("");
     try {
       const fd = new FormData();
@@ -146,7 +146,7 @@ export default function PerformTask({ q, onNext }) {
       {body.rubric?.length > 0 && <p className="text-xs text-slate-500">🎯 {t("评分维度:")}{body.rubric.join(" · ")}</p>}
       <p className="text-[11px] text-amber-700">⚠️ {t("AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。")}</p>
       <p className="text-[11px] text-slate-500">🔎 {isVideo
-        ? t("我们会从你的录像里按每秒 5 帧、720P 截图来分析画面;") + (analyzeAudio === "music"
+        ? t("我们会把你的整段录像交给 AI,按每秒 5 帧分析画面(整段都看,没有张数上限);") + (analyzeAudio === "music"
             ? t("舞蹈/形体类:只用所给音乐原曲判断你是否踩上节拍,录像里录到的原声不单独分析。")
             : analyzeAudio === "both"
             ? t("并用所给音乐原曲对齐节拍、同时分析你录进去的声音。")
