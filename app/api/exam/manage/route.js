@@ -4,7 +4,7 @@ import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
 export async function POST(req) {
   const u = await getSessionUser();
   if (!u) return unauthorized();
-  const { action, examId } = await req.json();
+  const { action, examId, examDate } = await req.json();
   const e = db.prepare("SELECT * FROM exams WHERE id=?").get(examId);
   if (!e || e.user_id !== u.id) return forbidden();
 
@@ -23,6 +23,10 @@ export async function POST(req) {
       const next = db.prepare("SELECT id FROM exams WHERE user_id=? AND deleted_at IS NULL AND id!=? ORDER BY id DESC LIMIT 1").get(u.id, examId);
       if (next) db.prepare("UPDATE exams SET status='active' WHERE id=?").run(next.id);
     }
+    return Response.json({ ok: true });
+  }
+  if (action === "setDate") {
+    db.prepare("UPDATE exams SET exam_date=? WHERE id=?").run(examDate || null, examId);
     return Response.json({ ok: true });
   }
   if (action === "restore") {

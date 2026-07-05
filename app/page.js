@@ -10,9 +10,12 @@ export default function Home() {
   const [daily, setDaily] = useState(null);
   const [sugg, setSugg] = useState(null);
   const [suggBusy, setSuggBusy] = useState(false);
+  const [weakCount, setWeakCount] = useState(0);
+  const [dateOpen, setDateOpen] = useState(false);
   useEffect(() => {
     fetch("/api/exam").then((r) => r.json()).then(setData);
     fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
+    fetch("/api/mastery").then((r) => r.json()).then((d) => setWeakCount((d.matrix || []).filter((x) => x.level === "weak" || x.level === "unlearned").length)).catch(() => {});
   }, []);
 
   async function loadSugg() {
@@ -23,6 +26,12 @@ export default function Home() {
   async function adopt() {
     await fetch("/api/strategy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ strategyMd: sugg.revised_strategy_md }) });
     setSugg({ adopted: true });
+  }
+
+  async function saveDate(v) {
+    setDateOpen(false);
+    setData((d) => (d ? { ...d, exam: { ...d.exam, exam_date: v || null } } : d));
+    try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setDate", examId: data?.exam?.id, examDate: v || null }) }); } catch {}
   }
 
   if (!data) return <div className="mx-auto max-w-3xl px-4 pt-6"><div className="shimmer h-40 rounded-3xl" /></div>;
@@ -72,7 +81,15 @@ export default function Home() {
         <img src="/illustrations/sticker.png" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute -right-2 -top-[58px] w-[50%] max-w-[350px] select-none" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.18))" }} />
         <div className="relative z-10">
           <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{exam.name}</Link>
-          {days != null && <p className="mt-1 text-[#6b4a25]">{t("距猎杀")} <span className="text-4xl font-black text-[#2f2413]">{days}</span> {t("天")}{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</p>}
+          <div className="mt-1">
+            {dateOpen ? (
+              <input type="date" autoFocus defaultValue={exam.exam_date || ""} className="rounded-lg border border-[#d9c89b] bg-white/80 px-2 py-1 text-sm text-[#2f2413]" onChange={(e) => saveDate(e.target.value)} onBlur={() => setDateOpen(false)} />
+            ) : days != null ? (
+              <button className="text-left text-[#6b4a25] hover:opacity-80" onClick={() => setDateOpen(true)} title={t("点击修改考试日期")}>{t("距猎杀")} <span className="text-4xl font-black text-[#2f2413]">{days}</span> {t("天")} <span className="text-xs">✎</span>{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</button>
+            ) : (
+              <button className="rounded-lg bg-[#2f2413] px-3 py-1 text-sm font-medium text-[#f6efdd]" onClick={() => setDateOpen(true)}>📅 {t("设置考试日期")}</button>
+            )}
+          </div>
         </div>
         <div className="relative z-10 mt-4 grid grid-cols-3 gap-3 text-center">
           <div className="rounded-2xl bg-[#3d2b10]/[0.06] py-2 ring-1 ring-[#dbc999]"><div className="text-xl font-bold">{stats.todayCount}</div><div className="text-[11px] text-[#7a5a2a]">{t("今日做题")}</div></div>
@@ -80,6 +97,17 @@ export default function Home() {
           <Link href="/materials" className="block rounded-2xl py-2 ring-1 ring-black/10 transition hover:brightness-110" style={{ background: "rgba(47,36,19,.78)" }}><div className="text-xl font-bold text-[#f6efdd]" style={{ textShadow: "0 1px 3px rgba(0,0,0,.65)" }}>{stats.matCount}</div><div className="text-[11px] text-[#ecdcb6]" style={{ textShadow: "0 1px 2px rgba(0,0,0,.6)" }}>{t("资料数")}</div></Link>
         </div>
       </div>
+
+      {days != null && days >= 0 && days < 7 && (
+        <div className="animate-in card mt-4 border border-red-300 bg-red-50/80">
+          <p className="font-semibold text-red-700">⏰ {t("距猎杀不到一周了!")}</p>
+          <p className="mt-1 text-sm text-slate-600">{t("建议现在:到「学习」页自查还欠缺/薄弱的知识点,并做一次全真模拟考,查漏补缺。")}{weakCount > 0 ? `(${t("目前还有")} ${weakCount} ${t("个薄弱/未学的知识点")})` : ""}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href="/study" className="btn py-2 text-sm">🔎 {t("去学习页自查")}</Link>
+            <Link href="/mock" className="btn-ghost py-2 text-sm">📝 {t("去模拟考")}</Link>
+          </div>
+        </div>
+      )}
 
       {/* today's plan */}
       <div id="tour-today" className="card animate-in d1 mt-4">
