@@ -168,6 +168,13 @@ export default function Welcome() {
   const [scrolled, setScrolled] = useState(false);
   const [desktop, setDesktop] = useState(true);
   useEffect(() => {
+    if (desktop) return; // 手机版:滚动进入淡入
+    const els = document.querySelectorAll("[data-reveal]");
+    const io = new IntersectionObserver((ents) => { ents.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }); }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [desktop, lang]);
+  useEffect(() => {
     const mq = window.matchMedia("(min-width: 900px)");
     const apply = () => setDesktop(mq.matches);
     apply();
@@ -400,13 +407,13 @@ export default function Welcome() {
           </section>
 
           {/* Features */}
-          <h2 className="font-hero mt-14 text-center text-3xl text-[#e8c987]">{t.featT}</h2>
-          <p className="mx-auto mt-1 max-w-xs text-center text-sm text-[#9db0a4]">{t.featS}</p>
+          <h2 data-reveal className="rv font-hero mt-14 text-center text-3xl text-[#e8c987]">{t.featT}</h2>
+          <p data-reveal className="rv mx-auto mt-1 max-w-xs text-center text-sm text-[#9db0a4]">{t.featS}</p>
           <div className="mt-6 space-y-6">
             {pages.slice(1, 5).map((pg, i) => (
-              <div key={i} className="overflow-hidden rounded-[1.6rem] bg-[#e8c987]/[0.06] shadow-lg ring-1 ring-[#e8c987]/12">
+              <div key={i} data-reveal className="rv overflow-hidden rounded-[1.6rem] bg-[#e8c987]/[0.06] shadow-lg ring-1 ring-[#e8c987]/12" style={{ transitionDelay: `${(i % 2) * 90}ms` }}>
                 <div className="flex items-center justify-center px-4 pt-4" style={{ background: "radial-gradient(120% 100% at 50% 0%, #efe7d2 0%, #e2d5b4 100%)" }}>
-                  <img src={`/illustrations/${pg.scene}.png`} alt="" loading="lazy" className="max-h-48 w-auto object-contain" style={{ mixBlendMode: "multiply" }} />
+                  <img src={`/illustrations/${pg.scene}.png`} alt="" loading="lazy" className="max-h-48 w-auto object-contain kye-bob" style={{ mixBlendMode: "multiply", animationDelay: `${i * 0.7}s` }} />
                 </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2"><span className="text-2xl">{t.feats[i][0]}</span><h3 className="font-hero text-xl text-[#e8c987]">{pg.title}</h3></div>
@@ -417,10 +424,10 @@ export default function Welcome() {
           </div>
 
           {/* Steps */}
-          <h2 className="font-hero mt-14 text-center text-3xl text-[#e8c987]">{t.stepT}</h2>
+          <h2 data-reveal className="rv font-hero mt-14 text-center text-3xl text-[#e8c987]">{t.stepT}</h2>
           <div className="mt-6 space-y-3">
             {t.steps.map((st, i) => (
-              <div key={i} className="flex gap-3.5 rounded-2xl bg-[#e8c987]/[0.05] p-4 ring-1 ring-[#e8c987]/10">
+              <div key={i} data-reveal className="rv flex gap-3.5 rounded-2xl bg-[#e8c987]/[0.05] p-4 ring-1 ring-[#e8c987]/10" style={{ transitionDelay: `${i * 80}ms` }}>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8c987] font-black text-[#2e2013]">{i + 1}</div>
                 <div>
                   <h4 className="font-bold text-[#f4ecd8]">{st[0]}</h4>
@@ -430,8 +437,16 @@ export default function Welcome() {
             ))}
           </div>
 
+          {/* Kill Your Exam! —— 对应电脑版最后一张内页 */}
+          <div data-reveal className="rv mt-16 overflow-hidden rounded-[1.6rem] ring-1 ring-[#e8c987]/15 shadow-xl" style={{ background: "radial-gradient(120% 100% at 50% 0%, #efe7d2 0%, #e2d5b4 100%)" }}>
+            <img src="/illustrations/5.png" alt="" loading="lazy" className="mx-auto block max-h-56 w-auto object-contain kye-bob" style={{ mixBlendMode: "multiply" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            <div className="px-6 pb-7 pt-1 text-center">
+              <h2 className="font-hero text-4xl text-[#2e2013]">Kill Your Exam!</h2>
+            </div>
+          </div>
+
           {/* Final scare + CTA */}
-          <div className="relative mt-16 overflow-hidden rounded-[1.6rem] ring-1 ring-[#2e2013]/30 shadow-2xl" style={{ background: "radial-gradient(130% 120% at 50% 15%, #efe7d2 0%, #e6dabb 60%, #dccdab 100%)" }}>
+          <div data-reveal className="rv relative mt-16 overflow-hidden rounded-[1.6rem] ring-1 ring-[#2e2013]/30 shadow-2xl" style={{ background: "radial-gradient(130% 120% at 50% 15%, #efe7d2 0%, #e6dabb 60%, #dccdab 100%)" }}>
             <img src="/illustrations/scary.png" alt="" loading="lazy" className="mx-auto block max-h-[46vh] w-auto" onError={(e) => { e.currentTarget.style.display = "none"; }} />
             <div className="px-6 pb-8 pt-2 text-center">
               <h2 className="font-hero text-2xl leading-tight text-[#2e2013]">{t.ctaT}</h2>

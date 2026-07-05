@@ -115,3 +115,10 @@ main, .page-enter { position: relative; z-index: 1; }
 .fb-shade { transition: opacity .13s linear; }
 .fb-stage { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; justify-content: center; gap: 3.5rem; padding: 0 2rem; }
 .fb-persp { perspective: 2600px; }
+
+/* welcome mobile 特效:滚动进入淡入上浮 + 插画轻浮动 */
+.rv { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .8s cubic-bezier(.2,.75,.2,1); }
+.rv.in { opacity: 1; transform: none; }
+@keyframes kyeBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+.kye-bob { animation: kyeBob 5.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } .kye-bob { animation: none; } }
