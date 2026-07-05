@@ -167,6 +167,14 @@ export default function Welcome() {
   const [lang, setLang] = useState("en");
   const [scrolled, setScrolled] = useState(false);
   const [desktop, setDesktop] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 900px)");
+    const apply = () => setDesktop(mq.matches);
+    apply();
+    mq.addEventListener ? mq.addEventListener("change", apply) : mq.addListener(apply);
+    window.addEventListener("orientationchange", apply);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", apply) : mq.removeListener(apply); window.removeEventListener("orientationchange", apply); };
+  }, []);
   const sceneRef = useRef(null);
   const bookRef = useRef(null);
 
@@ -201,7 +209,7 @@ export default function Welcome() {
   ];
 
   useEffect(() => {
-    const isDesk = window.matchMedia("(min-width: 900px) and (pointer: fine)").matches;
+    const isDesk = window.matchMedia("(min-width: 900px)").matches; // 宽屏(含平板横屏)都用桌面版翻书界面
     setDesktop(isDesk);
     if (!isDesk) return;
     const scene = sceneRef.current, book = bookRef.current;
