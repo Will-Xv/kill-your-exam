@@ -47,6 +47,7 @@ function PracticeInner() {
   const [drafts, setDrafts] = useState({});
   const [hands, setHands] = useState({}); // 已提交的手写作答(qid->dataURL),提交后仍能看见
   const padRef = useRef(null);
+  const hydrated = useRef(false); // 挂载+恢复完成后才允许写 localStorage,避免用空值覆盖已存进度
   const draftRef = useRef(null);
   const bottom = useRef(null);
   const prefetched = useRef(null);
@@ -111,13 +112,14 @@ function PracticeInner() {
     } catch {}
     loadQuestions();
   }, []);
+  useEffect(() => { const id = setTimeout(() => { hydrated.current = true; }, 0); return () => clearTimeout(id); }, []);
   // 批次/进度变化时存下来,刷新可恢复
   useEffect(() => {
-    if (!questions.length) return;
+    if (!hydrated.current || !questions.length) return;
     try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, discuss, ts: Date.now() })); } catch {}
   }, [questions, idx, done, note, answers, discuss]); // eslint-disable-line
-  useEffect(() => { try { localStorage.setItem(storeKey + ":drafts", JSON.stringify(drafts)); } catch {} }, [drafts]); // eslint-disable-line
-  useEffect(() => { try { localStorage.setItem(storeKey + ":hands", JSON.stringify(hands)); } catch {} }, [hands]); // eslint-disable-line
+  useEffect(() => { if (!hydrated.current) return; try { localStorage.setItem(storeKey + ":drafts", JSON.stringify(drafts)); } catch {} }, [drafts]); // eslint-disable-line
+  useEffect(() => { if (!hydrated.current) return; try { localStorage.setItem(storeKey + ":hands", JSON.stringify(hands)); } catch {} }, [hands]); // eslint-disable-line
   // 当前题的作答状态(选项/文字/批改结果)随时存,刷新可恢复
   useEffect(() => { const cq = questions[idx]; if (!cq) return; setAnswers((a) => ({ ...a, [cq.id]: { sel, text, result } })); }, [sel, text, result]); // eslint-disable-line
   const q = questions[idx];

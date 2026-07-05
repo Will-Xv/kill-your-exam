@@ -84,7 +84,12 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         <button type="button" onClick={() => setTool("eraser")} className={`rounded-full border px-3 py-1 ${tool === "eraser" ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-500"}`}>🧽 {t("橡皮擦")}</button>
         <button type="button" onClick={undo} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">↺ {t("撤销")}</button>
         <button type="button" onClick={clear} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">🗑 {t("清空")}</button>
-        <button type="button" onClick={() => setFingerScroll((v) => !v)} title={t("切换:手指是用来书写,还是用来滑动页面(用笔时建议选滑动)")} className={`rounded-full border px-3 py-1 ${fingerScroll ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-500"}`}>{fingerScroll ? t("✋ 手指滑动") : t("✍️ 手指书写")}</button>
+        <button type="button" role="switch" aria-checked={fingerScroll} onClick={() => setFingerScroll((v) => !v)} title={t("开关:手指是用来滑动/缩放页面(开),还是用来书写(关)。用笔时建议开。")} className="ml-1 flex items-center gap-1.5 text-xs text-slate-500">
+          <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${fingerScroll ? "bg-amber-500" : "bg-slate-300"}`}>
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${fingerScroll ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+          </span>
+          <span>{fingerScroll ? t("手指滑动") : t("手指书写")}</span>
+        </button>
         <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面")}</span>
       </div>
       <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerEnter={hover} onPointerLeave={leave} onPointerCancel={leave}
