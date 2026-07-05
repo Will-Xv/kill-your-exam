@@ -14,13 +14,19 @@ export async function POST(req) {
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
     if (!q || !exam || q.exam_id !== exam.id) return forbidden();
     const body = JSON.parse(q.body), ans = JSON.parse(q.answer);
-
-    const out = await generateJson(
-      `考生反馈下面这道练习题"有问题"。请客观分析题目本身是否确有毛病(如题干歧义、选项有多个正确/无正确、答案错误、与知识点不符、超纲、需要图/音频却用文字问等)。
-题目:${body.stem}
+    const isPerform = q.qtype === "perform";
+    const desc = isPerform
+      ? `题目(表演类·考生用${body.captureType === "video" ? "录像" : "录音"}作答${body.mediaMaterialId ? "、带系统给定音乐" : ""}):${body.stem}
+评分维度:${(body.rubric || []).join(" | ") || "(无)"}
+考生须知/说明:${body.instructions || "(无)"}`
+      : `题目:${body.stem}
 ${body.options?.length ? "选项:" + body.options.join(" | ") : ""}
 参考答案:${ans.answer}
-解析:${ans.explanation}
+解析:${ans.explanation}`;
+
+    const out = await generateJson(
+      `考生反馈下面这道练习题"有问题"。请客观分析题目本身是否确有毛病(${isPerform ? "如:要求不合理/无法用录音录像完成、配乐与要求风格不符或缺失、评分维度与题目不符、超出考生能力或器材范围、与该艺术/表演考试的真实考情不符等" : "如题干歧义、选项有多个正确/无正确、答案错误、与知识点不符、超纲、需要图/音频却用文字问等"})。
+${desc}
 考生补充说明:${(note || "").trim() || "(未填写)"}
 
 规则:
