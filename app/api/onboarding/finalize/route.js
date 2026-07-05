@@ -1,6 +1,7 @@
 import db, { getDocument, upsertDocument } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, embed, cosine, langInstruction } from "@/lib/gemini";
+import { APP_CAPABILITIES } from "@/lib/appGuide";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
@@ -72,7 +73,7 @@ ${sampleText ? "资料摘要:\n" + sampleText : ""}` + langInstruction(user.lang
     const st = await generateJson(
       `为「${exam.name}」制定备考策略(Markdown)。剩余天数:${days ?? "未知"};每天可用 ${exam.daily_minutes} 分钟。
 基于知识点树:${JSON.stringify(tree).slice(0, 4000)}
-包含:阶段划分(打基础/强化/冲刺)、每周目标、每日安排建议、复习原则。语气平实,不要空话。` + langInstruction(user.lang),
+包含:阶段划分(打基础/强化/冲刺)、每周目标、每日安排建议、复习原则。语气平实,不要空话。\n${APP_CAPABILITIES}` + langInstruction(user.lang),
       strategySchema
     );
     upsertDocument(examId, "strategy", st.strategy_md);

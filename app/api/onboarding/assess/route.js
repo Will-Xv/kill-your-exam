@@ -2,6 +2,7 @@ import db, { upsertDocument } from "@/lib/db";
 import { searchWeb, generateJson, langInstruction } from "@/lib/gemini";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
+import { APP_CAPABILITIES } from "@/lib/appGuide";
 
 export const maxDuration = 300;
 
@@ -46,7 +47,7 @@ export async function POST(req) {
       required: ["confidence", "known", "uncertain", "unknown", "risks", "checklist", "dossier_md"]
     };
     const report = await generateJson(
-      `你是一个诚实的备考助手,正在帮考生备考。背景:\n${ctx}\n\n联网搜索结果:\n${search.text || "(没有搜到有效信息)"}\n\n生成"AI 认知自评报告",必须诚实,宁可低估:known/uncertain/unknown/risks 各列要点(risks 用考生能懂的话讲用 AI 备考这门考试的具体风险,如可能编造不存在的真题、大纲版本过时);checklist 是建议收集/补充的信息 6~10 项,每项标 kind:需要上传文件的标 file,可以直接问答获取的(如目标分数、当前水平、学校课程侧重)标 qa;dossier_md 是 Markdown 考试档案初稿(考试名/类型/日期/已知题型结构/大纲/信息来源,注明哪些来自搜索哪些未证实,不知道的写"待补充")。` + langInstruction(user.lang),
+      `你是一个诚实的备考助手,正在帮考生备考。背景:\n${ctx}\n\n联网搜索结果:\n${search.text || "(没有搜到有效信息)"}\n\n${APP_CAPABILITIES}\n生成"AI 认知自评报告",必须诚实,宁可低估:known/uncertain/unknown/risks 各列要点(risks 用考生能懂的话讲用 AI 备考这门考试的具体风险,如可能编造不存在的真题、大纲版本过时);checklist 是建议收集/补充的信息 6~10 项,每项标 kind:需要上传文件的标 file,可以直接问答获取的(如目标分数、当前水平、学校课程侧重)标 qa;dossier_md 是 Markdown 考试档案初稿(考试名/类型/日期/已知题型结构/大纲/信息来源,注明哪些来自搜索哪些未证实,不知道的写"待补充")。` + langInstruction(user.lang),
       schema
     );
     db.prepare("UPDATE exams SET self_assessment=?, checklist=?, assess_status='done' WHERE id=?").run(
