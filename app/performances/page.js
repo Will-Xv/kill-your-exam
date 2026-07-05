@@ -1,7 +1,23 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
+
+// 回放:给定音乐题录制时没开麦克风,这里把原配乐同步叠加进来一起放
+function Replay({ videoUrl, musicUrl, t }) {
+  const vref = useRef(null), aref = useRef(null);
+  const sync = () => { const v = vref.current, a = aref.current; if (v && a) { if (Math.abs(a.currentTime - v.currentTime) > 0.25) a.currentTime = v.currentTime; } };
+  const onPlay = () => { const v = vref.current, a = aref.current; if (a && v) { a.currentTime = v.currentTime; a.play().catch(() => {}); } };
+  const onPause = () => { aref.current && aref.current.pause(); };
+  return (
+    <div>
+      <video ref={vref} controls playsInline preload="metadata" onPlay={onPlay} onPause={onPause} onSeeked={sync} onTimeUpdate={sync}
+        className="w-full max-h-80 rounded-xl bg-black" src={videoUrl} />
+      {musicUrl && <audio ref={aref} src={musicUrl} preload="auto" />}
+      {musicUrl && <p className="mt-1 text-xs text-amber-700">🎵 {t("回放已叠加原配乐(录制时未收音,这是题目给的原曲)")}</p>}
+    </div>
+  );
+}
 
 export default function Performances() {
   const t = useT();
@@ -30,7 +46,7 @@ export default function Performances() {
             </div>
             {it.stem && <p className="mt-1 text-sm font-medium">{it.stem}</p>}
             {it.hasRecording
-              ? <video controls playsInline preload="metadata" className="mt-2 w-full max-h-80 rounded-xl bg-black" src={`/api/perform/recording?attemptId=${it.attemptId}`} />
+              ? <div className="mt-2"><Replay t={t} videoUrl={`/api/perform/recording?attemptId=${it.attemptId}`} musicUrl={it.musicMaterialId ? `/api/materials/raw?id=${it.musicMaterialId}` : null} /></div>
               : <p className="mt-2 text-xs text-stone-400">{t("(这次的录像已不在了)")}</p>}
             {it.feedback && <div className="mt-2 text-sm"><MD>{it.feedback}</MD></div>}
             <div className="mt-2">
