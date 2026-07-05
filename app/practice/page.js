@@ -18,7 +18,8 @@ function PracticeInner() {
   const aiFetch = useAiFetch();
   const kpParam = useSearchParams().get("kp");
   const mode = useSearchParams().get("mode");
-  const storeKey = `kye_practice:${mode || "free"}:${kpParam || "all"}`;
+  const qParam = useSearchParams().get("q");
+  const storeKey = `kye_practice:${mode || "free"}:${qParam ? "q" + qParam : (kpParam || "all")}`;
   const [questions, setQuestions] = useState([]);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
@@ -52,6 +53,7 @@ function PracticeInner() {
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
 
   async function fetchBatch() {
+    if (qParam) { const d = await aiFetch(`/api/questions/get?id=${Number(qParam)}`); return { questions: d.question ? [d.question] : [], note: "" }; }
     if (mode === "review") { const d = await aiFetch("/api/review"); return { questions: d.questions || [], note: "" }; }
     const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) });
     return { questions: d.questions || [], note: d.note || "" };

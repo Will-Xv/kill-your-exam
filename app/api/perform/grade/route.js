@@ -70,8 +70,8 @@ export async function POST(req) {
     const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...parts] }], jsonSchema: schema });
     const g = JSON.parse(res.text);
     const score = Math.max(0, Math.min(100, g.score || 0));
-    const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
-      .run(questionId, exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, g.feedback, "practice");
+    const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem) VALUES(?,?,?,?,?,?,?,?,?)")
+      .run(questionId, exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, g.feedback, "practice", body.stem || null);
     try { saveRec(info.lastInsertRowid, buffer); } catch {}
     return Response.json({ score, feedback: g.feedback, attemptId: info.lastInsertRowid });
   } catch (e) {
