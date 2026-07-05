@@ -41,6 +41,16 @@ export default function PerformTask({ q, onNext }) {
 
   function clearTimers() { timersRef.current.forEach((id) => clearInterval(id) || clearTimeout(id)); timersRef.current = []; }
   function stopStream() { try { streamRef.current?.getTracks().forEach((tk) => tk.stop()); } catch {} streamRef.current = null; }
+  // 直播预览:视频元素只在 countdown/recording 阶段才挂载,所以在这里(挂载后)再把摄像头流接上,否则用户看不到自己
+  useEffect(() => {
+    if (!isVideo) return;
+    if (phase !== "countdown" && phase !== "recording") return;
+    const v = liveVideoRef.current, stream = streamRef.current;
+    if (!v || !stream) return;
+    if (v.srcObject !== stream) v.srcObject = stream;
+    v.muted = true; v.playsInline = true;
+    v.play().catch(() => {});
+  }, [phase, isVideo]);
   useEffect(() => () => { clearTimers(); stopStream(); try { mediaRef.current?.pause(); } catch {}; if (blobUrl) URL.revokeObjectURL(blobUrl); }, []); // cleanup
 
   function speakStart() {
@@ -158,7 +168,7 @@ export default function PerformTask({ q, onNext }) {
       )}
 
       {isVideo && (phase === "countdown" || phase === "recording") && (
-        <video ref={liveVideoRef} playsInline muted className="w-full max-h-72 rounded-xl bg-black" />
+        <video ref={liveVideoRef} autoPlay playsInline muted className="w-full max-h-72 rounded-xl bg-black" />
       )}
 
       {phase === "countdown" && <div className="text-center text-5xl font-black text-amber-600">{count > 0 ? count : "•"}</div>}
