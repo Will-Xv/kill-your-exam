@@ -113,8 +113,9 @@ function PracticeInner() {
     setBusy(true);
     try {
       let attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
-      let handURL = null;
-      if (q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) { attachments = [...attachments, h].slice(0, 4); handURL = `data:${h.mime || "image/png"};base64,${h.data}`; } }
+      let handURL = hands[q.id] || null;
+      if (!handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
+      if (handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
       setResult(d); setDone((arr) => [...arr, d.correct]);
       if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
@@ -262,7 +263,7 @@ function PracticeInner() {
         {q.qtype === "short" && !result && (
           <div className="mt-2">
             <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
-            {handOpen && <HandwritePad key={q.id} ref={padRef} />}
+            {handOpen && <HandwritePad key={q.id} ref={padRef} initial={hands[q.id]} onChange={(url) => setHands((h) => ({ ...h, [q.id]: url || undefined }))} />}
           </div>
         )}
         {q.qtype === "short" && !!result && hands[q.id] && (
