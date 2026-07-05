@@ -9,6 +9,7 @@ export default function Exams() {
   useEffect(() => { load(); }, []);
   async function switchTo(id) {
     await fetch("/api/exam/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId: id }) });
+    try { Object.keys(localStorage).filter((k) => k.startsWith("kye_practice:")).forEach((k) => localStorage.removeItem(k)); } catch {}
     location.href = "/";
   }
   async function manage(action, examId, msg) {

@@ -17,6 +17,7 @@ function PracticeInner() {
   const aiFetch = useAiFetch();
   const kpParam = useSearchParams().get("kp");
   const mode = useSearchParams().get("mode");
+  const storeKey = `kye_practice:${mode || "free"}:${kpParam || "all"}`;
   const [questions, setQuestions] = useState([]);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
@@ -67,7 +68,26 @@ function PracticeInner() {
     setBusy(false);
     prefetchNext();
   }
-  useEffect(() => { loadQuestions(); }, []);
+  useEffect(() => {
+    // 刷新页面时优先恢复上次这批题(不再重新出题),只有真正"再来一轮"才换新题
+    try {
+      const raw = localStorage.getItem(storeKey);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && Array.isArray(saved.questions) && saved.questions.length && Date.now() - (saved.ts || 0) < 12 * 3600 * 1000) {
+          setQuestions(saved.questions); setIdx(saved.idx || 0); setDone(saved.done || []); setNote(saved.note || ""); setBusy(false);
+          prefetchNext();
+          return;
+        }
+      }
+    } catch {}
+    loadQuestions();
+  }, []);
+  // 批次/进度变化时存下来,刷新可恢复
+  useEffect(() => {
+    if (!questions.length) return;
+    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, ts: Date.now() })); } catch {}
+  }, [questions, idx, done, note]); // eslint-disable-line
   const q = questions[idx];
 
   async function submit() {
