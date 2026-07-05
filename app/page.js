@@ -81,8 +81,24 @@ export default function Home() {
       <Tour />
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
-        {/* 手绘刺客贴纸(墨线+一点血),集中右上角 */}
-        <img src="/illustrations/sticker.png" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute -right-2 -top-[58px] w-[50%] max-w-[350px] select-none" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.18))" }} />
+        {/* 手绘血刃(内联 SVG,右上角,手机/桌面都完整显示) */}
+        <svg viewBox="0 0 120 170" aria-hidden="true" className="pointer-events-none absolute right-2 top-2 h-28 w-auto select-none rotate-[16deg]" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.22))" }}>
+          {/* 刀柄 */}
+          <rect x="53" y="6" width="14" height="30" rx="4" fill="#6b4a25" stroke="#2f2413" strokeWidth="3" />
+          <path d="M56 12 h8 M56 20 h8 M56 28 h8" stroke="#2f2413" strokeWidth="1.6" strokeLinecap="round" opacity=".7" />
+          <circle cx="60" cy="6" r="5" fill="#2f2413" />
+          {/* 护手 */}
+          <path d="M38 40 q22 -8 44 0" stroke="#2f2413" strokeWidth="7" fill="none" strokeLinecap="round" />
+          {/* 刀身 */}
+          <path d="M50 42 L70 42 L64 120 L60 132 L56 120 Z" fill="#c7ccc2" stroke="#2f2413" strokeWidth="3" strokeLinejoin="round" />
+          <path d="M60 48 L60 118" stroke="#2f2413" strokeWidth="1.6" opacity=".6" />
+          {/* 血:刀身上的血迹 */}
+          <path d="M58 70 q7 14 3 34" stroke="#9e140c" strokeWidth="3.5" fill="none" strokeLinecap="round" opacity=".92" />
+          {/* 血:刀尖滴落 */}
+          <path d="M60 132 q-4 12 0 20 q4 -8 0 -20 Z" fill="#9e140c" />
+          <circle cx="60" cy="160" r="4.5" fill="#9e140c" />
+          <circle cx="49" cy="150" r="2.6" fill="#9e140c" opacity=".85" />
+        </svg>
         <div className="relative z-10">
           <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{exam.name}</Link>
           <div className="mt-1">
