@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { DICTS, ZH_HANT } from "@/lib/translations";
-import { toTrad } from "@/lib/s2t";
+import { DICTS, ZH_TW, ZH_HK } from "@/lib/translations";
+import { toTradTW, toTradHK } from "@/lib/s2t";
 
 const Ctx = createContext({ lang: "zh", setLang: () => {}, t: (s) => s });
 
@@ -28,7 +28,7 @@ export function I18nProvider({ children }) {
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     document.title = "Kill Your Exam";
   }, [lang]);
-  const t = useCallback((s) => (lang === "zh" ? s : lang === "zh-Hant" ? (ZH_HANT[s] ?? toTrad(s)) : (DICTS[lang]?.[s] ?? s)), [lang]);
+  const t = useCallback((s) => (lang === "zh" ? s : lang === "zh-TW" ? (ZH_TW[s] ?? toTradTW(s)) : lang === "zh-HK" ? (ZH_HK[s] ?? toTradHK(s)) : (DICTS[lang]?.[s] ?? s)), [lang]);
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
 }
 export const useI18n = () => useContext(Ctx);

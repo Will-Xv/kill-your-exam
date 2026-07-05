@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { toTrad } from "@/lib/s2t";
+import { toTradTW, toTradHK } from "@/lib/s2t";
 
-const LANGS = [["en","English"],["zh","中文"],["zh-Hant","繁體中文"],["fr","Français"],["es","Español"],["ru","Русский"],["ar","العربية"],["id","Bahasa"]];
+const LANGS = [["en","English"],["zh","中文"],["zh-TW","繁體中文（台灣）"],["zh-HK","繁體中文（港澳）"],["fr","Français"],["es","Español"],["ru","Русский"],["ar","العربية"],["id","Bahasa"]];
 
 const L = {
   en: { enter:"Enter app", badge:"Your personal AI exam coach", h1a:"Any exam,", h1b:"aced.",
@@ -164,10 +164,10 @@ function InkScene({ i }) {
     </svg>
   );
 }
-function tradifyObj(o) {
-  if (typeof o === "string") return toTrad(o);
-  if (Array.isArray(o)) return o.map(tradifyObj);
-  if (o && typeof o === "object") { const r = {}; for (const k in o) r[k] = tradifyObj(o[k]); return r; }
+function tradifyObj(o, conv) {
+  if (typeof o === "string") return conv(o);
+  if (Array.isArray(o)) return o.map((x) => tradifyObj(x, conv));
+  if (o && typeof o === "object") { const r = {}; for (const k in o) r[k] = tradifyObj(o[k], conv); return r; }
   return o;
 }
 
@@ -210,7 +210,7 @@ export default function Welcome() {
     return () => { document.body.style.background = b; document.documentElement.style.background = h; };
   }, []);
 
-  const t = lang === "zh-Hant" ? tradifyObj(L.zh) : (L[lang] || L.en);
+  const t = lang === "zh-TW" ? tradifyObj(L.zh, toTradTW) : lang === "zh-HK" ? tradifyObj(L.zh, toTradHK) : (L[lang] || L.en);
   const rtl = lang === "ar";
   const fe = t.feats.slice(0, 4);
   // 6 页:封面 + 4 内容页 + ready-to-kill
@@ -296,6 +296,7 @@ export default function Welcome() {
     const tm = setTimeout(upd, 140);
     return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); clearTimeout(tm); };
   }, [lang, desktop]);
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
   function LeafFront({ pg }) {
     return (

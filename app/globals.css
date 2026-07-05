@@ -122,3 +122,11 @@ main, .page-enter { position: relative; z-index: 1; }
 @keyframes kyeBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 .kye-bob { animation: kyeBob 5.5s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } .kye-bob { animation: none; } }
+
+/* 繁体中文:得意黑(Smiley Sans)缺大量繁体字形,改用带完整繁体字库的系统字体 */
+html[lang="zh-TW"] .font-hero,
+html[lang="zh-HK"] .font-hero {
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Noto Sans CJK TC", "Heiti TC", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  font-style: normal;
+}
