@@ -20,6 +20,7 @@ export default function PerformTask({ q, onNext }) {
   const body = q.body || {};
   const isVideo = body.captureType === "video";
   const mediaSrc = body.mediaMaterialId ? `/api/materials/raw?id=${body.mediaMaterialId}` : null;
+  const analyzeAudio = body.analyzeAudio || (isVideo && body.mediaMaterialId ? "music" : "recorded");
 
   const [phase, setPhase] = useState("idle"); // idle | countdown | recording | recorded | grading | graded
   const [count, setCount] = useState(0);
@@ -143,7 +144,14 @@ export default function PerformTask({ q, onNext }) {
       <MD className="font-medium prose-zh">{body.stem}</MD>
       {body.instructions && <p className="text-sm text-slate-600">{body.instructions}</p>}
       {body.rubric?.length > 0 && <p className="text-xs text-slate-500">🎯 {t("评分维度:")}{body.rubric.join(" · ")}</p>}
-      <p className="text-[11px] text-amber-700">⚠️ {t("这是 AI 辅助点评,仅供练习参考,不代表专业评委的权威评分;它")}{isVideo ? t("按每秒 1 帧看你的录像(快速动作细节可能看不全)") : t("会听你的录音")}。</p>
+      <p className="text-[11px] text-amber-700">⚠️ {t("AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。")}</p>
+      <p className="text-[11px] text-slate-500">🔎 {isVideo
+        ? t("我们会从你的录像里按每秒 5 帧、720P 截图来分析画面;") + (analyzeAudio === "music"
+            ? t("舞蹈/形体类:只用所给音乐原曲判断你是否踩上节拍,录像里录到的原声不单独分析。")
+            : analyzeAudio === "both"
+            ? t("并用所给音乐原曲对齐节拍、同时分析你录进去的声音。")
+            : t("并分析你录像里录到的声音(如台词/演唱)。"))
+        : t("我们会分析你的录音。")}</p>
 
       {mediaSrc && phase === "idle" && (
         <button className="btn-ghost text-sm py-1.5" onClick={togglePreview}>🎵 {t("试听所给音乐(录制时会自动播放)")}</button>

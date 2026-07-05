@@ -8,6 +8,8 @@ RUN npx next build
 FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production
+# ffmpeg:表演题录像抽帧 + 音轨提取
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
