@@ -35,10 +35,13 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} }, [fingerScroll]);
 
   function pos(e) { const r = canvasRef.current.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  // 笔悬停/落笔时把画布 touch-action 临时设为 none(笔一定用于书写,不会被浏览器当成平移/滚动);笔离开再恢复
+  function penForceDraw() { const c = canvasRef.current; if (c) c.style.touchAction = "none"; }
+  function restoreTouch() { const c = canvasRef.current; if (c) c.style.touchAction = fingerScroll ? "manipulation" : "none"; }
   function snapshot() { try { const c = canvasRef.current; undoStack.current.push(c.getContext("2d").getImageData(0, 0, c.width, c.height)); if (undoStack.current.length > 25) undoStack.current.shift(); } catch {} }
 
   function down(e) {
-    if (e.pointerType === "pen") { penSeen.current = true; if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
+    if (e.pointerType === "pen") { penSeen.current = true; penForceDraw(); if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
     if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return; // 手指用于滚动/防手掌误触,不当作书写
     e.preventDefault();
     snapshot();
@@ -46,6 +49,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch {}
   }
   function move(e) {
+    if (e.pointerType === "pen") penForceDraw(); // 笔悬停移动时也保持可书写
     if (!drawing.current) return;
     if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return;
     e.preventDefault();
@@ -57,6 +61,8 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     last.current = p; dirty.current = true;
   }
   function emit() { try { if (onChange && canvasRef.current) onChange(dirty.current ? canvasRef.current.toDataURL("image/png") : ""); } catch {} }
+  function hover(e) { if (e.pointerType === "pen") penForceDraw(); } // 笔悬停进入 -> 立刻可书写
+  function leave() { restoreTouch(); up(); } // 笔/手指离开 -> 恢复该模式的手势
   function up() { drawing.current = false; last.current = null; emit(); }
 
   function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; emit(); } }
@@ -81,7 +87,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         <button type="button" onClick={() => setFingerScroll((v) => !v)} title={t("切换:手指是用来书写,还是用来滑动页面(用笔时建议选滑动)")} className={`rounded-full border px-3 py-1 ${fingerScroll ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-500"}`}>{fingerScroll ? t("✋ 手指滑动") : t("✍️ 手指书写")}</button>
         <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面")}</span>
       </div>
-      <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} onPointerCancel={up}
+      <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerEnter={hover} onPointerLeave={leave} onPointerCancel={leave}
         className="w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: fingerScroll ? "manipulation" : "none" }} />
     </div>
   );
