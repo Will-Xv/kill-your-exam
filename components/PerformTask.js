@@ -84,11 +84,14 @@ export default function PerformTask({ q, onNext }) {
     streamRef.current = stream;
     if (isVideo && liveVideoRef.current) { liveVideoRef.current.srcObject = stream; liveVideoRef.current.muted = true; try { await liveVideoRef.current.play(); } catch {} }
     // 321 倒计时
-    setPhase("countdown"); setCount(body.countdownSec || 3);
-    let c = body.countdownSec || 3;
+    const total = body.countdownSec || 3;
+    setPhase("countdown"); setCount(total);
+    let c = total;
+    if (total <= 1) speakStart(); // 倒计时太短就立刻喊
     const iv = setInterval(() => {
       c -= 1; setCount(c);
-      if (c <= 0) { clearInterval(iv); speakStart(); startRecording(); }
+      if (c === 1) speakStart(); // 最后一秒先喊"开始",让提示音在音乐开始之前、不重叠
+      if (c <= 0) { clearInterval(iv); startRecording(); } // 归零才开始录制+放音乐
     }, 1000);
     timersRef.current.push(iv);
   }
