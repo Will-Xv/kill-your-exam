@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, Suspense, useRef } from "react";
 import PerformTask from "@/components/PerformTask";
+import HandwritePad from "@/components/HandwritePad";
 import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import { useT } from "@/components/I18n";
@@ -36,6 +37,8 @@ function PracticeInner() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteBody, setNoteBody] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
+  const [handOpen, setHandOpen] = useState(false);
+  const padRef = useRef(null);
   const bottom = useRef(null);
   const prefetched = useRef(null);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
@@ -70,7 +73,8 @@ function PracticeInner() {
     const ans = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
     setBusy(true);
     try {
-      const attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
+      let attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
+      if (q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) attachments = [...attachments, h].slice(0, 4); }
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
       setResult(d); setDone((arr) => [...arr, d.correct]);
     } catch {}
@@ -184,6 +188,12 @@ function PracticeInner() {
             <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setAFiles([...e.target.files])} /></label>
             {aFiles.length > 0 && <span>{aFiles.length} {t("个文件")} <button className="underline" onClick={() => setAFiles([])}>{t("清除")}</button></span>}
           </DropZone>
+        )}
+        {q.qtype === "short" && !result && (
+          <div className="mt-2">
+            <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
+            {handOpen && <HandwritePad key={q.id} ref={padRef} />}
+          </div>
         )}
       </div>
 
