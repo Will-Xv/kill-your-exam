@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { toTrad } from "@/lib/s2t";
 
-const LANGS = [["en","English"],["zh","中文"],["fr","Français"],["es","Español"],["ru","Русский"],["ar","العربية"],["id","Bahasa"]];
+const LANGS = [["en","English"],["zh","中文"],["zh-Hant","繁體中文"],["fr","Français"],["es","Español"],["ru","Русский"],["ar","العربية"],["id","Bahasa"]];
 
 const L = {
   en: { enter:"Enter app", badge:"Your personal AI exam coach", h1a:"Any exam,", h1b:"aced.",
@@ -163,6 +164,13 @@ function InkScene({ i }) {
     </svg>
   );
 }
+function tradifyObj(o) {
+  if (typeof o === "string") return toTrad(o);
+  if (Array.isArray(o)) return o.map(tradifyObj);
+  if (o && typeof o === "object") { const r = {}; for (const k in o) r[k] = tradifyObj(o[k]); return r; }
+  return o;
+}
+
 export default function Welcome() {
   const [lang, setLang] = useState("en");
   const [scrolled, setScrolled] = useState(false);
@@ -202,7 +210,7 @@ export default function Welcome() {
     return () => { document.body.style.background = b; document.documentElement.style.background = h; };
   }, []);
 
-  const t = L[lang];
+  const t = lang === "zh-Hant" ? tradifyObj(L.zh) : (L[lang] || L.en);
   const rtl = lang === "ar";
   const fe = t.feats.slice(0, 4);
   // 6 页:封面 + 4 内容页 + ready-to-kill
