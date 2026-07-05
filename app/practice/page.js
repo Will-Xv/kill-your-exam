@@ -9,6 +9,7 @@ import SourceBadge from "@/components/SourceBadge";
 import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
+function b64ToFile(att){ try{ const bin=atob(att.data); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i); return new File([arr], att.name||"draft.png", {type:att.mime||"image/png"}); }catch{ return null; } }
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 
@@ -41,6 +42,7 @@ function PracticeInner() {
   const [handOpen, setHandOpen] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
   const padRef = useRef(null);
+  const draftRef = useRef(null);
   const bottom = useRef(null);
   const prefetched = useRef(null);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
@@ -218,7 +220,7 @@ function PracticeInner() {
         )}
         <div className="mt-2 border-t border-slate-100 pt-2">
           <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
-          {draftOpen && <HandwritePad key={"draft-" + q.id} />}
+          {draftOpen && <HandwritePad key={"draft-" + q.id} ref={draftRef} />}
         </div>
       </div>
 
@@ -256,6 +258,7 @@ function PracticeInner() {
           </div>
           {dFiles.length > 0 && <p className="text-xs text-slate-500 mt-2">📎 {dFiles.length} {t("个文件")} <button className="underline" onClick={() => setDFiles([])}>{t("清除")}</button></p>}
           <DropZone onFiles={(fs) => setDFiles((p) => [...p, ...fs])} className="mt-2 flex gap-2">
+            <button type="button" className="btn-ghost px-3" title={t("把草稿纸发给 AI")} onClick={() => { const h = draftRef.current && draftRef.current.getImage(); if (h) { const f = b64ToFile(h); if (f) setDFiles((p) => [...p, f]); } else { setDraftOpen(true); } }}>🖉</button>
             <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden accept="image/*,.pdf,.txt" onChange={(e) => setDFiles([...e.target.files])} /></label>
             <input className="input flex-1" value={dInput} onChange={(e) => setDInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendDiscuss()} placeholder={t("例如:我觉得我这样答也对,因为…")} />
             <button className="btn px-4" onClick={sendDiscuss} disabled={dBusy || (!dInput.trim() && !dFiles.length)}>{t("发送")}</button>
