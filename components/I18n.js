@@ -9,9 +9,13 @@ export function I18nProvider({ children }) {
   useEffect(() => {
     const local = typeof localStorage !== "undefined" && localStorage.getItem("beikao_lang");
     if (local) setLangState(local);
-    fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then((d) => {
-      if (d?.user?.lang) { setLangState(d.user.lang); localStorage.setItem("beikao_lang", d.user.lang); }
-    }).catch(() => {});
+    (async () => {
+      let userLang = null;
+      try { const r = await fetch("/api/me"); if (r.ok) { const d = await r.json(); userLang = d?.user?.lang || null; } } catch {}
+      if (userLang) { setLangState(userLang); localStorage.setItem("beikao_lang", userLang); return; }
+      // 仅对"没设过语言"的新访客:按 IP 所在国家给默认语言(不在支持列表则英语);不持久化,用户自己选了才算数
+      if (!local) { try { const g = await (await fetch("/api/geo")).json(); if (g?.lang) setLangState(g.lang); } catch {} }
+    })();
   }, []);
   const setLang = useCallback((l) => {
     setLangState(l);
