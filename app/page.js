@@ -12,6 +12,8 @@ export default function Home() {
   const [suggBusy, setSuggBusy] = useState(false);
   const [weakCount, setWeakCount] = useState(0);
   const [dateOpen, setDateOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  useEffect(() => { fetch("/api/inbox").then((r) => r.json()).then((d) => setUnread(d.unread || 0)).catch(() => {}); }, []);
   useEffect(() => {
     fetch("/api/exam").then((r) => r.json()).then(setData);
     fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
@@ -70,6 +72,7 @@ export default function Home() {
     { href: "/mistakes", icon: "📕", title: t("错题本"), desc: t("重练做错的题"), grad: "from-rose-400 to-red-500", tint: "hover:border-rose-300 hover:shadow-rose-500/15", ig: "from-rose-50 to-red-50" },
     { href: "/notes", icon: "📓", title: t("笔记本"), desc: t("收藏的题+随手笔记"), grad: "from-sky-400 to-blue-500", tint: "hover:border-sky-300 hover:shadow-sky-500/15", ig: "from-sky-50 to-blue-50" },
     { href: "/performances", icon: "🎬", title: t("表演回放"), desc: t("回看录像+AI点评,可重做"), grad: "from-fuchsia-400 to-purple-500", tint: "hover:border-fuchsia-300 hover:shadow-fuchsia-500/15", ig: "from-fuchsia-50 to-purple-50" },
+    { href: "/inbox", icon: "📬", title: t("收件箱"), desc: t("更新公告与信件"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },
     { href: "/profile", icon: "🧭", title: t("你的全部杀技"), desc: t("跨考试的你"), grad: "from-violet-400 to-purple-500", tint: "hover:border-violet-300 hover:shadow-violet-500/15", ig: "from-violet-50 to-purple-50" }
   ];
 
@@ -136,6 +139,7 @@ export default function Home() {
           <Link key={f.href} href={f.href} className={`group relative overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f5eed6] p-4 shadow-sm text-[#2f2413] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${f.tint} animate-in d${(i % 5) + 1} flex flex-col items-start`}>
             <div className={`absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br ${f.grad} opacity-10 blur-xl transition-opacity group-hover:opacity-25`} />
             <div className={`relative grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${f.ig} text-xl shadow-inner`}>{f.icon}</div>
+            {f.href === "/inbox" && unread > 0 && <span className="absolute right-3 top-3 grid h-5 min-w-[20px] place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{unread}</span>}
             <div className="relative mt-2 font-semibold">{f.title}</div>
             <div className="relative text-xs text-slate-500">{f.desc}</div>
             <div className={`relative mt-2 h-1 w-8 rounded-full bg-gradient-to-r ${f.grad} opacity-70`} />

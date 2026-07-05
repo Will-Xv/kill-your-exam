@@ -12,6 +12,6 @@ export async function PATCH(req) {
   const u = await getSessionUser();
   if (!u) return unauthorized();
   const { lang } = await req.json();
-  if (["zh", "en", "fr", "es", "ru", "ar", "id"].includes(lang)) db.prepare("UPDATE users SET lang=? WHERE id=?").run(lang, u.id);
+  if (["zh", "zh-TW", "zh-HK", "en", "fr", "es", "ru", "ar", "id"].includes(lang)) db.prepare("UPDATE users SET lang=? WHERE id=?").run(lang, u.id);
   return Response.json({ ok: true });
 }

@@ -42,7 +42,8 @@ function unwrapProseMath(s) {
 const KATEX_OPTS = { strict: false, throwOnError: false, errorColor: "#9a7b4f", maxExpand: 1000 };
 
 export default function MD({ children, className = "", inline = false }) {
-  let s = autoMath(String(children ?? ""));
+  let raw = String(children ?? "").replace(/\\r\\n|\\n/g, "  \n"); // AI 偶尔输出字面量 \n,转成真正的换行
+  let s = autoMath(raw);
   s = unwrapProseMath(s);
   s = balanceDelims(s);
   const comps = inline ? { p: ({ children }) => <>{children}</> } : {};

@@ -169,7 +169,7 @@ export default function PerformTask({ q, onNext }) {
   return (
     <div className="card space-y-3">
       <MD className="font-medium prose-zh">{body.stem}</MD>
-      {body.instructions && <p className="text-sm text-slate-600">{body.instructions}</p>}
+      {body.instructions && <p className="text-sm text-slate-600 whitespace-pre-line">{String(body.instructions).replace(/\\r\\n|\\n/g, "\n")}</p>}
       {body.rubric?.length > 0 && <p className="text-xs text-slate-500">🎯 {t("评分维度:")}{body.rubric.join(" · ")}</p>}
       <p className="text-[11px] text-amber-700">⚠️ {t("AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。")}</p>
       <p className="text-[11px] text-slate-500">🔎 {isVideo
