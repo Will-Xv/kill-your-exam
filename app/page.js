@@ -57,7 +57,7 @@ export default function Home() {
   const items = daily?.plan?.items || [];
   const firstUndone = items.find((it) => !it.done);
   const allDone = items.length && !firstUndone;
-  const linkFor = (it) => (it.type === "review" ? "/practice?mode=review" : it.type === "kp" ? `/study?kp=${it.kpId}` : "/practice");
+  const linkFor = (it) => (it.type === "review" ? "/practice?mode=review" : it.type === "kp" ? `/study?kp=${it.kpId}` : "/practice?fresh=1");
   const labelFor = (it) =>
     it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
     it.type === "kp" ? `${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :

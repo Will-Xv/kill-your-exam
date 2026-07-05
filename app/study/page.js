@@ -62,7 +62,7 @@ function StudyInner() {
         </div>
         {e && (
           <div className="flex gap-2">
-            <a className="btn flex-1" href={`/practice?kp=${current.kp.id}`}>{t("✍️ 练几道题检验一下")}</a>
+            <a className="btn flex-1" href={`/practice?kp=${current.kp.id}&fresh=1`}>{t("✍️ 练几道题检验一下")}</a>
             <button className="btn-ghost" onClick={() => open(current.kp, true)} disabled={busy}>{t("重新讲解")}</button>
           </div>
         )}
@@ -77,7 +77,7 @@ function StudyInner() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black">{t("学习与掌握度")}</h1>
-        <a href="/practice" className="btn py-2 text-sm">✍️ {t("开始自由练习")}</a>
+        <a href="/practice?fresh=1" className="btn py-2 text-sm">✍️ {t("开始自由练习")}</a>
       </div>
       <div className="card flex justify-around text-center text-sm">
         {Object.keys(LVDOT).map((k) => (

@@ -44,6 +44,7 @@ function PracticeInner() {
   const [draftOpen, setDraftOpen] = useState(false);
   const [answers, setAnswers] = useState({});
   const [drafts, setDrafts] = useState({});
+  const [discussions, setDiscussions] = useState({}); // 每题的追问聊天记录(qid->array),刷新可恢复
   const [hands, setHands] = useState({}); // 已提交的手写作答(qid->dataURL),提交后仍能看见
   const padRef = useRef(null);
   const draftRef = useRef(null);
@@ -62,8 +63,9 @@ function PracticeInner() {
     prefetched.current = null;
     fetchBatch().then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
   }
+  function reroll() { try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {} prefetched.current = null; loadQuestions(); }
   async function loadQuestions() {
-    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
+    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setDiscussions({}); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
     // 若有预取好的一批,直接用,零等待
     if (prefetched.current && prefetched.current.questions.length) {
       const b = prefetched.current; prefetched.current = null;
@@ -75,6 +77,16 @@ function PracticeInner() {
     prefetchNext();
   }
   useEffect(() => {
+    // 从"开始自由练习/换一批"进来带 ?fresh=1 时:忽略本地暂存、直接出新题(出完题后旧的这批就该换掉)
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("fresh")) {
+        try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {}
+        try { const u = new URL(window.location.href); u.searchParams.delete("fresh"); window.history.replaceState(null, "", u.pathname + u.search); } catch {}
+        loadQuestions();
+        return;
+      }
+    } catch {}
     // 刷新页面时优先恢复上次这批题(不再重新出题),只有真正"再来一轮"才换新题
     try {
       const raw = localStorage.getItem(storeKey);
@@ -86,9 +98,11 @@ function PracticeInner() {
           let drf = {}; try { drf = JSON.parse(localStorage.getItem(storeKey + ":drafts") || "{}"); } catch {}
           setDrafts(drf);
           try { setHands(JSON.parse(localStorage.getItem(storeKey + ":hands") || "{}")); } catch {}
+          const dsc = saved.discussions || {}; setDiscussions(dsc);
           const cur = saved.questions[saved.idx || 0];
           const st = cur && ans[cur.id];
           if (st) { setSel(st.sel || []); setText(st.text || ""); setResult(st.result || null); }
+          if (cur && Array.isArray(dsc[cur.id])) setDiscuss(dsc[cur.id]);
           if (cur && drf[cur.id]) setDraftOpen(true);
           setBusy(false); prefetchNext();
           return;
@@ -100,8 +114,8 @@ function PracticeInner() {
   // 批次/进度变化时存下来,刷新可恢复
   useEffect(() => {
     if (!questions.length) return;
-    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, ts: Date.now() })); } catch {}
-  }, [questions, idx, done, note, answers]); // eslint-disable-line
+    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, discussions, ts: Date.now() })); } catch {}
+  }, [questions, idx, done, note, answers, discussions]); // eslint-disable-line
   useEffect(() => { try { localStorage.setItem(storeKey + ":drafts", JSON.stringify(drafts)); } catch {} }, [drafts]); // eslint-disable-line
   useEffect(() => { try { localStorage.setItem(storeKey + ":hands", JSON.stringify(hands)); } catch {} }, [hands]); // eslint-disable-line
   // 当前题的作答状态(选项/文字/批改结果)随时存,刷新可恢复
@@ -138,6 +152,7 @@ function PracticeInner() {
     setResult(ns?.result ?? null); setSel(ns?.sel ?? []); setText(ns?.text ?? "");
     setReportOpen(false); setReportNote(""); setNoteOpen(false); setNoteBody(""); setNoteSaved(false);
     setDraftOpen(nq ? !!drafts[nq.id] : false);
+    setDiscuss(nq && Array.isArray(discussions[nq.id]) ? discussions[nq.id] : null);
     setIdx(ni);
   }
   async function sendDiscuss() {
@@ -145,10 +160,10 @@ function PracticeInner() {
     const ua = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
     const attachments = await filesToAttachments(dFiles);
     const hist = [...(discuss || []), { role: "user", content: (msg || "(见附件)") + (attachments.length ? " 📎" + attachments.length : "") }];
-    setDiscuss(hist); setDInput(""); setDFiles([]); setDBusy(true);
+    setDiscuss(hist); setDiscussions((dd) => ({ ...dd, [q.id]: hist })); setDInput(""); setDFiles([]); setDBusy(true);
     try {
       const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ua, history: hist, attachments }) });
-      setDiscuss([...hist, { role: "model", content: d.reply }]);
+      const full = [...hist, { role: "model", content: d.reply }]; setDiscuss(full); setDiscussions((dd) => ({ ...dd, [q.id]: full }));
     } catch { setDiscuss(hist); }
     setDBusy(false);
   }
@@ -199,7 +214,7 @@ function PracticeInner() {
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm text-slate-500">
           <span>{idx + 1} / {questions.length} · {t("表演任务")}</span>
-          <span className="badge-model">🤖 {t("AI出题")}</span>
+          <span className="flex items-center gap-2"><button type="button" className="btn-ghost px-2 py-0.5 text-xs" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button><span className="badge-model">🤖 {t("AI出题")}</span></span>
         </div>
         <PerformTask key={q.id} q={q} onNext={next} />
         <div className="flex justify-end">
@@ -228,6 +243,7 @@ function PracticeInner() {
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>{mode === "review" ? t("🔁 错题重练 · ") : ""}{idx + 1} / {questions.length} · {t(QTYPE[q.qtype])}</span>
         <span className="flex items-center gap-1.5">
+          <button type="button" className="btn-ghost px-2 py-0.5 text-xs mr-2" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button>
           {q.is_real ? <span className="badge-material">📜 {t("真题")}</span> : q.origin === "online" ? <span className="badge-material">🌐 {t("网上题")}</span> : <span className="badge-model">🤖 {t("AI出题")}</span>}
           <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
         </span>
