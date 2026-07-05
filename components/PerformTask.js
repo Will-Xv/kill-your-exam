@@ -201,6 +201,9 @@ export default function PerformTask({ q, onNext }) {
 
       {err && <p className="text-sm text-red-600">{err}</p>}
 
+      {phase === "idle" && isVideo && analyzeAudio === "music" && (
+        <div className="rounded-lg bg-amber-100/70 px-3 py-2 text-xs text-amber-800">🔇 {t("本题录像不开麦克风、不收声（这样外放的音乐才不会被手机掐掉、你才能听见）；评分只看画面并对齐所给音乐,不分析录到的声音。")}</div>
+      )}
       {phase === "idle" && <button className="btn w-full" onClick={begin}>{isVideo ? "🎥" : "🎙️"} {t("开始录制")}</button>}
       {phase === "recorded" && (
         <div className="flex gap-2">
