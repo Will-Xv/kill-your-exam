@@ -40,6 +40,7 @@ function PracticeInner() {
   const [noteBody, setNoteBody] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(true);
   const [draftOpen, setDraftOpen] = useState(false);
   const [answers, setAnswers] = useState({});
   const [drafts, setDrafts] = useState({});
@@ -222,7 +223,13 @@ function PracticeInner() {
             })}
           </div>
         )}
-        {!isChoice && <textarea className="input mt-3" rows={q.qtype === "short" ? 5 : 2} placeholder={q.qtype === "short" ? t("写下你的回答(口语化也行)") : t("填写答案")} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />}
+        {q.qtype === "fill" && <textarea className="input mt-3" rows={2} placeholder={t("填写答案")} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />}
+        {q.qtype === "short" && (
+          <div className="mt-3">
+            {!result && <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setTypeOpen((v) => !v)}>⌨️ {typeOpen ? t("收起打字框") : t("打字作答")}</button>}
+            {(typeOpen || !!result) && <textarea className="input mt-2" rows={5} placeholder={t("写下你的回答(口语化也行)")} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />}
+          </div>
+        )}
         {q.qtype === "short" && !result && (
           <DropZone onFiles={(fs) => setAFiles((p) => [...p, ...fs])} className="mt-2 flex items-center gap-2 text-sm text-slate-500">
             <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setAFiles([...e.target.files])} /></label>
