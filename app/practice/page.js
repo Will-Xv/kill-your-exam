@@ -41,6 +41,8 @@ function PracticeInner() {
   const [noteSaved, setNoteSaved] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
+  const [answers, setAnswers] = useState({});
+  const [drafts, setDrafts] = useState({});
   const padRef = useRef(null);
   const draftRef = useRef(null);
   const bottom = useRef(null);
@@ -59,7 +61,7 @@ function PracticeInner() {
     fetchBatch().then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
   }
   async function loadQuestions() {
-    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null);
+    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setSel([]); setText(""); setDraftOpen(false);
     // 若有预取好的一批,直接用,零等待
     if (prefetched.current && prefetched.current.questions.length) {
       const b = prefetched.current; prefetched.current = null;
@@ -77,8 +79,15 @@ function PracticeInner() {
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved && Array.isArray(saved.questions) && saved.questions.length && Date.now() - (saved.ts || 0) < 12 * 3600 * 1000) {
-          setQuestions(saved.questions); setIdx(saved.idx || 0); setDone(saved.done || []); setNote(saved.note || ""); setBusy(false);
-          prefetchNext();
+          setQuestions(saved.questions); setIdx(saved.idx || 0); setDone(saved.done || []); setNote(saved.note || "");
+          const ans = saved.answers || {}; setAnswers(ans);
+          let drf = {}; try { drf = JSON.parse(localStorage.getItem(storeKey + ":drafts") || "{}"); } catch {}
+          setDrafts(drf);
+          const cur = saved.questions[saved.idx || 0];
+          const st = cur && ans[cur.id];
+          if (st) { setSel(st.sel || []); setText(st.text || ""); setResult(st.result || null); }
+          if (cur && drf[cur.id]) setDraftOpen(true);
+          setBusy(false); prefetchNext();
           return;
         }
       }
@@ -88,8 +97,11 @@ function PracticeInner() {
   // 批次/进度变化时存下来,刷新可恢复
   useEffect(() => {
     if (!questions.length) return;
-    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, ts: Date.now() })); } catch {}
-  }, [questions, idx, done, note]); // eslint-disable-line
+    try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, ts: Date.now() })); } catch {}
+  }, [questions, idx, done, note, answers]); // eslint-disable-line
+  useEffect(() => { try { localStorage.setItem(storeKey + ":drafts", JSON.stringify(drafts)); } catch {} }, [drafts]); // eslint-disable-line
+  // 当前题的作答状态(选项/文字/批改结果)随时存,刷新可恢复
+  useEffect(() => { const cq = questions[idx]; if (!cq) return; setAnswers((a) => ({ ...a, [cq.id]: { sel, text, result } })); }, [sel, text, result]); // eslint-disable-line
   const q = questions[idx];
 
   async function submit() {
@@ -114,7 +126,12 @@ function PracticeInner() {
   }
   async function next() {
     await finalizeDiscuss();
-    setResult(null); setSel([]); setText(""); setReportOpen(false); setReportNote(""); setNoteOpen(false); setNoteBody(""); setNoteSaved(false); setIdx((i) => i + 1);
+    setAnswers((a) => ({ ...a, [q.id]: { sel, text, result } }));
+    const ni = idx + 1; const nq = questions[ni]; const ns = nq ? answers[nq.id] : null;
+    setResult(ns?.result ?? null); setSel(ns?.sel ?? []); setText(ns?.text ?? "");
+    setReportOpen(false); setReportNote(""); setNoteOpen(false); setNoteBody(""); setNoteSaved(false);
+    setDraftOpen(nq ? !!drafts[nq.id] : false);
+    setIdx(ni);
   }
   async function sendDiscuss() {
     const msg = dInput.trim(); if ((!msg && !dFiles.length) || dBusy) return;
@@ -220,7 +237,7 @@ function PracticeInner() {
         )}
         <div className="mt-2 border-t border-slate-100 pt-2">
           <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
-          {draftOpen && <HandwritePad key={"draft-" + q.id} ref={draftRef} />}
+          {draftOpen && <HandwritePad key={"draft-" + q.id} ref={draftRef} initial={drafts[q.id]} onChange={(url) => setDrafts((d) => ({ ...d, [q.id]: url }))} />}
         </div>
       </div>
 

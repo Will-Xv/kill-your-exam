@@ -4,7 +4,7 @@ import { useT } from "@/components/I18n";
 
 // 手写作答画板:支持触控笔(三星 S-Pen / Apple Pencil)、鼠标、连电脑的写字板;带橡皮擦、撤销、清空。
 // 通过 ref 暴露 getImage():有内容时返回 {mime:"image/png", data:base64},空则 null。
-const HandwritePad = forwardRef(function HandwritePad(_props, ref) {
+const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref) {
   const t = useT();
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -28,6 +28,7 @@ const HandwritePad = forwardRef(function HandwritePad(_props, ref) {
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cssW, cssH);
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctxRef.current = ctx;
+    if (initial) { const im = new Image(); im.onload = () => { try { ctx.drawImage(im, 0, 0, cssW, cssH); dirty.current = true; } catch {} }; im.src = initial; }
   }
   useEffect(() => { setup(); }, []); // eslint-disable-line
 
@@ -53,10 +54,11 @@ const HandwritePad = forwardRef(function HandwritePad(_props, ref) {
     ctx.beginPath(); ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke();
     last.current = p; dirty.current = true;
   }
-  function up() { drawing.current = false; last.current = null; }
+  function emit() { try { if (onChange && canvasRef.current) onChange(dirty.current ? canvasRef.current.toDataURL("image/png") : ""); } catch {} }
+  function up() { drawing.current = false; last.current = null; emit(); }
 
-  function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; } }
-  function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshot(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; }
+  function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; emit(); } }
+  function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshot(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; emit(); }
 
   useImperativeHandle(ref, () => ({
     getImage() {
