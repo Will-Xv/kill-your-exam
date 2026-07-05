@@ -44,6 +44,7 @@ function PracticeInner() {
   const [draftOpen, setDraftOpen] = useState(false);
   const [answers, setAnswers] = useState({});
   const [drafts, setDrafts] = useState({});
+  const [hands, setHands] = useState({}); // 已提交的手写作答(qid->dataURL),提交后仍能看见
   const padRef = useRef(null);
   const draftRef = useRef(null);
   const bottom = useRef(null);
@@ -62,7 +63,7 @@ function PracticeInner() {
     fetchBatch().then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
   }
   async function loadQuestions() {
-    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setSel([]); setText(""); setDraftOpen(false);
+    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
     // 若有预取好的一批,直接用,零等待
     if (prefetched.current && prefetched.current.questions.length) {
       const b = prefetched.current; prefetched.current = null;
@@ -84,6 +85,7 @@ function PracticeInner() {
           const ans = saved.answers || {}; setAnswers(ans);
           let drf = {}; try { drf = JSON.parse(localStorage.getItem(storeKey + ":drafts") || "{}"); } catch {}
           setDrafts(drf);
+          try { setHands(JSON.parse(localStorage.getItem(storeKey + ":hands") || "{}")); } catch {}
           const cur = saved.questions[saved.idx || 0];
           const st = cur && ans[cur.id];
           if (st) { setSel(st.sel || []); setText(st.text || ""); setResult(st.result || null); }
@@ -101,6 +103,7 @@ function PracticeInner() {
     try { localStorage.setItem(storeKey, JSON.stringify({ questions, idx, done, note, answers, ts: Date.now() })); } catch {}
   }, [questions, idx, done, note, answers]); // eslint-disable-line
   useEffect(() => { try { localStorage.setItem(storeKey + ":drafts", JSON.stringify(drafts)); } catch {} }, [drafts]); // eslint-disable-line
+  useEffect(() => { try { localStorage.setItem(storeKey + ":hands", JSON.stringify(hands)); } catch {} }, [hands]); // eslint-disable-line
   // 当前题的作答状态(选项/文字/批改结果)随时存,刷新可恢复
   useEffect(() => { const cq = questions[idx]; if (!cq) return; setAnswers((a) => ({ ...a, [cq.id]: { sel, text, result } })); }, [sel, text, result]); // eslint-disable-line
   const q = questions[idx];
@@ -110,9 +113,11 @@ function PracticeInner() {
     setBusy(true);
     try {
       let attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
-      if (q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) attachments = [...attachments, h].slice(0, 4); }
+      let handURL = null;
+      if (q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) { attachments = [...attachments, h].slice(0, 4); handURL = `data:${h.mime || "image/png"};base64,${h.data}`; } }
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
       setResult(d); setDone((arr) => [...arr, d.correct]);
+      if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
     } catch {}
     setBusy(false);
   }
@@ -258,6 +263,12 @@ function PracticeInner() {
           <div className="mt-2">
             <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
             {handOpen && <HandwritePad key={q.id} ref={padRef} />}
+          </div>
+        )}
+        {q.qtype === "short" && !!result && hands[q.id] && (
+          <div className="mt-2">
+            <p className="text-xs text-slate-500 mb-1">✍️ {t("你的手写作答")}</p>
+            <img src={hands[q.id]} alt="handwriting" className="w-full rounded-xl border border-slate-200 bg-white" />
           </div>
         )}
         <div className="mt-2 border-t border-slate-100 pt-2">
