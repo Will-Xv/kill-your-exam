@@ -367,34 +367,67 @@ export default function Welcome() {
         </section>
       ) : (
         <div className="mx-auto max-w-md px-5 pb-24 pt-24">
-          {/* 封面 */}
-          <div className="overflow-hidden rounded-3xl ring-1 ring-[#e8c987]/20 shadow-2xl">
-            <div className="aspect-[3/4] w-full"><LeafFront pg={pages[0]} /></div>
-          </div>
-          <div className="mt-6 text-center">
-            <p className="mx-auto w-fit rounded-full bg-[#e8c987]/12 px-3 py-1 text-xs text-[#e8c987] ring-1 ring-[#e8c987]/25">✨ {t.badge}</p>
-            <h2 className="font-hero mt-4 text-4xl">{t.h1a} <span className="kye-goldtext">{t.h1b}</span></h2>
-            <p className="mt-4 text-[#cdbfa0]">{t.sub}</p>
-            <p className="mt-8 animate-bounce text-2xl font-black text-[#e8c987]">↓ {t.see || "scroll"}</p>
-          </div>
-          {/* 内容页 */}
-          {pages.slice(1).map((pg, i) => (
-            <div key={i} className="mt-12">
-              <div className="overflow-hidden rounded-3xl ring-1 ring-[#e8c987]/20 shadow-xl">
-                <div className="aspect-[3/4] w-full"><LeafFront pg={pg} /></div>
-              </div>
-              <div className="mt-4 rounded-2xl bg-[#e8c987]/[0.06] p-5 ring-1 ring-[#e8c987]/12">
-                <h3 className="font-hero text-2xl text-[#e8c987]">{pg.title}</h3>
-                <div className="mt-2 h-px w-14 bg-[#e8c987]/40" />
-                <p className="mt-3 leading-relaxed text-[#cdbfa0]">{pg.desc}</p>
-              </div>
+          {/* Hero */}
+          <section className="text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.4rem] bg-[#e8c987]/10 ring-1 ring-[#e8c987]/25">
+              <svg viewBox="0 0 120 120" className="h-11 w-11">
+                <path d="M60,16 L67,54 L60,100 L53,54 Z" fill="#e8c987" />
+                <path d="M40,60 h40 M45,67 h30" stroke="#e8c987" strokeWidth="3" />
+                <path d="M60,100 l-6,9 h12 Z" fill="#e8c987" />
+              </svg>
             </div>
-          ))}
-          {/* 结尾突脸 + CTA */}
-          <div className="relative mt-16 overflow-hidden rounded-3xl ring-1 ring-[#2e2013]/30 shadow-2xl" style={{ background: "radial-gradient(130% 120% at 50% 15%, #efe7d2 0%, #e6dabb 60%, #dccdab 100%)" }}>
-            <img src="/illustrations/scary.png" alt="" loading="lazy" className="mx-auto block max-h-[52vh] w-auto" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            <p className="mx-auto mt-5 w-fit rounded-full bg-[#e8c987]/12 px-3 py-1 text-xs text-[#e8c987] ring-1 ring-[#e8c987]/25">✨ {t.badge}</p>
+            <h1 className="font-hero mt-4 text-[2.6rem] leading-[1.05]">{t.h1a} <span className="kye-goldtext">{t.h1b}</span></h1>
+            <p className="mt-4 text-[15px] leading-relaxed text-[#cdbfa0]">{t.sub}</p>
+            <a href="/" className="mt-7 inline-block rounded-2xl bg-[#e8c987] px-9 py-3.5 text-lg font-black text-[#2e2013] shadow-xl shadow-[#e8c987]/20">{t.start} →</a>
+            <div className="mt-9 grid grid-cols-3 gap-2">
+              {[["7", t.s1], ["RAG", t.s2], ["24/7", t.s3]].map(([n, lb], i) => (
+                <div key={i} className="rounded-2xl bg-[#e8c987]/[0.05] py-3 ring-1 ring-[#e8c987]/10">
+                  <div className="font-hero text-xl text-[#e8c987]">{n}</div>
+                  <div className="mt-0.5 px-1 text-[11px] leading-tight text-[#9db0a4]">{lb}</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-9 animate-bounce text-xl font-black text-[#e8c987]">↓ {t.see}</p>
+          </section>
+
+          {/* Features */}
+          <h2 className="font-hero mt-14 text-center text-3xl text-[#e8c987]">{t.featT}</h2>
+          <p className="mx-auto mt-1 max-w-xs text-center text-sm text-[#9db0a4]">{t.featS}</p>
+          <div className="mt-6 space-y-6">
+            {pages.slice(1, 5).map((pg, i) => (
+              <div key={i} className="overflow-hidden rounded-[1.6rem] bg-[#e8c987]/[0.06] shadow-lg ring-1 ring-[#e8c987]/12">
+                <div className="flex items-center justify-center px-4 pt-4" style={{ background: "radial-gradient(120% 100% at 50% 0%, #efe7d2 0%, #e2d5b4 100%)" }}>
+                  <img src={`/illustrations/${pg.scene}.png`} alt="" loading="lazy" className="max-h-48 w-auto object-contain" style={{ mixBlendMode: "multiply" }} />
+                </div>
+                <div className="p-5">
+                  <div className="flex items-center gap-2"><span className="text-2xl">{t.feats[i][0]}</span><h3 className="font-hero text-xl text-[#e8c987]">{pg.title}</h3></div>
+                  <p className="mt-2.5 leading-relaxed text-[#cdbfa0]">{pg.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Steps */}
+          <h2 className="font-hero mt-14 text-center text-3xl text-[#e8c987]">{t.stepT}</h2>
+          <div className="mt-6 space-y-3">
+            {t.steps.map((st, i) => (
+              <div key={i} className="flex gap-3.5 rounded-2xl bg-[#e8c987]/[0.05] p-4 ring-1 ring-[#e8c987]/10">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8c987] font-black text-[#2e2013]">{i + 1}</div>
+                <div>
+                  <h4 className="font-bold text-[#f4ecd8]">{st[0]}</h4>
+                  <p className="mt-1 text-sm leading-relaxed text-[#cdbfa0]">{st[1]}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Final scare + CTA */}
+          <div className="relative mt-16 overflow-hidden rounded-[1.6rem] ring-1 ring-[#2e2013]/30 shadow-2xl" style={{ background: "radial-gradient(130% 120% at 50% 15%, #efe7d2 0%, #e6dabb 60%, #dccdab 100%)" }}>
+            <img src="/illustrations/scary.png" alt="" loading="lazy" className="mx-auto block max-h-[46vh] w-auto" onError={(e) => { e.currentTarget.style.display = "none"; }} />
             <div className="px-6 pb-8 pt-2 text-center">
-              <h2 className="font-hero text-3xl leading-tight text-[#2e2013]">{t.ctaT}</h2>
+              <h2 className="font-hero text-2xl leading-tight text-[#2e2013]">{t.ctaT}</h2>
+              <p className="mx-auto mt-2 max-w-xs text-sm text-[#5a4327]">{t.ctaS}</p>
               <a href="/" className="mt-5 inline-block rounded-2xl bg-[#2e2013] px-10 py-3.5 text-lg font-black text-[#efe7d2] shadow-xl">{t.ctaB} →</a>
             </div>
           </div>
