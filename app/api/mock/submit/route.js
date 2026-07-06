@@ -15,8 +15,8 @@ export async function POST(req) {
     const { mockId, answers, attachments = {} } = await req.json(); // answers: {qid: text}; attachments: {qid: [{name,mime,data}]}
     const mock = db.prepare("SELECT * FROM mock_exams WHERE id=?").get(mockId);
     if (!mock || mock.exam_id !== exam?.id) return forbidden();
-    const ids = JSON.parse(mock.config_json).questionIds;
-    let total = 0, got = 0;
+    const cfg = JSON.parse(mock.config_json); const ids = cfg.questionIds; const marksMap = cfg.marks || {};
+    let total = 0, got = 0, totalMarks = 0, gotMarks = 0;
     const byChapter = {};
     const results = [];
     const answersOut = [];
@@ -43,7 +43,7 @@ export async function POST(req) {
         } else {
           g = await generateJson(gradePrompt, gradeSchema, mmOpts(exam.id, gradePrompt));
         }
-        correct = (g.score || 0) >= 60 ? 1 : 0;
+        shortScore = Math.max(0, Math.min(100, g.score || 0)); correct = shortScore >= 60 ? 1 : 0;
         gradeCross = g.crossKp;
       } else correct = norm(ua) === norm(ans.answer) ? 1 : 0;
       total++; got += correct;
@@ -57,10 +57,10 @@ export async function POST(req) {
       const qbody = JSON.parse(q.body);
       answersOut.push({ qid, attemptId, qtype: q.qtype, stem: qbody.stem || "", options: qbody.options || [], ua: String(ua || ""), correct, answer: ans.answer, explanation: ans.explanation || "", atts: atts.map((a) => ({ name: a.name, mime: a.mime })) });
       const ch = q.kp_id ? (db.prepare("SELECT ch.title FROM knowledge_points kp LEFT JOIN knowledge_points ch ON ch.id=kp.parent_id WHERE kp.id=?").get(q.kp_id)?.title || "其他") : "其他";
-      byChapter[ch] = byChapter[ch] || { total: 0, got: 0 };
-      byChapter[ch].total++; byChapter[ch].got += correct;
+      byChapter[ch] = byChapter[ch] || { total: 0, got: 0, totalMarks: 0, gotMarks: 0 };
+      byChapter[ch].total++; byChapter[ch].got += correct; byChapter[ch].totalMarks += qMarks; byChapter[ch].gotMarks += earnedMarks;
     }
-    const score = { total, got, pct: total ? Math.round((got / total) * 100) : 0, byChapter };
+    const score = { total, got, totalMarks: Math.round(totalMarks * 10) / 10, gotMarks: Math.round(gotMarks * 10) / 10, pct: totalMarks ? Math.round((gotMarks / totalMarks) * 100) : (total ? Math.round((got / total) * 100) : 0), byChapter };
     db.prepare("UPDATE mock_exams SET score_json=?, answers_json=? WHERE id=?").run(JSON.stringify(score), JSON.stringify(answersOut), mockId);
     return Response.json({ score, results });
   } catch (e) { return aiErrorResponse(e); }

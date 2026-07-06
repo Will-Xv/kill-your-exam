@@ -74,7 +74,7 @@ function ReviewBlock({ q, t, idx, ua, atts, res, letters }) {
   const files = (atts || []).filter((a) => a.name !== "handwriting.png");
   return (
     <div className={`card ${res ? (res.correct ? "border-amber-400 bg-amber-50" : "border-red-300 bg-red-50") : ""}`}>
-      <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])} {res && <span className={res.correct ? "text-amber-700" : "text-red-600"}>· {res.correct ? t("✓ 答对了") : t("✗ 不对")}</span>}</p>
+      <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}{res?.marks != null && <span> · {res.earned != null ? res.earned : (res.correct ? res.marks : 0)}/{res.marks} {t("分")}</span>} {res && <span className={res.correct ? "text-amber-700" : "text-red-600"}>· {res.correct ? t("✓ 答对了") : t("✗ 不对")}</span>}</p>
       <MD className="font-medium prose-zh">{q.body.stem}</MD>
       {isChoice ? (
         <div className="mt-2 space-y-1.5">
@@ -188,8 +188,10 @@ function stripLabel(op, i) {
       <div className="flex flex-col gap-2 items-center">
         <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
         <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用历年真题组卷)")}</button>
+        <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
         <a className="btn-ghost text-sm" href="/mock/history">📚 {t("历史模拟考")}</a>
       </div>
+      <p className="text-xs text-stone-400 max-w-md mx-auto">{t("现在按「考试蓝图」组卷:先规划这门正式考试该考什么、各知识点出几道、总分多少,再据此组卷(题库不够会即时生成,所以组卷可能稍慢)。")}</p>
     </div>
   );
 
@@ -200,7 +202,8 @@ function stripLabel(op, i) {
           <div className="card text-center bg-gradient-to-br from-amber-600 to-amber-700 text-white border-0">
             <p className="text-sm text-amber-100">{t("模拟考成绩")}</p>
             <p className="text-5xl font-bold my-2">{score.pct}%</p>
-            <p className="text-amber-100">{score.got} / {score.total}</p>
+            {score.totalMarks ? <p className="text-amber-100 text-lg font-semibold">{score.gotMarks} / {score.totalMarks} {t("分")}</p> : null}
+            <p className="text-amber-100 text-sm">{score.got} / {score.total} {t("题")}</p>
           </div>
         )}
         {score && (
