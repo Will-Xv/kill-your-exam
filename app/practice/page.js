@@ -54,30 +54,32 @@ function PracticeInner() {
   const prefetched = useRef(null);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
 
-  async function fetchBatch() {
+  async function fetchBatch(exclude = []) {
     if (qParam) { const d = await aiFetch(`/api/questions/get?id=${Number(qParam)}`); return { questions: d.question ? [d.question] : [], note: "" }; }
     if (mode === "review") { const d = await aiFetch("/api/review"); return { questions: d.questions || [], note: "" }; }
-    const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5 }) });
+    const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5, exclude }) });
     return { questions: d.questions || [], note: d.note || "" };
   }
-  // 后台预取下一批,存起来,"再来一轮"时秒开
-  function prefetchNext() {
+  // 后台预取下一批(在用户做题时就同时把下一批找好,换一批/再来一轮时零等待)。exclude=当前屏上的题,保证预取到的是新题。
+  function prefetchNext(excludeIds = []) {
     if (mode === "review") return;
     prefetched.current = null;
-    fetchBatch().then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
+    fetchBatch(excludeIds).then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
   }
-  function reroll() { try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {} prefetched.current = null; loadQuestions(); }
+  // 换一批:优先用已经在后台预取好的那批(秒开);没有再现拉。不清预取,免得白等。
+  function reroll() { try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {} loadQuestions(); }
   async function loadQuestions() {
     setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
     // 若有预取好的一批,直接用,零等待
     if (prefetched.current && prefetched.current.questions.length) {
       const b = prefetched.current; prefetched.current = null;
-      setQuestions(b.questions); setNote(b.note || ""); setBusy(false); prefetchNext(); return;
+      setQuestions(b.questions); setNote(b.note || ""); setBusy(false); prefetchNext(b.questions.map((q) => q.id)); return;
     }
-    try { const b = await fetchBatch(); setQuestions(b.questions); setNote(b.note || ""); }
+    let cur = [];
+    try { const b = await fetchBatch(); setQuestions(b.questions); setNote(b.note || ""); cur = b.questions.map((q) => q.id); }
     catch {}
     setBusy(false);
-    prefetchNext();
+    prefetchNext(cur);
   }
   useEffect(() => {
     // 从"开始自由练习/换一批"进来带 ?fresh=1 时:忽略本地暂存、直接出新题(出完题后旧的这批就该换掉)
@@ -106,7 +108,7 @@ function PracticeInner() {
           if (st) { setSel(st.sel || []); setText(st.text || ""); setResult(st.result || null); }
           if (Array.isArray(saved.discuss)) setDiscuss(saved.discuss); // 只恢复当前这道正在进行的追问,刷新不丢
           if (cur && drf[cur.id]) setDraftOpen(true);
-          setBusy(false); prefetchNext();
+          setBusy(false); prefetchNext(saved.questions.map((q) => q.id));
           return;
         }
       }
