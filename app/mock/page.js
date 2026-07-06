@@ -11,7 +11,6 @@ import { idbGet, idbSet, idbDel } from "@/lib/idb";
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 const KEY = "mock";
 
-// 与练习一致的作答区:草稿纸(不计入作答) → 手写 → 打字 → 传文件。附件(手写/上传)可跨刷新恢复。
 function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
   const initList = initialAtts || [];
   const initHand = initList.find((a) => a.name === "handwriting.png");
@@ -41,12 +40,10 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
   return (
     <div>
       {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={value || ""} onChange={(e) => onText(e.target.value)} />}
-
       <div className="mt-2 border-t border-slate-100 pt-2">
         <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
         {draftOpen && <HandwritePad key={"draft-" + q.id} />}
       </div>
-
       {isShort && (
         <>
           <div className="mt-2">
@@ -67,6 +64,44 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
   );
 }
 
+// 交卷后:每道题的作答回顾(只读)
+function ReviewBlock({ q, t, idx, ua, atts, res, letters }) {
+  const isChoice = ["single", "multi", "judge"].includes(q.qtype);
+  const options = q.qtype === "judge" ? ["对", "错"] : q.body.options || [];
+  const hand = (atts || []).find((a) => a.name === "handwriting.png");
+  const handURL = hand ? `data:${hand.mime || "image/png"};base64,${hand.data}` : null;
+  const files = (atts || []).filter((a) => a.name !== "handwriting.png");
+  return (
+    <div className={`card ${res ? (res.correct ? "border-amber-400 bg-amber-50" : "border-red-300 bg-red-50") : ""}`}>
+      <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])} {res && <span className={res.correct ? "text-amber-700" : "text-red-600"}>· {res.correct ? t("✓ 答对了") : t("✗ 不对")}</span>}</p>
+      <MD className="font-medium prose-zh">{q.body.stem}</MD>
+      {isChoice ? (
+        <div className="mt-2 space-y-1.5">
+          {options.map((op, i) => {
+            const v = q.qtype === "judge" ? op : letters[i];
+            const chosen = q.qtype === "multi" ? (ua || "").includes(v) : ua === v;
+            return <div key={i} className={`block w-full rounded-lg border px-3 py-2 text-left text-sm ${chosen ? "border-amber-500 bg-amber-100" : "border-stone-200"}`}>
+              {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : op}{chosen ? " ←" : ""}</div>;
+          })}
+        </div>
+      ) : (
+        <div className="mt-2 text-sm">
+          <p className="text-slate-500">{t("你的作答:")}</p>
+          {ua ? <div className="mt-1"><MD className="prose-zh">{ua}</MD></div> : (!handURL && !files.length && <p className="mt-1 text-slate-400">{t("(未答)")}</p>)}
+          {handURL && <div className="mt-1"><p className="text-xs text-slate-500">✍️ {t("手写作答")}</p><img src={handURL} alt="handwriting" className="w-full rounded-xl border border-slate-200 bg-white" /></div>}
+          {files.length > 0 && <p className="mt-1 text-xs text-slate-500">📎 {files.length} {t("个文件")}</p>}
+        </div>
+      )}
+      {res && (
+        <div className="mt-2 border-t border-stone-100 pt-2 text-sm">
+          <p><b>{t("参考答案:")}</b>{q.qtype === "judge" ? t(res.answer) : <MD inline>{res.answer}</MD>}</p>
+          {res.explanation && <div className="mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{res.explanation}</MD></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Mock() {
   const t = useT();
   const aiFetch = useAiFetch();
@@ -78,18 +113,20 @@ export default function Mock() {
   const restoredAtts = useRef({});
   const [busy, setBusy] = useState(false);
   const [score, setScore] = useState(null);
+  const [results, setResults] = useState(null);
   const [started, setStarted] = useState(0);
   const hydrated = useRef(false);
   const saveTimer = useRef(null);
 
-  // 刷新后恢复:题目 + 打字作答 + 手写/上传附件(未压缩,存 IndexedDB)
   useEffect(() => {
     (async () => {
       const s = await idbGet(KEY);
-      if (s && s.stage === "running" && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 3 * 24 * 3600 * 1000) {
+      if (s && (s.stage === "running" || s.stage === "done") && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 7 * 24 * 3600 * 1000) {
         restoredAtts.current = s.atts || {};
         attachRef.current = { ...(s.atts || {}) };
-        setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0); setStage("running");
+        setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0);
+        if (s.stage === "done") { setScore(s.score || null); setResults(s.results || null); }
+        setStage(s.stage);
       }
       hydrated.current = true;
     })();
@@ -97,12 +134,10 @@ export default function Mock() {
 
   function persist() {
     if (!hydrated.current) return;
-    if (stage === "running" && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, ts: Date.now() });
+    if ((stage === "running" || stage === "done") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, score, results, ts: Date.now() });
     else idbDel(KEY);
   }
-  // 题目/打字作答变化即存
-  useEffect(() => { persist(); }, [stage, mockId, qs, answers, started]); // eslint-disable-line
-  // 附件变化时防抖存(附件较大)
+  useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, score, results]); // eslint-disable-line
   function scheduleAttSave() {
     if (!hydrated.current) return;
     clearTimeout(saveTimer.current);
@@ -113,7 +148,7 @@ export default function Mock() {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
-      attachRef.current = {}; restoredAtts.current = {}; setAnswers({}); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
+      attachRef.current = {}; restoredAtts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
     } catch {}
     setBusy(false);
   }
@@ -122,13 +157,17 @@ export default function Mock() {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) });
-      setScore(d.score); setStage("done"); idbDel(KEY);
+      setScore(d.score); setResults(d.results || null); setStage("done");
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
     } catch {}
     setBusy(false);
   }
+  function restart() { idbDel(KEY); attachRef.current = {}; restoredAtts.current = {}; setStage("intro"); setScore(null); setResults(null); setAnswers({}); setQs([]); }
+
   const letters = ["A", "B", "C", "D", "E", "F"];
   const setA = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
   const setAttach = (id, atts) => { attachRef.current = { ...attachRef.current, [id]: atts }; scheduleAttSave(); };
+  const resMap = {}; (results || []).forEach((r) => { resMap[r.id] = r; });
 
   if (stage === "intro") return (
     <div className="mt-16 text-center space-y-4 md:mt-24">
@@ -142,25 +181,33 @@ export default function Mock() {
     </div>
   );
 
-  if (stage === "done" && score) {
+  if (stage === "done") {
     return (
-      <div className="space-y-4 md:mt-14">
-        <div className="card text-center bg-gradient-to-br from-amber-600 to-amber-700 text-white border-0">
-          <p className="text-sm text-amber-100">{t("模拟考成绩")}</p>
-          <p className="text-5xl font-bold my-2">{score.pct}%</p>
-          <p className="text-amber-100">{score.got} / {score.total}</p>
-        </div>
-        <div className="card">
-          <h2 className="font-bold mb-2">{t("各章得分")}</h2>
-          {Object.entries(score.byChapter).map(([ch, s]) => (
-            <div key={ch} className="mb-2">
-              <div className="flex justify-between text-sm"><span>{ch}</span><span>{s.got}/{s.total}</span></div>
-              <div className="h-2 rounded-full bg-stone-100"><div className="h-2 rounded-full bg-amber-500" style={{ width: `${(s.got / s.total) * 100}%` }} /></div>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <button className="btn flex-1" onClick={() => { setStage("intro"); setScore(null); setAnswers({}); attachRef.current = {}; restoredAtts.current = {}; }}>{t("再考一次")}</button>
+      <div className="space-y-3 md:mt-14 pb-4">
+        {score && (
+          <div className="card text-center bg-gradient-to-br from-amber-600 to-amber-700 text-white border-0">
+            <p className="text-sm text-amber-100">{t("模拟考成绩")}</p>
+            <p className="text-5xl font-bold my-2">{score.pct}%</p>
+            <p className="text-amber-100">{score.got} / {score.total}</p>
+          </div>
+        )}
+        {score && (
+          <div className="card">
+            <h2 className="font-bold mb-2">{t("各章得分")}</h2>
+            {Object.entries(score.byChapter).map(([ch, s]) => (
+              <div key={ch} className="mb-2">
+                <div className="flex justify-between text-sm"><span>{ch}</span><span>{s.got}/{s.total}</span></div>
+                <div className="h-2 rounded-full bg-stone-100"><div className="h-2 rounded-full bg-amber-500" style={{ width: `${(s.got / s.total) * 100}%` }} /></div>
+              </div>
+            ))}
+          </div>
+        )}
+        <h2 className="font-bold px-1 pt-2">{t("作答回顾")}</h2>
+        {qs.map((q, idx) => (
+          <ReviewBlock key={q.id} q={q} t={t} idx={idx} ua={answers[q.id]} atts={attachRef.current[q.id]} res={resMap[q.id]} letters={letters} />
+        ))}
+        <div className="flex gap-2 pt-2">
+          <button className="btn flex-1" onClick={restart}>{t("再考一次")}</button>
           <a className="btn-ghost" href="/">{t("回首页")}</a>
         </div>
       </div>

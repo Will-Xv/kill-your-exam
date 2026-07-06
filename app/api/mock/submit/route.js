@@ -16,6 +16,7 @@ export async function POST(req) {
     const ids = JSON.parse(mock.config_json).questionIds;
     let total = 0, got = 0;
     const byChapter = {};
+    const results = [];
     const norm = (s) => String(s || "").replace(/[\s,，、]/g, "").toUpperCase();
     for (const qid of ids) {
       const q = db.prepare("SELECT * FROM questions WHERE id=?").get(qid);
@@ -38,6 +39,7 @@ export async function POST(req) {
         correct = (g.score || 0) >= 60 ? 1 : 0;
       } else correct = norm(ua) === norm(ans.answer) ? 1 : 0;
       total++; got += correct;
+      results.push({ id: qid, qtype: q.qtype, correct, answer: ans.answer, explanation: ans.explanation || "" });
       db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,mode) VALUES(?,?,?,?,?,?,'exam')")
         .run(qid, exam.id, q.kp_id, String(ua || ""), correct, correct ? 100 : 0);
       const ch = q.kp_id ? (db.prepare("SELECT ch.title FROM knowledge_points kp LEFT JOIN knowledge_points ch ON ch.id=kp.parent_id WHERE kp.id=?").get(q.kp_id)?.title || "其他") : "其他";
@@ -46,6 +48,6 @@ export async function POST(req) {
     }
     const score = { total, got, pct: total ? Math.round((got / total) * 100) : 0, byChapter };
     db.prepare("UPDATE mock_exams SET score_json=? WHERE id=?").run(JSON.stringify(score), mockId);
-    return Response.json({ score });
+    return Response.json({ score, results });
   } catch (e) { return aiErrorResponse(e); }
 }
