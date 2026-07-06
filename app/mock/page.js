@@ -11,13 +11,23 @@ import { idbGet, idbSet, idbDel } from "@/lib/idb";
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 const KEY = "mock";
 
+// 草稿纸(所有题都有,含选择题):手写演算,不计入作答、AI 看不到。
+function DraftPad({ q, t, initial, onDraft }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2 border-t border-slate-100 pt-2">
+      <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setOpen((v) => !v)}>✏️ {open ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
+      {open && <HandwritePad key={"draft-" + q.id} initial={initial} onChange={(url) => onDraft(q.id, url)} />}
+    </div>
+  );
+}
+
 function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
   const initList = initialAtts || [];
   const initHand = initList.find((a) => a.name === "handwriting.png");
   const initHandURL = initHand ? `data:${initHand.mime || "image/png"};base64,${initHand.data}` : null;
   const initFiles = initList.filter((a) => a.name !== "handwriting.png");
 
-  const [draftOpen, setDraftOpen] = useState(false);
   const [handOpen, setHandOpen] = useState(!!initHand);
   const [typeOpen, setTypeOpen] = useState(true);
   const [handURL, setHandURL] = useState(initHandURL);
@@ -40,10 +50,6 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
   return (
     <div>
       {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={value || ""} onChange={(e) => onText(e.target.value)} />}
-      <div className="mt-2 border-t border-slate-100 pt-2">
-        <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
-        {draftOpen && <HandwritePad key={"draft-" + q.id} />}
-      </div>
       {isShort && (
         <>
           <div className="mt-2">
@@ -111,6 +117,8 @@ export default function Mock() {
   const [answers, setAnswers] = useState({});
   const attachRef = useRef({});
   const restoredAtts = useRef({});
+  const draftsRef = useRef({});
+  const restoredDrafts = useRef({});
   const [busy, setBusy] = useState(false);
   const [score, setScore] = useState(null);
   const [results, setResults] = useState(null);
@@ -124,6 +132,8 @@ export default function Mock() {
       if (s && (s.stage === "running" || s.stage === "done") && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 7 * 24 * 3600 * 1000) {
         restoredAtts.current = s.atts || {};
         attachRef.current = { ...(s.atts || {}) };
+        restoredDrafts.current = s.drafts || {};
+        draftsRef.current = { ...(s.drafts || {}) };
         setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0);
         if (s.stage === "done") { setScore(s.score || null); setResults(s.results || null); }
         setStage(s.stage);
@@ -134,7 +144,7 @@ export default function Mock() {
 
   function persist() {
     if (!hydrated.current) return;
-    if ((stage === "running" || stage === "done") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, score, results, ts: Date.now() });
+    if ((stage === "running" || stage === "done") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, drafts: draftsRef.current, score, results, ts: Date.now() });
     else idbDel(KEY);
   }
   useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, score, results]); // eslint-disable-line
@@ -148,7 +158,7 @@ export default function Mock() {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
-      attachRef.current = {}; restoredAtts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
+      attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
     } catch {}
     setBusy(false);
   }
@@ -162,7 +172,7 @@ export default function Mock() {
     } catch {}
     setBusy(false);
   }
-  function restart() { idbDel(KEY); attachRef.current = {}; restoredAtts.current = {}; setStage("intro"); setScore(null); setResults(null); setAnswers({}); setQs([]); }
+  function restart() { idbDel(KEY); attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setStage("intro"); setScore(null); setResults(null); setAnswers({}); setQs([]); }
 
   const letters = ["A", "B", "C", "D", "E", "F"];
 function stripLabel(op, i) {
@@ -171,6 +181,7 @@ function stripLabel(op, i) {
 }
   const setA = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
   const setAttach = (id, atts) => { attachRef.current = { ...attachRef.current, [id]: atts }; scheduleAttSave(); };
+  const setDraft = (id, url) => { draftsRef.current = { ...draftsRef.current, [id]: url }; scheduleAttSave(); };
   const resMap = {}; (results || []).forEach((r) => { resMap[r.id] = r; });
 
   if (stage === "intro") return (
@@ -248,6 +259,7 @@ function stripLabel(op, i) {
             ) : (
               <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} initialAtts={restoredAtts.current[q.id]} />
             )}
+            <DraftPad q={q} t={t} initial={restoredDrafts.current[q.id]} onDraft={setDraft} />
           </div>
         );
       })}
