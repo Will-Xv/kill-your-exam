@@ -61,7 +61,7 @@ export default function Admin() {
         <div key={u.id} className="card">
           <div className="flex items-center justify-between">
             <p className="font-bold">
-              {u.username} {u.isAdmin && <span className="badge-material">{t("管理员")}</span>}
+              {u.username} {u.isAdmin && <span className="badge-material">{t("管理员")}</span>}{u.isDeveloper && <span className="badge-model ml-1">🛠️ {t("开发者")}</span>}
               {u.deletedAt && <span className="badge-model">{t("已删除")} · {Math.max(0, 30 - Math.floor((Date.now() - new Date(u.deletedAt + "Z")) / 86400000))} {t("天后永久清除")}</span>}
             </p>
             <div className="flex items-center gap-3">
