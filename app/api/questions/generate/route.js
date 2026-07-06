@@ -2,7 +2,7 @@ import db, { getDocument } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { getOverallDoc } from "@/lib/overall";
-import { generateJson, searchWeb, langInstruction, examLangInstruction } from "@/lib/gemini";
+import { generateJson, searchWeb, langInstruction, examLangInstruction, LANG_NAMES } from "@/lib/gemini";
 import { aiErrorResponse, AiError } from "@/lib/errors";
 import { resolveExamLang } from "@/lib/examlang";
 import { findAndStoreMusic, alignStemToMusic } from "@/lib/music";
@@ -96,7 +96,10 @@ export async function POST(req) {
       const performBlock = `\n【表演/技能类】若这门考试考的是表演/技能(表演、播音主持、舞蹈、声乐、朗诵、口语、演讲等),可出 qtype="perform" 的表演任务题(考生用录音或录像作答),按真实考试规则设计 perform 字段:captureType(audio 录音 / video 录像)、mediaMaterialId(要播放的音频素材 id,从下面列表选,没有就填 0)、analyzeAudio(舞蹈/形体填 music=只用所给音乐原曲判断合拍、不单独分析录像里录到的原声;声乐/台词/朗诵/演讲填 recorded=分析录进去的人声;两者都要填 both)、countdownSec(开始前倒计时,一般 3)、autoStopAfterMediaSec(所放音频结束后再录几秒自动停,一般 7;无音频则当作固定录制时长)、rubric(评分维度数组)、instructions(给考生的说明);stem 写命题(如"跟随所给音乐即兴舞蹈")。【重要】给定音乐的题里,stem 和 instructions 都【不要】写死具体曲名、乐器或曲风(如"二胡古典曲""电子乐"),因为配乐由系统自动附上、风格未必一致;一律只说"所给音乐/上方试听的音乐"。可选音频素材:${audioList || "(暂无,mediaMaterialId 填 0)"}。纯知识类考试【不要】出 perform。`;
 
       const examLang = await resolveExamLang(exam);
-      const langRule = examLang ? `\n【出题语言 · 必须遵守】题干、选项、标准答案、评分要点、解析全部用 ${examLang} 书写(这是这门考试真正考试时用的语言),不要用界面语言。` : examLangInstruction();
+      const uiName = LANG_NAMES[user.lang] || "中文";
+      const langRule = examLang
+        ? `\n【语言 · 必须严格遵守】\n- 题干(stem)、选项(options)用 ${examLang} 书写(这门考试真正考试时用的语言),不要用界面语言。\n- 解析(explanation)、简答题评分要点必须用 ${uiName}(考生的界面语言)书写,方便考生看懂。\n- 标准答案(answer):保持它本该有的语言——填空/翻译等"答案本身就是某语言文字"的,用该语言(如英语考试填空填英文词);选择题填字母、判断题填"对"/"错"、数学填数字/符号,照常;答案里若含解释性文字,用 ${uiName}。`
+        : examLangInstruction() + `\n【解析用界面语言】解析(explanation)与简答评分要点用 ${uiName} 书写,方便考生看懂;题干与选项仍用这门考试本身的语言。`;
       let genPrompt, genSchemaUse;
       if (perfOn) {
         genSchemaUse = performSchema;
