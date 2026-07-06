@@ -69,6 +69,7 @@ export default function Materials() {
         {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}
         {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
+        <p className="text-[11px] text-stone-400">{t("请确保你有权使用所上传的资料,仅用于个人备考。")}</p>
       </div>
       <div className="space-y-2">
         <h2 className="font-semibold text-sm px-1">{t("资料库")}（{list.length}）<span className="ml-1 text-xs font-normal text-stone-400">— {t("已上传的资料,点删除可移除")}</span></h2>
