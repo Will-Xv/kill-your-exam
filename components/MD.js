@@ -47,9 +47,10 @@ export default function MD({ children, className = "", inline = false }) {
   s = unwrapProseMath(s);
   s = balanceDelims(s);
   const comps = inline ? { p: ({ children }) => <>{children}</> } : {};
+  const Wrapper = inline ? "span" : "div";
   return (
-    <div className={className}>
+    <Wrapper className={className}>
       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, KATEX_OPTS]]} components={comps}>{s}</ReactMarkdown>
-    </div>
+    </Wrapper>
   );
 }

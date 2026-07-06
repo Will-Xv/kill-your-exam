@@ -328,8 +328,8 @@ function PracticeInner() {
           <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.qtype === "judge" ? t(result.answer) : <MD inline>{result.answer}</MD>}</p>
           {result.feedback && <div className="text-sm mt-1"><b>{t("点评:")}</b><MD inline>{result.feedback}</MD></div>}
           <div className="text-sm mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{result.explanation}</MD></div>
-          {result.revisedNote && <p className="text-sm mt-1 text-amber-700">↺ {result.revisedNote}</p>}
-          {result.masteryNote && <p className="text-sm mt-1 text-emerald-700">📊 {result.masteryNote}</p>}
+          {result.revisedNote && <p className="text-sm mt-1 text-amber-700">↺ <MD inline>{result.revisedNote}</MD></p>}
+          {result.masteryNote && <p className="text-sm mt-1 text-emerald-700">📊 <MD inline>{result.masteryNote}</MD></p>}
           <p className="text-xs text-slate-400 mt-2">
             {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
