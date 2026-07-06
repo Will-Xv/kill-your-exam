@@ -81,7 +81,7 @@ function ReviewBlock({ q, t, idx, ua, atts, res, letters }) {
             const v = q.qtype === "judge" ? op : letters[i];
             const chosen = q.qtype === "multi" ? (ua || "").includes(v) : ua === v;
             return <div key={i} className={`block w-full rounded-lg border px-3 py-2 text-left text-sm ${chosen ? "border-amber-500 bg-amber-100" : "border-stone-200"}`}>
-              {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : op}{chosen ? " ←" : ""}</div>;
+              {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : <MD inline>{stripLabel(op, i)}</MD>}{chosen ? " ←" : ""}</div>;
           })}
         </div>
       ) : (
@@ -165,6 +165,10 @@ export default function Mock() {
   function restart() { idbDel(KEY); attachRef.current = {}; restoredAtts.current = {}; setStage("intro"); setScore(null); setResults(null); setAnswers({}); setQs([]); }
 
   const letters = ["A", "B", "C", "D", "E", "F"];
+function stripLabel(op, i) {
+  const L = ["A", "B", "C", "D", "E", "F"][i] || "";
+  return String(op == null ? "" : op).replace(new RegExp("^\\s*" + L + "[.．)、,]\\s*", "i"), "");
+}
   const setA = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
   const setAttach = (id, atts) => { attachRef.current = { ...attachRef.current, [id]: atts }; scheduleAttSave(); };
   const resMap = {}; (results || []).forEach((r) => { resMap[r.id] = r; });
@@ -238,7 +242,7 @@ export default function Mock() {
                   const active = q.qtype === "multi" ? (cur || "").includes(v) : cur === v;
                   return <button key={i} onClick={() => setA(q.id, q.qtype === "multi" ? (active ? (cur || "").replace(v, "") : (cur || "") + v) : v)}
                     className={`block w-full rounded-lg border px-3 py-2 text-left text-sm ${active ? "border-amber-500 bg-amber-50" : "border-stone-200"}`}>
-                    {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : op}</button>;
+                    {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : <MD inline>{stripLabel(op, i)}</MD>}</button>;
                 })}
               </div>
             ) : (

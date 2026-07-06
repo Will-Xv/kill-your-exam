@@ -6,6 +6,10 @@ import { useAiFetch } from "@/components/AiErrorDialog";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 const letters = ["A", "B", "C", "D", "E", "F"];
+function stripLabel(op, i) {
+  const L = ["A", "B", "C", "D", "E", "F"][i] || "";
+  return String(op == null ? "" : op).replace(new RegExp("^\\s*" + L + "[.．)、,]\\s*", "i"), "");
+}
 
 function ReviewItem({ it, idx, t }) {
   const isChoice = ["single", "multi", "judge"].includes(it.qtype);
@@ -21,7 +25,7 @@ function ReviewItem({ it, idx, t }) {
           {options.map((op, i) => {
             const v = it.qtype === "judge" ? op : letters[i];
             const chosen = it.qtype === "multi" ? (it.ua || "").includes(v) : it.ua === v;
-            return <div key={i} className={`rounded-lg border px-3 py-2 text-sm ${chosen ? "border-amber-500 bg-amber-100" : "border-stone-200"}`}>{it.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{it.qtype === "judge" ? t(op) : op}{chosen ? " ←" : ""}</div>;
+            return <div key={i} className={`rounded-lg border px-3 py-2 text-sm ${chosen ? "border-amber-500 bg-amber-100" : "border-stone-200"}`}>{it.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{it.qtype === "judge" ? t(op) : <MD inline>{stripLabel(op, i)}</MD>}{chosen ? " ←" : ""}</div>;
           })}
         </div>
       ) : (

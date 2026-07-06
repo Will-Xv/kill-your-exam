@@ -9,6 +9,11 @@ import SourceBadge from "@/components/SourceBadge";
 import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
+
+function stripLabel(op, i) {
+  const L = ["A", "B", "C", "D", "E", "F"][i] || "";
+  return String(op == null ? "" : op).replace(new RegExp("^\\s*" + L + "[.．)、,]\\s*", "i"), "");
+}
 function b64ToFile(att){ try{ const bin=atob(att.data); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i); return new File([arr], att.name||"draft.png", {type:att.mime||"image/png"}); }catch{ return null; } }
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
@@ -283,7 +288,7 @@ function PracticeInner() {
               return (
                 <button key={i} disabled={!!result} onClick={() => setSel(q.qtype === "multi" ? (active ? sel.filter((x) => x !== v) : [...sel, v]) : [v])}
                   className={`block w-full rounded-xl border px-4 py-3 text-left text-sm transition ${active ? "border-amber-500 bg-amber-50" : "border-slate-200 hover:bg-slate-50"}`}>
-                  {q.qtype !== "judge" && <b className="mr-2">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : <MD inline>{op}</MD>}
+                  {q.qtype !== "judge" && <b className="mr-2">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : <MD inline>{stripLabel(op, i)}</MD>}
                 </button>
               );
             })}
