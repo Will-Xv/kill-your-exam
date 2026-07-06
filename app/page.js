@@ -81,8 +81,9 @@ export default function Home() {
       <Tour />
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
-        {/* 手绘血刃(内联 SVG,右上角,手机/桌面都完整显示) */}
-        <svg viewBox="0 0 120 170" aria-hidden="true" className="pointer-events-none absolute right-2 top-2 h-28 w-auto select-none rotate-[16deg]" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.22))" }}>
+        {/* 手机端:手绘血刃(内联 SVG);pad/桌面(md+,含 iPad 竖屏):原来的刺客贴画 */}
+        <img src="/illustrations/sticker.png" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute -right-2 -top-[58px] hidden w-[50%] max-w-[350px] select-none md:block" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.18))" }} />
+        <svg viewBox="0 0 120 170" aria-hidden="true" className="pointer-events-none absolute right-2 top-2 h-28 w-auto select-none rotate-[16deg] md:hidden" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.22))" }}>
           {/* 刀柄 */}
           <rect x="53" y="6" width="14" height="30" rx="4" fill="#6b4a25" stroke="#2f2413" strokeWidth="3" />
           <path d="M56 12 h8 M56 20 h8 M56 28 h8" stroke="#2f2413" strokeWidth="1.6" strokeLinecap="round" opacity=".7" />
