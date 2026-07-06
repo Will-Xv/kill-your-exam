@@ -177,6 +177,7 @@ export default function Mock() {
       <div className="flex flex-col gap-2 items-center">
         <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
         <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用历年真题组卷)")}</button>
+        <a className="btn-ghost text-sm" href="/mock/history">📚 {t("历史模拟考")}</a>
       </div>
     </div>
   );
