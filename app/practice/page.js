@@ -128,6 +128,12 @@ function PracticeInner() {
   const q = questions[idx];
 
   function playScript(text, lang) { try { const sy = window.speechSynthesis; if (!sy || !text) return; sy.cancel(); const u = new SpeechSynthesisUtterance(String(text)); u.lang = lang || "en-US"; u.rate = 0.95; sy.speak(u); } catch {} }
+  function fmtMastery(ups) {
+    if (!Array.isArray(ups) || !ups.length) return "";
+    const seen = new Set(); const parts = [];
+    for (const u of ups) { if (!u || !u.title || seen.has(u.kpId)) continue; seen.add(u.kpId); parts.push(`〈${u.title}〉${u.kind === "understanding" ? "↑" : "↓"}`); }
+    return parts.length ? t("已据此更新熟悉程度:") + parts.join("、") : "";
+  }
   async function submit() {
     const ans = q.qtype === "fill" || q.qtype === "short" ? text : [...sel].sort().join("");
     setBusy(true); setGradeErr("");
@@ -137,7 +143,7 @@ function PracticeInner() {
       if (!handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
       if (handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
-      setResult(d); setDone((arr) => [...arr, d.correct]);
+      const mn = fmtMastery(d.masteryUpdates); setResult(mn ? { ...d, masteryNote: mn } : d); setDone((arr) => [...arr, d.correct]);
       if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
     } catch (e) { setGradeErr(t("提交失败,请重试(若反复失败,截图发我)。") + " " + (e?.message || "")); }
     setBusy(false);
@@ -146,7 +152,10 @@ function PracticeInner() {
     if (discuss && discuss.length >= 2) {
       try {
         const d = await aiFetch("/api/questions/discuss/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, attemptId: result?.attemptId, history: discuss }) });
-        if (d.applied?.revised) setResult((r) => ({ ...r, revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")) }));
+        const mn = fmtMastery(d.applied?.masteryUpdates);
+        setResult((r) => ({ ...r,
+          ...(d.applied?.revised ? { revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")) } : {}),
+          ...(mn ? { masteryNote: mn } : {}) }));
       } catch {}
     }
     setDiscuss(null); setDInput("");
@@ -320,6 +329,7 @@ function PracticeInner() {
           {result.feedback && <div className="text-sm mt-1"><b>{t("点评:")}</b><MD inline>{result.feedback}</MD></div>}
           <div className="text-sm mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{result.explanation}</MD></div>
           {result.revisedNote && <p className="text-sm mt-1 text-amber-700">↺ {result.revisedNote}</p>}
+          {result.masteryNote && <p className="text-sm mt-1 text-emerald-700">📊 {result.masteryNote}</p>}
           <p className="text-xs text-slate-400 mt-2">
             {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
