@@ -3,6 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, generate, langInstruction, attachParts } from "@/lib/gemini";
 import { mmOpts, materialParts } from "@/lib/rag";
 import { saveMockAtt } from "@/lib/files";
+import { leafKpList, recordCrossKp } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 300;
@@ -26,10 +27,14 @@ export async function POST(req) {
       const ans = JSON.parse(q.answer);
       const ua = answers[qid];
       let correct = 0;
+      let gradeCross = null;
       if (q.qtype === "short") {
         const ap = attachParts(attachments[qid]);
-        const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || (ap.length ? "(见附件:手写/上传作答,请先识别其中内容)" : "(未答)")}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)` + langInstruction(user.lang);
-        const gradeSchema = { type: "object", properties: { score: { type: "integer" } }, required: ["score"] };
+        const kpList = leafKpList(exam.id);
+        const kpListStr = kpList.slice(0, 120).map((k) => `[${k.id}] ${k.chapter ? k.chapter + "/" : ""}${k.title}`).join("\n");
+        const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || (ap.length ? "(见附件:手写/上传作答,请先识别其中内容)" : "(未答)")}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)\n如果这份答案里【顺带】清楚体现出考生对【别的知识点】(不是本题知识点)的正确理解或错误理解,在 crossKp 里列出:正确理解->kind=understanding;主动说出错误理解/概念错误->kind=misconception;只是没涉及/看不出->不填。kpId 只能取自下面清单,要确凿才填。本题知识点id=${q.kp_id || 0}(不要放进 crossKp)。知识点清单:\n${kpListStr}` + langInstruction(user.lang);
+        const gradeSchema = { type: "object", properties: { score: { type: "integer" },
+          crossKp: { type: "array", items: { type: "object", properties: { kpId: { type: "integer" }, kind: { type: "string", enum: ["understanding", "misconception"] }, insight: { type: "string" } }, required: ["kpId", "kind"] } } }, required: ["score"] };
         let g;
         if (ap.length) {
           const mp = materialParts(exam.id, { max: 4 });
@@ -39,12 +44,14 @@ export async function POST(req) {
           g = await generateJson(gradePrompt, gradeSchema, mmOpts(exam.id, gradePrompt));
         }
         correct = (g.score || 0) >= 60 ? 1 : 0;
+        gradeCross = g.crossKp;
       } else correct = norm(ua) === norm(ans.answer) ? 1 : 0;
       total++; got += correct;
-      results.push({ id: qid, qtype: q.qtype, correct, answer: ans.answer, explanation: ans.explanation || "" });
       const insA = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,mode) VALUES(?,?,?,?,?,?,'exam')")
         .run(qid, exam.id, q.kp_id, String(ua || ""), correct, correct ? 100 : 0);
       const attemptId = insA.lastInsertRowid;
+      results.push({ id: qid, qtype: q.qtype, correct, answer: ans.answer, explanation: ans.explanation || "", attemptId });
+      if (gradeCross) { try { recordCrossKp(exam.id, qid, gradeCross, q.kp_id); } catch {} }
       const atts = Array.isArray(attachments[qid]) ? attachments[qid] : [];
       if (atts.length) { try { saveMockAtt(attemptId, atts); } catch {} }
       const qbody = JSON.parse(q.body);

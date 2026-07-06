@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import Discuss from "@/components/Discuss";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
 const letters = ["A", "B", "C", "D", "E", "F"];
@@ -40,6 +41,7 @@ function ReviewItem({ it, idx, t }) {
         <p><b>{t("参考答案:")}</b>{it.qtype === "judge" ? t(it.answer) : <MD inline>{it.answer}</MD>}</p>
         {it.explanation && <div className="mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{it.explanation}</MD></div>}
       </div>
+      {it.attemptId && <Discuss questionId={it.qid} attemptId={it.attemptId} userAnswer={it.ua} />}
     </div>
   );
 }

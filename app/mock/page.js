@@ -6,6 +6,7 @@ import { useAiFetch } from "@/components/AiErrorDialog";
 import HandwritePad from "@/components/HandwritePad";
 import DropZone from "@/components/DropZone";
 import { filesToAttachments } from "@/lib/attach";
+import Discuss from "@/components/Discuss";
 import { idbGet, idbSet, idbDel } from "@/lib/idb";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
@@ -98,6 +99,7 @@ function ReviewBlock({ q, t, idx, ua, atts, res, letters }) {
           {res.explanation && <div className="mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{res.explanation}</MD></div>}
         </div>
       )}
+      {res?.attemptId && <Discuss questionId={q.id} attemptId={res.attemptId} userAnswer={ua} />}
     </div>
   );
 }
