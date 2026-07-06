@@ -4,11 +4,9 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
-// 把裸露的 LaTeX(如 \frac{x^2}{16}、x^2)自动用 $...$ 包裹,让 KaTeX 能渲染。
-function autoMath(s) {
-  if (!s || s.includes("$")) return s; // 已带定界符则不处理
-  s = s.replace(/\\\(/g, () => "$").replace(/\\\)/g, () => "$").replace(/\\\[/g, () => "$$").replace(/\\\]/g, () => "$$");
-  if (s.includes("$")) return s;
+// 把裸露的 LaTeX(如 \frac{x^2}{16}、x^2)在【非 $...$ 区段】里自动用 $...$ 包裹,让 KaTeX 能渲染。
+function wrapBareRuns(s) {
+  if (!s) return s;
   const mathChars = "A-Za-z0-9\\\\{}\\^_+\\-*/=().,|<>\\[\\]\\s";
   const re = new RegExp("[" + mathChars + "]*(?:\\\\[a-zA-Z]+|(?<=[A-Za-z0-9})])[\\^_])[" + mathChars + "]*", "g");
   return s.replace(re, (m) => {
@@ -18,6 +16,15 @@ function autoMath(s) {
     if (!core || !/[\\^_]/.test(core)) return m;
     return lead + "$" + core + "$" + trail;
   });
+}
+
+function autoMath(s) {
+  if (!s) return s;
+  s = s.replace(/\\\(/g, () => "$").replace(/\\\)/g, () => "$").replace(/\\\[/g, () => "$$").replace(/\\\]/g, () => "$$");
+  // 逐段处理:已在 $...$ / $$...$$ 里的原样保留,只包裹外面漏写定界符的裸 LaTeX(解析常两者混排)
+  const parts = s.split(/(\$\$[\s\S]*?\$\$|\$[^\n$]*?\$)/g);
+  for (let i = 0; i < parts.length; i += 2) parts[i] = wrapBareRuns(parts[i]);
+  return parts.join("");
 }
 
 // 定界符纠错:$$ 或 $ 数量为奇数时(AI 常写坏),转义成普通字符,
