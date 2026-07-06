@@ -6,29 +6,38 @@ import { useAiFetch } from "@/components/AiErrorDialog";
 import HandwritePad from "@/components/HandwritePad";
 import DropZone from "@/components/DropZone";
 import { filesToAttachments } from "@/lib/attach";
+import { idbGet, idbSet, idbDel } from "@/lib/idb";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
-const STORE = "kye_mock";
+const KEY = "mock";
 
-// 与练习一致的作答区:草稿纸(不计入作答) → 手写 → 打字 → 传文件
-function WrittenBlock({ q, t, value, onText, onAttach }) {
+// 与练习一致的作答区:草稿纸(不计入作答) → 手写 → 打字 → 传文件。附件(手写/上传)可跨刷新恢复。
+function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
+  const initList = initialAtts || [];
+  const initHand = initList.find((a) => a.name === "handwriting.png");
+  const initHandURL = initHand ? `data:${initHand.mime || "image/png"};base64,${initHand.data}` : null;
+  const initFiles = initList.filter((a) => a.name !== "handwriting.png");
+
   const [draftOpen, setDraftOpen] = useState(false);
-  const [handOpen, setHandOpen] = useState(false);
+  const [handOpen, setHandOpen] = useState(!!initHand);
   const [typeOpen, setTypeOpen] = useState(true);
-  const [handURL, setHandURL] = useState(null);
+  const [handURL, setHandURL] = useState(initHandURL);
   const [files, setFiles] = useState([]);
+  const [restoredFileAtts, setRestoredFileAtts] = useState(initFiles);
 
   useEffect(() => {
     let live = true;
     (async () => {
-      let atts = await filesToAttachments(files);
+      const fresh = await filesToAttachments(files);
+      let atts = [...restoredFileAtts, ...fresh];
       if (handURL) { const b64 = handURL.split(",")[1]; if (b64) atts = [...atts, { name: "handwriting.png", mime: "image/png", data: b64 }]; }
       if (live) onAttach(q.id, atts.slice(0, 4));
     })();
     return () => { live = false; };
-  }, [handURL, files]); // eslint-disable-line
+  }, [handURL, files, restoredFileAtts]); // eslint-disable-line
 
   const isShort = q.qtype === "short";
+  const attCount = restoredFileAtts.length + files.length;
   return (
     <div>
       {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={value || ""} onChange={(e) => onText(e.target.value)} />}
@@ -42,7 +51,7 @@ function WrittenBlock({ q, t, value, onText, onAttach }) {
         <>
           <div className="mt-2">
             <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
-            {handOpen && <HandwritePad key={"hand-" + q.id} onChange={(url) => setHandURL(url || null)} />}
+            {handOpen && <HandwritePad key={"hand-" + q.id} initial={initHandURL} onChange={(url) => setHandURL(url || null)} />}
           </div>
           <div className="mt-2">
             <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setTypeOpen((v) => !v)}>⌨️ {typeOpen ? t("收起打字框") : t("打字作答")}</button>
@@ -50,7 +59,7 @@ function WrittenBlock({ q, t, value, onText, onAttach }) {
           </div>
           <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="mt-2 flex items-center gap-2 text-sm text-slate-500">
             <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setFiles([...e.target.files])} /></label>
-            {files.length > 0 && <span>{files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></span>}
+            {attCount > 0 && <span>{attCount} {t("个文件")} <button className="underline" onClick={() => { setFiles([]); setRestoredFileAtts([]); }}>{t("清除")}</button></span>}
           </DropZone>
         </>
       )}
@@ -66,39 +75,45 @@ export default function Mock() {
   const [qs, setQs] = useState([]);
   const [answers, setAnswers] = useState({});
   const attachRef = useRef({});
+  const restoredAtts = useRef({});
   const [busy, setBusy] = useState(false);
   const [score, setScore] = useState(null);
   const [started, setStarted] = useState(0);
   const hydrated = useRef(false);
+  const saveTimer = useRef(null);
 
-  // 刷新后恢复:题目 + 打字作答留住(手写/上传的附件不落本地,量太大)
+  // 刷新后恢复:题目 + 打字作答 + 手写/上传附件(未压缩,存 IndexedDB)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORE);
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (s && s.stage === "running" && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 24 * 3600 * 1000) {
-          setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0); setStage("running");
-        }
+    (async () => {
+      const s = await idbGet(KEY);
+      if (s && s.stage === "running" && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 3 * 24 * 3600 * 1000) {
+        restoredAtts.current = s.atts || {};
+        attachRef.current = { ...(s.atts || {}) };
+        setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0); setStage("running");
       }
-    } catch {}
-    const id = setTimeout(() => { hydrated.current = true; }, 0);
-    return () => clearTimeout(id);
+      hydrated.current = true;
+    })();
   }, []);
 
-  useEffect(() => {
+  function persist() {
     if (!hydrated.current) return;
-    try {
-      if (stage === "running" && qs.length) localStorage.setItem(STORE, JSON.stringify({ stage, mockId, qs, answers, started, ts: Date.now() }));
-      else localStorage.removeItem(STORE);
-    } catch {}
-  }, [stage, mockId, qs, answers, started]);
+    if (stage === "running" && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, ts: Date.now() });
+    else idbDel(KEY);
+  }
+  // 题目/打字作答变化即存
+  useEffect(() => { persist(); }, [stage, mockId, qs, answers, started]); // eslint-disable-line
+  // 附件变化时防抖存(附件较大)
+  function scheduleAttSave() {
+    if (!hydrated.current) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(persist, 600);
+  }
 
   async function start(realOnly = false) {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
-      attachRef.current = {}; setAnswers({}); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
+      attachRef.current = {}; restoredAtts.current = {}; setAnswers({}); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
     } catch {}
     setBusy(false);
   }
@@ -107,14 +122,13 @@ export default function Mock() {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) });
-      setScore(d.score); setStage("done");
-      try { localStorage.removeItem(STORE); } catch {}
+      setScore(d.score); setStage("done"); idbDel(KEY);
     } catch {}
     setBusy(false);
   }
   const letters = ["A", "B", "C", "D", "E", "F"];
   const setA = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
-  const setAttach = (id, atts) => { attachRef.current = { ...attachRef.current, [id]: atts }; };
+  const setAttach = (id, atts) => { attachRef.current = { ...attachRef.current, [id]: atts }; scheduleAttSave(); };
 
   if (stage === "intro") return (
     <div className="mt-16 text-center space-y-4 md:mt-24">
@@ -146,7 +160,7 @@ export default function Mock() {
           ))}
         </div>
         <div className="flex gap-2">
-          <button className="btn flex-1" onClick={() => { setStage("intro"); setScore(null); setAnswers({}); attachRef.current = {}; }}>{t("再考一次")}</button>
+          <button className="btn flex-1" onClick={() => { setStage("intro"); setScore(null); setAnswers({}); attachRef.current = {}; restoredAtts.current = {}; }}>{t("再考一次")}</button>
           <a className="btn-ghost" href="/">{t("回首页")}</a>
         </div>
       </div>
@@ -180,7 +194,7 @@ export default function Mock() {
                 })}
               </div>
             ) : (
-              <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} />
+              <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} initialAtts={restoredAtts.current[q.id]} />
             )}
           </div>
         );
