@@ -1,27 +1,104 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import HandwritePad from "@/components/HandwritePad";
+import DropZone from "@/components/DropZone";
+import { filesToAttachments } from "@/lib/attach";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
+const STORE = "kye_mock";
+
+// 与练习一致的作答区:草稿纸(不计入作答) → 手写 → 打字 → 传文件
+function WrittenBlock({ q, t, value, onText, onAttach }) {
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [handOpen, setHandOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(true);
+  const [handURL, setHandURL] = useState(null);
+  const [files, setFiles] = useState([]);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      let atts = await filesToAttachments(files);
+      if (handURL) { const b64 = handURL.split(",")[1]; if (b64) atts = [...atts, { name: "handwriting.png", mime: "image/png", data: b64 }]; }
+      if (live) onAttach(q.id, atts.slice(0, 4));
+    })();
+    return () => { live = false; };
+  }, [handURL, files]); // eslint-disable-line
+
+  const isShort = q.qtype === "short";
+  return (
+    <div>
+      {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={value || ""} onChange={(e) => onText(e.target.value)} />}
+
+      <div className="mt-2 border-t border-slate-100 pt-2">
+        <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
+        {draftOpen && <HandwritePad key={"draft-" + q.id} />}
+      </div>
+
+      {isShort && (
+        <>
+          <div className="mt-2">
+            <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
+            {handOpen && <HandwritePad key={"hand-" + q.id} onChange={(url) => setHandURL(url || null)} />}
+          </div>
+          <div className="mt-2">
+            <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setTypeOpen((v) => !v)}>⌨️ {typeOpen ? t("收起打字框") : t("打字作答")}</button>
+            {typeOpen && <textarea className="input mt-2" rows={4} placeholder={t("写下你的回答(口语化也行)")} value={value || ""} onChange={(e) => onText(e.target.value)} />}
+          </div>
+          <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+            <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setFiles([...e.target.files])} /></label>
+            {files.length > 0 && <span>{files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></span>}
+          </DropZone>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Mock() {
   const t = useT();
   const aiFetch = useAiFetch();
-  const [stage, setStage] = useState("intro"); // intro | running | done
+  const [stage, setStage] = useState("intro");
   const [mockId, setMockId] = useState(null);
   const [qs, setQs] = useState([]);
   const [answers, setAnswers] = useState({});
+  const attachRef = useRef({});
   const [busy, setBusy] = useState(false);
   const [score, setScore] = useState(null);
   const [started, setStarted] = useState(0);
+  const hydrated = useRef(false);
+
+  // 刷新后恢复:题目 + 打字作答留住(手写/上传的附件不落本地,量太大)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && s.stage === "running" && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 24 * 3600 * 1000) {
+          setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0); setStage("running");
+        }
+      }
+    } catch {}
+    const id = setTimeout(() => { hydrated.current = true; }, 0);
+    return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    try {
+      if (stage === "running" && qs.length) localStorage.setItem(STORE, JSON.stringify({ stage, mockId, qs, answers, started, ts: Date.now() }));
+      else localStorage.removeItem(STORE);
+    } catch {}
+  }, [stage, mockId, qs, answers, started]);
 
   async function start(realOnly = false) {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
-      setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
+      attachRef.current = {}; setAnswers({}); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
     } catch {}
     setBusy(false);
   }
@@ -29,13 +106,15 @@ export default function Mock() {
     if (!confirm(t("确定交卷?"))) return;
     setBusy(true);
     try {
-      const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers }) });
+      const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) });
       setScore(d.score); setStage("done");
+      try { localStorage.removeItem(STORE); } catch {}
     } catch {}
     setBusy(false);
   }
   const letters = ["A", "B", "C", "D", "E", "F"];
   const setA = (id, v) => setAnswers((a) => ({ ...a, [id]: v }));
+  const setAttach = (id, atts) => { attachRef.current = { ...attachRef.current, [id]: atts }; };
 
   if (stage === "intro") return (
     <div className="mt-16 text-center space-y-4 md:mt-24">
@@ -67,14 +146,14 @@ export default function Mock() {
           ))}
         </div>
         <div className="flex gap-2">
-          <button className="btn flex-1" onClick={() => { setStage("intro"); setScore(null); setAnswers({}); }}>{t("再考一次")}</button>
+          <button className="btn flex-1" onClick={() => { setStage("intro"); setScore(null); setAnswers({}); attachRef.current = {}; }}>{t("再考一次")}</button>
           <a className="btn-ghost" href="/">{t("回首页")}</a>
         </div>
       </div>
     );
   }
 
-  const answered = Object.keys(answers).length;
+  const answered = new Set([...Object.keys(answers).filter((k) => answers[k]), ...Object.keys(attachRef.current).filter((k) => (attachRef.current[k] || []).length)]).size;
   return (
     <div className="space-y-3 md:mt-14 pb-4">
       <div className="sticky top-0 md:top-14 z-10 bg-stone-50 py-2 flex items-center justify-between">
@@ -89,6 +168,7 @@ export default function Mock() {
           <div key={q.id} className="card">
             <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}</p>
             <MD className="font-medium prose-zh">{q.body.stem}</MD>
+            {q.body.audioId && <div className="mt-3"><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
             {isChoice ? (
               <div className="mt-2 space-y-1.5">
                 {options.map((op, i) => {
@@ -100,7 +180,7 @@ export default function Mock() {
                 })}
               </div>
             ) : (
-              <textarea className="input mt-2" rows={q.qtype === "short" ? 4 : 1} value={cur || ""} onChange={(e) => setA(q.id, e.target.value)} placeholder={t("填写答案")} />
+              <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} />
             )}
           </div>
         );

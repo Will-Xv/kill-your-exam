@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generateJson, langInstruction } from "@/lib/gemini";
-import { mmOpts } from "@/lib/rag";
+import { generateJson, generate, langInstruction, attachParts } from "@/lib/gemini";
+import { mmOpts, materialParts } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 300;
@@ -10,7 +10,7 @@ export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    const { mockId, answers } = await req.json(); // answers: {questionId: userAnswer}
+    const { mockId, answers, attachments = {} } = await req.json(); // answers: {qid: text}; attachments: {qid: [{name,mime,data}]}
     const mock = db.prepare("SELECT * FROM mock_exams WHERE id=?").get(mockId);
     if (!mock || mock.exam_id !== exam?.id) return forbidden();
     const ids = JSON.parse(mock.config_json).questionIds;
@@ -24,8 +24,17 @@ export async function POST(req) {
       const ua = answers[qid];
       let correct = 0;
       if (q.qtype === "short") {
-        const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || "(未答)"}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)` + langInstruction(user.lang);
-        const g = await generateJson(gradePrompt, { type: "object", properties: { score: { type: "integer" } }, required: ["score"] }, mmOpts(exam.id, gradePrompt));
+        const ap = attachParts(attachments[qid]);
+        const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || (ap.length ? "(见附件:手写/上传作答,请先识别其中内容)" : "(未答)")}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)` + langInstruction(user.lang);
+        const gradeSchema = { type: "object", properties: { score: { type: "integer" } }, required: ["score"] };
+        let g;
+        if (ap.length) {
+          const mp = materialParts(exam.id, { max: 4 });
+          const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...ap, ...mp] }], jsonSchema: gradeSchema });
+          g = JSON.parse(res.text);
+        } else {
+          g = await generateJson(gradePrompt, gradeSchema, mmOpts(exam.id, gradePrompt));
+        }
         correct = (g.score || 0) >= 60 ? 1 : 0;
       } else correct = norm(ua) === norm(ans.answer) ? 1 : 0;
       total++; got += correct;
