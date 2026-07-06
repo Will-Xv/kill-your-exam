@@ -45,14 +45,10 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
     return () => { live = false; };
   }, [handURL, files, restoredFileAtts]); // eslint-disable-line
 
-  const isShort = q.qtype === "short";
   const attCount = restoredFileAtts.length + files.length;
   return (
     <div>
-      {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={value || ""} onChange={(e) => onText(e.target.value)} />}
-      {isShort && (
-        <>
-          <div className="mt-2">
+      <div className="mt-2">
             <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
             {handOpen && <HandwritePad key={"hand-" + q.id} initial={initHandURL} onChange={(url) => setHandURL(url || null)} />}
           </div>
@@ -64,8 +60,6 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
             <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setFiles([...e.target.files])} /></label>
             {attCount > 0 && <span>{attCount} {t("个文件")} <button className="underline" onClick={() => { setFiles([]); setRestoredFileAtts([]); }}>{t("清除")}</button></span>}
           </DropZone>
-        </>
-      )}
     </div>
   );
 }
@@ -246,7 +240,7 @@ function stripLabel(op, i) {
             <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}</p>
             <MD className="font-medium prose-zh">{q.body.stem}</MD>
             {q.body.audioId && <div className="mt-3"><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
-            {isChoice ? (
+            {isChoice && (
               <div className="mt-2 space-y-1.5">
                 {options.map((op, i) => {
                   const v = q.qtype === "judge" ? op : letters[i];
@@ -256,10 +250,11 @@ function stripLabel(op, i) {
                     {q.qtype !== "judge" && <b className="mr-1">{letters[i]}.</b>}{q.qtype === "judge" ? t(op) : <MD inline>{stripLabel(op, i)}</MD>}</button>;
                 })}
               </div>
-            ) : (
-              <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} initialAtts={restoredAtts.current[q.id]} />
             )}
+            {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={cur || ""} onChange={(e) => setA(q.id, e.target.value)} />}
+            {/* 草稿纸(所有题)→ 简答再有手写/打字/传文件,顺序与练习一致 */}
             <DraftPad q={q} t={t} initial={restoredDrafts.current[q.id]} onDraft={setDraft} />
+            {q.qtype === "short" && <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} initialAtts={restoredAtts.current[q.id]} />}
           </div>
         );
       })}
