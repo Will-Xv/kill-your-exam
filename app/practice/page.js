@@ -252,6 +252,7 @@ function PracticeInner() {
       </div>
       <div className="card">
         <MD className="font-medium prose-zh">{q.body.stem}</MD>
+        {q.body.audioId && <div className="mt-3"><div className="mb-1 text-xs text-slate-500">🎧 {t("先听录音,再作答(可反复播放)")}</div><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
         {isChoice && (
           <div className="mt-3 space-y-2">
             {options.map((op, i) => {
