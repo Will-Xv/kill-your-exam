@@ -26,6 +26,7 @@ function PracticeInner() {
   const [text, setText] = useState("");
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [gradeErr, setGradeErr] = useState("");
   const [done, setDone] = useState([]);
   const [note, setNote] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
@@ -125,8 +126,8 @@ function PracticeInner() {
   const q = questions[idx];
 
   async function submit() {
-    const ans = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
-    setBusy(true);
+    const ans = q.qtype === "fill" || q.qtype === "short" ? text : [...sel].sort().join("");
+    setBusy(true); setGradeErr("");
     try {
       let attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
       let handURL = hands[q.id] || null;
@@ -135,7 +136,7 @@ function PracticeInner() {
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
       setResult(d); setDone((arr) => [...arr, d.correct]);
       if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
-    } catch {}
+    } catch (e) { setGradeErr(t("提交失败,请重试(若反复失败,截图发我)。") + " " + (e?.message || "")); }
     setBusy(false);
   }
   async function finalizeDiscuss() {
@@ -337,6 +338,7 @@ function PracticeInner() {
         </div>
       )}
 
+      {gradeErr && <p className="text-sm text-red-600">{gradeErr}</p>}
       <div className="flex flex-wrap gap-2">
         {!result ? (
           <button className="btn flex-1" onClick={submit} disabled={busy || (isChoice ? !sel.length : !text.trim() && q.qtype !== "short")}>{busy ? t("批改中…") : t("提交答案")}</button>
