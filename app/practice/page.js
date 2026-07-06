@@ -125,6 +125,7 @@ function PracticeInner() {
   useEffect(() => { const cq = questions[idx]; if (!cq) return; setAnswers((a) => ({ ...a, [cq.id]: { sel, text, result } })); }, [sel, text, result]); // eslint-disable-line
   const q = questions[idx];
 
+  function playScript(text, lang) { try { const sy = window.speechSynthesis; if (!sy || !text) return; sy.cancel(); const u = new SpeechSynthesisUtterance(String(text)); u.lang = lang || "en-US"; u.rate = 0.95; sy.speak(u); } catch {} }
   async function submit() {
     const ans = q.qtype === "fill" || q.qtype === "short" ? text : [...sel].sort().join("");
     setBusy(true); setGradeErr("");
@@ -149,6 +150,7 @@ function PracticeInner() {
     setDiscuss(null); setDInput("");
   }
   async function next() {
+    try { window.speechSynthesis?.cancel(); } catch {}
     await finalizeDiscuss();
     setAnswers((a) => ({ ...a, [q.id]: { sel, text, result } }));
     const ni = idx + 1; const nq = questions[ni]; const ns = nq ? answers[nq.id] : null;
@@ -246,13 +248,23 @@ function PracticeInner() {
         <span>{mode === "review" ? t("🔁 错题重练 · ") : ""}{idx + 1} / {questions.length} · {t(QTYPE[q.qtype])}</span>
         <span className="flex items-center gap-1.5">
           <button type="button" className="btn-ghost px-2 py-0.5 text-xs mr-2" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button>
-          {q.is_real ? <span className="badge-material">📜 {t("真题")}</span> : q.origin === "online" ? <span className="badge-material">🌐 {t("网上题")}</span> : <span className="badge-model">🤖 {t("AI出题")}</span>}
+          {q.is_real ? <span className="badge-material">📜 {t("真题")}</span> : q.origin === "online" ? <span className="badge-model">🤖 {t("原创仿真")}</span> : <span className="badge-model">🤖 {t("AI出题")}</span>}
           <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
         </span>
       </div>
       <div className="card">
         <MD className="font-medium prose-zh">{q.body.stem}</MD>
         {q.body.audioId && <div className="mt-3"><div className="mb-1 text-xs text-slate-500">🎧 {t("先听录音,再作答(可反复播放)")}</div><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
+        {q.body.listenScript && (
+          <div className="mt-3 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
+            <div className="mb-2 text-xs text-slate-500">🎧 {t("听力题:点播放、听完再作答(AI 合成的原创听力,可反复播放)")}</div>
+            <div className="flex gap-2">
+              <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={() => playScript(q.body.listenScript, q.body.ttsLang)}>▶️ {t("播放录音")}</button>
+              <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={() => { try { window.speechSynthesis?.cancel(); } catch {} }}>■ {t("停止")}</button>
+            </div>
+            {!!result && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">{t("查看听力原文")}</summary><p className="mt-1 whitespace-pre-line">{q.body.listenScript}</p></details>}
+          </div>
+        )}
         {isChoice && (
           <div className="mt-3 space-y-2">
             {options.map((op, i) => {
@@ -307,7 +319,7 @@ function PracticeInner() {
           <div className="text-sm mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{result.explanation}</MD></div>
           {result.revisedNote && <p className="text-sm mt-1 text-amber-700">↺ {result.revisedNote}</p>}
           <p className="text-xs text-slate-400 mt-2">
-            {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:网上题目") : t("题目:AI 生成")}
+            {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
             {" · "}{t("判卷与解析:AI")}
             {result.source_url && <> · <a className="underline" href={result.source_url} target="_blank">{t("来源")}</a></>}
