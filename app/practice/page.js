@@ -281,6 +281,10 @@ function PracticeInner() {
             {!!result && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">{t("查看听力原文")}</summary><p className="mt-1 whitespace-pre-line">{q.body.listenScript}</p></details>}
           </div>
         )}
+        <div className="mt-2 border-t border-slate-100 pt-2">
+          <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
+          {draftOpen && <HandwritePad key={"draft-" + q.id} ref={draftRef} initial={drafts[q.id]} onChange={(url) => setDrafts((d) => ({ ...d, [q.id]: url }))} />}
+        </div>
         {isChoice && (
           <div className="mt-3 space-y-2">
             {options.map((op, i) => {
@@ -295,10 +299,6 @@ function PracticeInner() {
           </div>
         )}
         {q.qtype === "fill" && <textarea className="input mt-3" rows={2} placeholder={t("填写答案")} value={text} onChange={(e) => setText(e.target.value)} disabled={!!result} />}
-        <div className="mt-2 border-t border-slate-100 pt-2">
-          <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
-          {draftOpen && <HandwritePad key={"draft-" + q.id} ref={draftRef} initial={drafts[q.id]} onChange={(url) => setDrafts((d) => ({ ...d, [q.id]: url }))} />}
-        </div>
         {q.qtype === "short" && !result && (
           <div className="mt-2">
             <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>

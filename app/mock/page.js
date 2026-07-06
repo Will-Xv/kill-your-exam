@@ -240,6 +240,8 @@ function stripLabel(op, i) {
             <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}</p>
             <MD className="font-medium prose-zh">{q.body.stem}</MD>
             {q.body.audioId && <div className="mt-3"><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
+            {/* 草稿纸最上面(所有题,含选择题) */}
+            <DraftPad q={q} t={t} initial={restoredDrafts.current[q.id]} onDraft={setDraft} />
             {isChoice && (
               <div className="mt-2 space-y-1.5">
                 {options.map((op, i) => {
@@ -252,8 +254,6 @@ function stripLabel(op, i) {
               </div>
             )}
             {q.qtype === "fill" && <textarea className="input mt-2" rows={2} placeholder={t("填写答案")} value={cur || ""} onChange={(e) => setA(q.id, e.target.value)} />}
-            {/* 草稿纸(所有题)→ 简答再有手写/打字/传文件,顺序与练习一致 */}
-            <DraftPad q={q} t={t} initial={restoredDrafts.current[q.id]} onDraft={setDraft} />
             {q.qtype === "short" && <WrittenBlock q={q} t={t} value={cur} onText={(v) => setA(q.id, v)} onAttach={setAttach} initialAtts={restoredAtts.current[q.id]} />}
           </div>
         );
