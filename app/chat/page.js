@@ -15,26 +15,34 @@ export default function Chat() {
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(null); // { token, actions, approve:{idx:bool} }
   const [bjobs, setBjobs] = useState([]);
+  const [steps, setSteps] = useState([]);
+  const pollRef = useRef(null);
   const bottom = useRef(null);
 
   useEffect(() => { fetch("/api/chat").then((r) => r.json()).then((d) => setMessages(d.messages || [])); }, []);
+  useEffect(() => {
+    // 断线重连:若后台还有一次未完成的运行,继续跟它的进度(离线期间它照跑)
+    fetch("/api/chat/run").then((r) => r.json()).then((d) => { if (d.run && (d.run.status === "running" || d.run.status === "pending")) startPolling(d.run.id); }).catch(() => {});
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []); // eslint-disable-line
   useEffect(() => {
     const load = () => fetch("/api/browser/status").then((r) => r.json()).then((d) => setBjobs(d.jobs || [])).catch(() => {});
     load(); const iv = setInterval(load, 4000); return () => clearInterval(iv);
   }, []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, pending]);
 
-  function applyResult(d) {
-    const notes = d.toolNotes?.length ? d.toolNotes.map((n) => ({ role: "tool_note", content: n })) : [];
-    if (d.pending) {
-      setMessages((m) => [...m, ...notes]);
-      const approve = {}; d.actions.forEach((a) => (approve[a.idx] = true));
-      setPending({ token: d.token, actions: d.actions, approve });
-    } else {
-      setMessages((m) => [...m, ...notes, { role: "model", content: d.reply }]);
-      setPending(null);
-    }
+  function stopPoll() { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }
+  async function pollOnce(runId) {
+    try {
+      const d = await fetch(`/api/chat/run?id=${runId}`).then((r) => r.json());
+      const run = d.run; if (!run) return;
+      setSteps(run.steps || []);
+      if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); }
+      else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, actions: run.actions || [], approve }); }
+      else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: "(出错了,请重试)" }]); }
+    } catch {}
   }
+  function startPolling(runId) { setBusy(true); stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }
 
   async function send(textOverride) {
     const text = (textOverride || input).trim();
@@ -42,20 +50,18 @@ export default function Chat() {
     const attachments = await filesToAttachments(files);
     setInput(""); setFiles([]);
     setMessages((m) => [...m, { role: "user", content: text + (attachments.length ? " 📎" + attachments.length : "") }]);
-    setBusy(true);
-    try { applyResult(await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments }) })); }
-    catch { setMessages((m) => m.slice(0, -1)); setInput(text); }
-    setBusy(false);
+    setBusy(true); setSteps([]);
+    try { const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
+    catch { setMessages((m) => m.slice(0, -1)); setInput(text); setBusy(false); }
   }
 
   async function resolvePending(approveAll) {
     if (!pending) return;
     const approvals = {};
     pending.actions.forEach((a) => (approvals[a.idx] = approveAll === false ? false : pending.approve[a.idx]));
-    setBusy(true); setPending(null);
-    try { applyResult(await aiFetch("/api/chat/resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: pending.token, approvals }) })); }
-    catch {}
-    setBusy(false);
+    const p = pending; setPending(null); setBusy(true); setSteps([]);
+    try { const d = await aiFetch("/api/chat/resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: p.token, approvals }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
+    catch { setBusy(false); }
   }
 
   const suggestions = [t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
@@ -107,7 +113,16 @@ export default function Chat() {
             </div>
           </div>
         )}
-        {busy && <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-400 animate-pulse">{t("正在思考(可能需要查资料/改文档,请稍候)…")}</div>}
+        {busy && (
+          <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-500">
+            {(() => { const vis = steps.filter((x) => x.kind !== "done"); return vis.length === 0
+              ? <span className="animate-pulse">{t("正在思考(可能需要查资料/改文档,请稍候)…")}</span>
+              : <div className="space-y-1">{vis.slice(-6).map((x, i, a) => (
+                  <div key={i} className={i === a.length - 1 ? "text-slate-700 animate-pulse" : "opacity-50"}>
+                    {x.kind === "think" ? "💭 " + t("思考中…") : x.kind === "tool" ? "🔧 " + x.detail : x.kind === "pending" ? "⏸ " + t("等待你确认…") : x.kind === "error" ? "⚠️ " + t("出错了") : ""}
+                  </div>))}</div>; })()}
+          </div>
+        )}
         <div ref={bottom} />
       </div>
       {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}

@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { runAgent } from "@/lib/chatAgent";
+import { startRun } from "@/lib/chatAgent";
 import { attachParts, generate } from "@/lib/gemini";
 
 export const maxDuration = 300;
@@ -53,7 +53,7 @@ export async function POST(req) {
     for (const m of recent) contents.push({ role: m.role, parts: [{ text: m.content }] });
     const ap = attachParts(attachments);
     if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: message }, ...ap];
-    const out = await runAgent(contents, exam, user, []);
-    return Response.json(out);
+    const runId = startRun(exam, user, contents);
+    return Response.json({ runId });
   } catch (e) { return aiErrorResponse(e); }
 }
