@@ -248,6 +248,28 @@ function PracticeInner() {
   const options = q.qtype === "judge" ? ["对", "错"] : q.body.options || [];
   const optValue = (i) => (q.qtype === "judge" ? options[i] : letters[i]);
 
+  const bugModal = bugOpen ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !bugBusy && setBugOpen(false)}>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-bold">🐞 {t("反馈bug(题目设计/功能问题)")}</h3>
+        <p className="text-xs text-slate-500 mt-1">{t("用于题目设计或功能问题——比如无法录音、题目与选项对不上、显示错乱、按钮无效等。(如果是题目本身出错/答案不对/歧义,请用「题目有问题」。)提交后会把这道题的完整信息和你的作答/草稿/追问一起发给开发者。")}</p>
+        {bugDone ? (
+          <div className="mt-3">
+            <p className="text-sm text-emerald-700">✓ {t("已提交,谢谢!开发者会看到,并可能给你回信。")}</p>
+            <button className="btn w-full py-2 mt-3" onClick={() => setBugOpen(false)}>{t("完成")}</button>
+          </div>
+        ) : (
+          <>
+            <textarea className="input mt-2" rows={3} value={bugNote} onChange={(e) => setBugNote(e.target.value)} placeholder={t("说说遇到的问题(可选):是什么坏了?怎么复现?")} />
+            <div className="mt-3 flex gap-2">
+              <button className="btn-ghost flex-1 py-2" onClick={() => setBugOpen(false)} disabled={bugBusy}>{t("取消")}</button>
+              <button className="btn flex-1 py-2" onClick={submitBug} disabled={bugBusy}>{bugBusy ? t("提交中…") : t("提交bug")}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
   if (q.qtype === "perform") {
     return (
       <div className="space-y-3 pb-28">
@@ -260,6 +282,7 @@ function PracticeInner() {
           <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
           <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
         </div>
+        {bugModal}
         {reportOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setReportOpen(false)}>
             <div className="card w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
@@ -431,29 +454,8 @@ function PracticeInner() {
           </div>
         </div>
       )}
-      {bugOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !bugBusy && setBugOpen(false)}>
-          <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold">🐞 {t("反馈bug(题目设计/功能问题)")}</h3>
-            <p className="text-xs text-slate-500 mt-1">{t("用于题目设计或功能问题——比如无法录音、题目与选项对不上、显示错乱、按钮无效等。(如果是题目本身出错/答案不对/歧义,请用「题目有问题」。)提交后会把这道题的完整信息和你的作答/草稿/追问一起发给开发者。")}</p>
-            {bugDone ? (
-              <div className="mt-3">
-                <p className="text-sm text-emerald-700">✓ {t("已提交,谢谢!开发者会看到,并可能给你回信。")}</p>
-                <button className="btn w-full py-2 mt-3" onClick={() => setBugOpen(false)}>{t("完成")}</button>
-              </div>
-            ) : (
-              <>
-                <textarea className="input mt-2" rows={3} value={bugNote} onChange={(e) => setBugNote(e.target.value)} placeholder={t("说说遇到的问题(可选):是什么坏了?怎么复现?")} />
-                <div className="mt-3 flex gap-2">
-                  <button className="btn-ghost flex-1 py-2" onClick={() => setBugOpen(false)} disabled={bugBusy}>{t("取消")}</button>
-                  <button className="btn flex-1 py-2" onClick={submitBug} disabled={bugBusy}>{bugBusy ? t("提交中…") : t("提交bug")}</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
+  {bugModal}
     </div>
   );
 }
