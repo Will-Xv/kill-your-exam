@@ -8,7 +8,6 @@ export default function TauntWatcher() {
   const t = useT();
   const path = usePathname();
   const [item, setItem] = useState(null);
-  const [canTaunt, setCanTaunt] = useState(false);
   const [busy, setBusy] = useState(false);
   const [imgOk, setImgOk] = useState(true);
   const timer = useRef(null);
@@ -18,7 +17,6 @@ export default function TauntWatcher() {
       const r = await fetch("/api/taunt");
       if (!r.ok) return;
       const d = await r.json();
-      setCanTaunt(!!d.canTaunt);
       setItem((cur) => cur || d.item || null); // 有正在显示的就不打断,处理完再拉下一条
     } catch {}
   }
@@ -61,7 +59,7 @@ export default function TauntWatcher() {
           ) : (
             <>
               <button className="btn w-full py-2.5" onClick={() => resolve("ok")} disabled={busy}>{t("知道了")}</button>
-              {canTaunt && <button className="btn-ghost w-full py-2.5 font-semibold text-red-600" onClick={() => resolve("retaunt")} disabled={busy}>🗡️ {t("再次嘲讽")}</button>}
+              {item.canRetaunt && <button className="btn-ghost w-full py-2.5 font-semibold text-red-600" onClick={() => resolve("retaunt")} disabled={busy}>🗡️ {t("再次嘲讽")}</button>}
             </>
           )}
         </div>

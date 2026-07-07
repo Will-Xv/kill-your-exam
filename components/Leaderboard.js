@@ -35,7 +35,6 @@ export default function Leaderboard() {
       <p className="mt-1 text-xs text-amber-100/90">
         {data.champion && <span>👑 {t("上周冠军")}: <b>{data.champion.username}</b></span>}
         {data.totalChampion && <span>{data.champion ? " · " : ""}🏆 {t("总榜榜一")}: <b>{data.totalChampion.username}</b></span>}
-        {data.canTaunt && <span> · {t("(就是你,可以嘲讽别人)")}</span>}
       </p>
       <div className={`mt-2 space-y-1 ${expanded ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
         {list.length === 0 && <p className="text-sm text-amber-100/80 py-2">{t("还没有做题记录")}</p>}
@@ -44,7 +43,7 @@ export default function Leaderboard() {
             <span className="w-6 text-center">{medal(i)}</span>
             <span className="flex-1 truncate">{r.username}{r.id === data.me.id ? " · " + t("你") : ""}</span>
             <span className="tabular-nums text-amber-100">{r.n} {t("题")}</span>
-            {data.canTaunt && r.id !== data.me.id && (
+            {r.canTaunt && (
               <button onClick={() => taunt(r.id)} disabled={busyId === r.id} className="rounded-full bg-red-500/90 px-2 py-0.5 text-[11px] font-semibold hover:bg-red-500">🗡️ {t("嘲讽")}</button>
             )}
           </div>
