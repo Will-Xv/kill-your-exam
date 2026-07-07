@@ -13,7 +13,7 @@ function pickMime(video) {
   return "";
 }
 
-export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dry }) {
+export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dry, onRecorded }) {
   const t = useT();
   const { lang } = useI18n();
   const aiFetch = useAiFetch();
@@ -107,6 +107,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dry
     rec.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: rec.mimeType || (isVideo ? "video/webm" : "audio/webm") });
       blobRef.current = blob;
+      try { onRecorded && onRecorded(blob); } catch {}
       const url = URL.createObjectURL(blob); setBlobUrl(url);
       stopStream(); try { mediaRef.current?.pause(); } catch {}
       setPhase("recorded");

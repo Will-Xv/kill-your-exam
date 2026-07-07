@@ -59,6 +59,7 @@ function PracticeInner() {
   const padRef = useRef(null);
   const hydrated = useRef(false); // 挂载+恢复完成后才允许写 localStorage,避免用空值覆盖已存进度
   const draftRef = useRef(null);
+  const performBlobRef = useRef(null);
   const bottom = useRef(null);
   const prefetched = useRef(null);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [discuss, dBusy]);
@@ -125,6 +126,7 @@ function PracticeInner() {
     loadQuestions();
   }, []);
   useEffect(() => { const id = setTimeout(() => { hydrated.current = true; }, 0); return () => clearTimeout(id); }, []);
+  useEffect(() => { performBlobRef.current = null; }, [idx, questions]); // 换题就清掉上一题的录音,避免错挂到别的题的bug
   // 批次/进度变化时存下来,刷新可恢复
   useEffect(() => {
     if (!hydrated.current || !questions.length) return;
@@ -220,7 +222,10 @@ function PracticeInner() {
       try { if (!draftImage && draftRef.current) { const h = draftRef.current.getImage(); if (h) draftImage = `data:${h.mime || "image/png"};base64,${h.data}`; } } catch {}
       const userAnswer = (q.qtype === "fill" || q.qtype === "short") ? text : [...sel].sort().join("");
       const grade = result ? { correct: result.correct, score: result.score, feedback: result.feedback } : null;
-      await aiFetch("/api/bug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userNote: bugNote, context: { userAnswer, selected: sel, grade, discuss, draftImage, handImage, uploads, diag } }) });
+      const bugRes = await aiFetch("/api/bug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userNote: bugNote, context: { userAnswer, selected: sel, grade, discuss, draftImage, handImage, uploads, diag } }) });
+      if (performBlobRef.current && bugRes?.id) {
+        try { const fd = new FormData(); fd.append("bugId", String(bugRes.id)); fd.append("recording", performBlobRef.current, "user-recording.webm"); await aiFetch("/api/bug/recording", { method: "POST", body: fd }); } catch {}
+      }
       setBugDone(true); setBugNote("");
     } catch {}
     setBugBusy(false);
@@ -287,7 +292,7 @@ function PracticeInner() {
           <span>{idx + 1} / {questions.length} · {t("表演任务")}</span>
           <span className="flex items-center gap-2"><button type="button" className="btn-ghost px-2 py-0.5 text-xs" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button><span className="badge-model">🤖 {t("AI出题")}</span></span>
         </div>
-        <PerformTask key={q.id} q={q} onNext={next} />
+        <PerformTask key={q.id} q={q} onNext={next} onRecorded={(blob) => { performBlobRef.current = blob; }} />
         <div className="flex flex-wrap gap-2">
           <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
           <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>

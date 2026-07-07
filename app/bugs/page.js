@@ -60,6 +60,12 @@ function BugCard({ b, t, reload }) {
               <p className="break-all text-stone-400">{s.diag.ua}</p>
             </div>
           )}
+          {b.hasRecording && (
+            <div>
+              <p className="text-xs text-stone-500 mb-1">🎥 {t("用户本人的作答录制(原始记录)")}</p>
+              {(b.recMime || "").startsWith("video") ? <video controls preload="metadata" className="w-full rounded-lg border border-stone-200 bg-black" src={`/api/admin/bug-recording?bug=${b.id}`} /> : <audio controls preload="metadata" className="w-full" src={`/api/admin/bug-recording?bug=${b.id}`} />}
+            </div>
+          )}
           {s.qtype === "perform" && s.perform && (
             <div className="rounded-lg bg-amber-50/60 p-2">
               <button className="btn-ghost text-xs" onClick={() => setTryOpen((v) => !v)}>🎬 {tryOpen ? t("收起") : t("亲自试做这道题(像用户一样录音/录像复现)")}</button>

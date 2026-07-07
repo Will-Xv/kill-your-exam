@@ -12,7 +12,7 @@ export async function GET() {
   purgeExpiredBugs();
   const rows = db.prepare("SELECT * FROM bug_reports ORDER BY (deleted_at IS NOT NULL), id DESC LIMIT 300").all();
   const bugs = rows.map((r) => { let snap = {}; try { snap = JSON.parse(r.snapshot || "{}"); } catch {}
-    return { id: r.id, examName: snap.examName || "", username: r.username, userId: r.user_id, questionId: r.question_id, qtype: r.qtype, userNote: r.user_note || "", status: r.status, adminNote: r.admin_note || "", createdAt: r.created_at, deletedAt: r.deleted_at, snapshot: snap }; });
+    return { id: r.id, examName: snap.examName || "", username: r.username, userId: r.user_id, questionId: r.question_id, qtype: r.qtype, userNote: r.user_note || "", status: r.status, adminNote: r.admin_note || "", createdAt: r.created_at, deletedAt: r.deleted_at, hasRecording: !!r.has_recording, recMime: r.rec_mime || "", snapshot: snap }; });
   return Response.json({ bugs });
 }
 
