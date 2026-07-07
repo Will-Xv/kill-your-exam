@@ -10,6 +10,20 @@ import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
 
+function GenProgress() {
+  const t = useT();
+  const [sec, setSec] = useState(0);
+  useEffect(() => { const id = setInterval(() => setSec((x) => x + 1), 1000); return () => clearInterval(id); }, []);
+  const steps = [t("正在查题库…"), t("正在检索你的资料…"), t("AI 正在出题…(第一次或冷门知识点会久一点)"), t("正在整理题目…")];
+  const msg = steps[Math.min(Math.floor(sec / 5), steps.length - 1)];
+  return (
+    <div className="mt-16 text-center">
+      <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-amber-300 border-t-amber-600" />
+      <p className="text-slate-500">{msg}</p>
+      <p className="mt-1 text-xs text-slate-400">{sec}s</p>
+    </div>
+  );
+}
 function stripLabel(op, i) {
   const L = ["A", "B", "C", "D", "E", "F"][i] || "";
   return String(op == null ? "" : op).replace(new RegExp("^\\s*" + L + "[.．)、,]\\s*", "i"), "");
@@ -231,7 +245,7 @@ function PracticeInner() {
     setBugBusy(false);
   }
 
-  if (busy && !questions.length) return <p className="mt-16 text-center text-slate-400 animate-pulse">{t("AI 正在准备题目…")}</p>;
+  if (busy && !questions.length) return <GenProgress />;
   if (!questions.length) return mode === "review"
     ? <div className="mt-16 text-center text-slate-400 space-y-3"><p>{t("🎉 没有到期的错题,今天不用重练。")}</p><a className="btn" href="/practice">{t("去做新题")}</a></div>
     : <p className="mt-16 text-center text-slate-400">{note ? note + " " : t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</p>;
