@@ -8,7 +8,7 @@ export async function GET() {
   if (!u) return unauthorized();
   const rows = db.prepare("SELECT * FROM taunts WHERE to_user=? AND resolved=0 ORDER BY id ASC").all(u.id);
   const p = rows[0];
-  const canRetaunt = p ? canTauntTarget(u.id, p.from_user) : false;
+  const canRetaunt = p ? (canTauntTarget(u.id, p.from_user) || (p.from_user === u.id && !!(u.is_developer || u.is_admin))) : false;
   return Response.json({ count: rows.length,
     item: p ? { id: p.id, kind: p.kind, fromName: p.from_name, fromUser: p.from_user, sticker: p.sticker, canRetaunt } : null });
 }
@@ -17,6 +17,15 @@ export async function POST(req) {
   const u = await getSessionUser();
   if (!u) return unauthorized();
   const { action, toUserId, id, reply } = await req.json();
+
+  // 开发者/管理员自测:给自己发一条嘲讽或不屑,用来测试弹窗
+  if (action === "selftest") {
+    if (!u.is_developer && !u.is_admin) return forbidden();
+    const kind = reply === "disdain" ? "disdain" : "taunt";
+    const st = pickSticker(kind);
+    db.prepare("INSERT INTO taunts(from_user,to_user,from_name,kind,sticker) VALUES(?,?,?,?,?)").run(u.id, u.id, u.username, kind, st);
+    return Response.json({ ok: true });
+  }
 
   if (action === "send") {
     const target = db.prepare("SELECT id, username FROM users WHERE id=? AND deleted_at IS NULL").get(Number(toUserId));
@@ -36,7 +45,7 @@ export async function POST(req) {
       const st = pickSticker("disdain");
       db.prepare("INSERT INTO taunts(from_user,to_user,from_name,kind,sticker) VALUES(?,?,?,?,?)").run(u.id, row.from_user, u.username, "disdain", st);
       try { await notifyUser(row.from_user, "push", { title: "😒 你的嘲讽被不屑了", body: `${u.username} 对你的嘲讽表示很不屑`, url: "/" }); } catch {}
-    } else if (reply === "retaunt" && row.kind === "disdain" && canTauntTarget(u.id, row.from_user)) {
+    } else if (reply === "retaunt" && row.kind === "disdain" && (canTauntTarget(u.id, row.from_user) || (row.from_user === u.id && (u.is_developer || u.is_admin)))) {
       const st = pickSticker("taunt");
       db.prepare("INSERT INTO taunts(from_user,to_user,from_name,kind,sticker) VALUES(?,?,?,?,?)").run(u.id, row.from_user, u.username, "taunt", st);
       try { await notifyUser(row.from_user, "push", { title: "🗡️ 你又被嘲讽了", body: `${u.username} 再次嘲讽了你`, url: "/" }); } catch {}

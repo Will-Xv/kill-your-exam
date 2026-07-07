@@ -1,6 +1,7 @@
 "use client";
 import { useT } from "@/components/I18n";
 import React, { useEffect, useState } from "react";
+import DevSwitcher from "@/components/DevSwitcher";
 
 function DevAccount({ t }) {
   const [u, setU] = React.useState("");
@@ -56,6 +57,7 @@ export default function Admin() {
     <div className="space-y-4 md:mt-14">
       <h1 className="text-2xl font-bold">{t("管理员 · 使用频率")}</h1>
       <p className="text-xs text-stone-400">{t("出于隐私考虑,这里只显示使用频率,看不到任何人的学习内容。")}</p>
+      <DevSwitcher t={t} />
       <DevAccount t={t} />
       {data.users.map((u) => (
         <div key={u.id} className="card">

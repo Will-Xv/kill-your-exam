@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import QuestionTool from "@/components/QuestionTool";
+import DevSwitcher from "@/components/DevSwitcher";
 
 export default function Dev() {
   const t = useT();
@@ -16,6 +17,7 @@ export default function Dev() {
     <div className="space-y-4">
       <h1 className="text-2xl font-black">🛠️ {t("开发者工具")}</h1>
       <p className="text-xs text-slate-400">{t("这些技术/调试工具只对开发者账号开放,普通用户和纯管理员看不到。")}</p>
+      <DevSwitcher t={t} />
       <QuestionTool t={t} />
       <div className="card overflow-x-auto">
         <h2 className="font-bold mb-2">{t("所有考试数据量")}</h2>
