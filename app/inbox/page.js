@@ -43,7 +43,17 @@ export default function Inbox() {
               </button>
               <button className="text-stone-400 hover:text-red-500" title={t("删除")} onClick={() => del(it.id)}>🗑</button>
             </div>
-            {open[it.id] && <div className="mt-3 border-t border-stone-100 pt-3 text-sm"><MD>{t(it.body)}</MD></div>}
+            {open[it.id] && (
+              <div className="mt-3 border-t border-stone-100 pt-3 text-sm">
+                <MD>{t(it.body)}</MD>
+                {it.att_kind === "devrec" && (
+                  <div className="mt-3">
+                    <p className="text-xs text-stone-500 mb-1">🎬 {t("开发者示范作答")}</p>
+                    {(it.att_mime || "").startsWith("video") ? <video controls preload="metadata" className="w-full rounded-lg border border-stone-200 bg-black" src={`/api/inbox/attachment?letter=${it.id}`} /> : <audio controls preload="metadata" className="w-full" src={`/api/inbox/attachment?letter=${it.id}`} />}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

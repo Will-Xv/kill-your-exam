@@ -13,7 +13,7 @@ function pickMime(video) {
   return "";
 }
 
-export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dry, onRecorded }) {
+export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, devBugId, bodyJson, answerJson, onRecorded, onGraded }) {
   const t = useT();
   const { lang } = useI18n();
   const aiFetch = useAiFetch();
@@ -155,10 +155,11 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dry
     try {
       const fd = new FormData();
       fd.append("questionId", String(q.id));
-      if (dry) fd.append("dry", "1");
+      if (devBugId) { fd.append("devBugId", String(devBugId)); if (bodyJson) fd.append("bodyJson", bodyJson); if (answerJson) fd.append("answerJson", answerJson); }
       fd.append("recording", blobRef.current, isVideo ? "perform.webm" : "perform.webm");
       const d = await aiFetch(gradeUrl || "/api/perform/grade", { method: "POST", body: fd });
       setResult(d); setPhase("graded");
+      try { onGraded && onGraded(d); } catch {}
     } catch (e) { setErr(t("点评失败,请重试。")); setPhase("recorded"); }
   }
 

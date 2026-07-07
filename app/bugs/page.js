@@ -70,13 +70,24 @@ function BugCard({ b, t, reload }) {
             <div className="rounded-lg bg-amber-50/60 p-2">
               <button className="btn-ghost text-xs" onClick={() => setTryOpen((v) => !v)}>🎬 {tryOpen ? t("收起") : t("亲自试做这道题(像用户一样录音/录像复现)")}</button>
               <p className="text-[11px] text-stone-400 mt-1">{t("只判分、不写入用户记录;用户原本的作答不受影响。")}</p>
+              {b.devAnswer && (
+                <div className="mt-2 rounded-lg bg-white p-2 ring-1 ring-stone-200">
+                  <p className="text-xs text-stone-500 mb-1">✅ {t("已保存的示范作答")} · {b.devAnswer.score}{t("分")}</p>
+                  {(b.devAnswer.mime || "").startsWith("video") ? <video controls preload="metadata" className="w-full rounded-lg border border-stone-200 bg-black" src={`/api/admin/bug-devrec?bug=${b.id}`} /> : <audio controls preload="metadata" className="w-full" src={`/api/admin/bug-devrec?bug=${b.id}`} />}
+                  {b.devAnswer.feedback && <p className="text-xs text-stone-500 mt-1">{b.devAnswer.feedback}</p>}
+                  <button className="btn text-xs mt-2 py-1" onClick={() => { if (confirm(t("把这个示范作答发到反馈者的收件箱?"))) act("sendDevAnswer"); }} disabled={busy}>📩 {t("把示范作答发给用户")}</button>
+                </div>
+              )}
               {tryOpen && (
                 <div className="mt-2">
                   <PerformTask
                     q={{ id: b.questionId, body: { stem: s.stem, captureType: s.perform.captureType, mediaMaterialId: s.perform.mediaMaterialId || 0, analyzeAudio: s.perform.analyzeAudio, countdownSec: 3, autoStopAfterMediaSec: 7, maxDurationSec: 300, rubric: s.perform.rubric || [], instructions: s.perform.instructions || "" } }}
                     mediaSrcOverride={s.perform.mediaMaterialId ? `/api/admin/bug-media?bug=${b.id}&mid=${s.perform.mediaMaterialId}` : null}
                     gradeUrl="/api/perform/grade"
-                    dry
+                    devBugId={b.id}
+                    bodyJson={JSON.stringify({ stem: s.stem, captureType: s.perform.captureType, mediaMaterialId: s.perform.mediaMaterialId || 0, analyzeAudio: s.perform.analyzeAudio, countdownSec: 3, autoStopAfterMediaSec: 7, maxDurationSec: 300, rubric: s.perform.rubric || [], instructions: s.perform.instructions || "" })}
+                    answerJson={JSON.stringify({ rubric: s.perform.rubric || [], notes: "" })}
+                    onGraded={() => reload()}
                   />
                 </div>
               )}
