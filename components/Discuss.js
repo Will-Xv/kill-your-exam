@@ -72,9 +72,9 @@ export default function Discuss({ questionId, attemptId, userAnswer }) {
         ))}
         {busy && <p className="text-xs text-slate-400">{t("思考中…")}</p>}
       </div>
-      <div className="mt-2 flex gap-2">
-        <textarea className="input flex-1" rows={2} placeholder={t("例如:我觉得我这样答也对,因为…")} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-        <button className="btn px-4" onClick={send} disabled={busy || !input.trim()}>{t("发送")}</button>
+      <div className="mt-2 space-y-2">
+        <textarea className="input w-full" rows={2} placeholder={t("例如:我觉得我这样答也对,因为…")} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+        <button className="btn px-5 w-full sm:w-auto sm:ml-auto sm:block" onClick={send} disabled={busy || !input.trim()}>{t("发送")}</button>
       </div>
     </div>
   );
