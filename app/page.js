@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Leaderboard from "@/components/Leaderboard";
 import Link from "next/link";
 import { useT } from "@/components/I18n";
 import Tour from "@/components/Tour";
@@ -79,6 +80,7 @@ export default function Home() {
   return (
     <>
       <Tour />
+      <Leaderboard />
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
         {/* 手机端:手绘血刃(内联 SVG);pad/桌面(md+,含 iPad 竖屏):原来的刺客贴画 */}
