@@ -1,6 +1,6 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
-import { ensureBlueprint, composeFromBlueprint } from "@/lib/blueprint";
+import { ensureBlueprint, composeFromBlueprint, getBlueprint } from "@/lib/blueprint";
 
 const DEFAULT_MARKS = { single: 2, multi: 3, judge: 1, fill: 3, short: 10, perform: 20 };
 
@@ -11,8 +11,12 @@ export async function POST(req) {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
-  const { count = 20, realOnly = false } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const realOnly = !!body.realOnly;
   const perfExam = exam.exam_type === "performance";
+  // 题目总数照蓝图来:前端不再写死 20。真题模式也用蓝图的 totalQuestions 作为目标题数。
+  let count = Number(body.count) || 0;
+  if (!count) { const _bp = getBlueprint(exam.id); count = (_bp && _bp.totalQuestions) || 20; }
 
   if (realOnly) {
     const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ${perfExam ? "AND qtype='perform'" : ""} AND is_real=1 ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
@@ -32,5 +36,5 @@ export async function POST(req) {
   const comp = await composeFromBlueprint(exam, user, bp);
   if (!comp.questionIds.length) return Response.json({ error: "题库太少且暂时无法生成,请先在练习页多生成一些题,或让杀手帮忙出题。" }, { status: 400 });
   const info = db.prepare("INSERT INTO mock_exams(exam_id,config_json) VALUES(?,?)").run(exam.id, JSON.stringify({ questionIds: comp.questionIds, marks: comp.marks, totalMarks: comp.totalMarks, durationMin: comp.durationMin, mode: "blueprint", createdAt: Date.now() }));
-  return Response.json({ mockId: info.lastInsertRowid, totalMarks: comp.totalMarks, durationMin: comp.durationMin, overview: bp.overview || "", questions: comp.questions });
+  return Response.json({ mockId: info.lastInsertRowid, totalMarks: comp.totalMarks, durationMin: comp.durationMin, overview: bp.overview || "", totalQuestions: comp.questionIds.length, plannedQuestions: bp.totalQuestions || null, sourceLevel: bp.sourceLevel || "estimated", sourceNote: bp.sourceNote || "", questions: comp.questions });
 }

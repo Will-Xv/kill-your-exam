@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import SourceBadge from "@/components/SourceBadge";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 
@@ -34,12 +35,17 @@ export default function Blueprint() {
           <div className="card">
             <p className="text-sm">{bp.overview}</p>
             <div className="mt-2 flex flex-wrap gap-3 text-sm text-stone-600">
+              {bp.totalQuestions ? <span>📝 {bp.totalQuestions} {t("题")}</span> : null}
               {bp.totalMarks ? <span>🎯 {t("总分")} {bp.totalMarks}</span> : null}
               {bp.durationMin ? <span>⏱️ {bp.durationMin} {t("分钟")}</span> : null}
             </div>
             {bp.qtypeMarks && (
               <div className="mt-2 text-xs text-stone-500">{t("每题分值")}: {Object.entries(bp.qtypeMarks).filter(([, v]) => v).map(([k, v]) => `${t(QT[k] || k)} ${v}`).join(" · ")}</div>
             )}
+            <div className="mt-3 border-t border-stone-100 pt-2">
+              <p className="text-xs font-medium text-stone-500 mb-1">{t("题量与考试结构的依据")}</p>
+              <SourceBadge level={bp.sourceLevel} note={bp.sourceNote} t={t} />
+            </div>
           </div>
           <div className="card">
             <h2 className="font-bold mb-2">{t("知识点出题规划")}</h2>

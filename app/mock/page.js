@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
+import SourceBadge from "@/components/SourceBadge";
 import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import HandwritePad from "@/components/HandwritePad";
@@ -144,6 +145,8 @@ export default function Mock() {
     else idbDel(KEY);
   }
   useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, score, results]); // eslint-disable-line
+  const [bpPeek, setBpPeek] = useState(null);
+  useEffect(() => { fetch("/api/mock/blueprint?peek=1").then((r) => r.json()).then((d) => setBpPeek(d.blueprint || null)).catch(() => {}); }, []);
   function scheduleAttSave() {
     if (!hydrated.current) return;
     clearTimeout(saveTimer.current);
@@ -184,10 +187,17 @@ function stripLabel(op, i) {
     <div className="mt-16 text-center space-y-4 md:mt-24">
       <div className="text-5xl">📝</div>
       <h1 className="text-2xl font-bold">{t("模拟考")}</h1>
-      <p className="text-stone-500">{t("按题型比例抽 20 道题,一次做完再看结果,更接近真实考试。")}</p>
+      {bpPeek && bpPeek.totalQuestions ? (
+        <div className="text-stone-500 space-y-2">
+          <p>{t("本次按「考试蓝图」组卷,共 {n} 道题,一次做完再看结果。").replace("{n}", bpPeek.totalQuestions)}</p>
+          <div className="flex justify-center"><SourceBadge level={bpPeek.sourceLevel} note={bpPeek.sourceNote} t={t} /></div>
+        </div>
+      ) : (
+        <p className="text-stone-500">{t("按考试蓝图组卷,一次做完再看结果,更接近真实考试。")}</p>
+      )}
       <div className="flex flex-col gap-2 items-center">
         <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
-        <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用历年真题组卷)")}</button>
+        <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用你提供的资料组卷)")}</button>
         <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
         <a className="btn-ghost text-sm" href="/mock/history">📚 {t("历史模拟考")}</a>
       </div>
