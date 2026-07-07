@@ -7,6 +7,7 @@ export default function Leaderboard() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("weekly");
   const [busyId, setBusyId] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
   const load = () => fetch("/api/leaderboard").then((r) => (r.ok ? r.json() : null)).then((d) => d && setData(d)).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -36,9 +37,9 @@ export default function Leaderboard() {
         {data.totalChampion && <span>{data.champion ? " · " : ""}🏆 {t("总榜榜一")}: <b>{data.totalChampion.username}</b></span>}
         {data.canTaunt && <span> · {t("(就是你,可以嘲讽别人)")}</span>}
       </p>
-      <div className="mt-2 space-y-1">
+      <div className={`mt-2 space-y-1 ${expanded ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
         {list.length === 0 && <p className="text-sm text-amber-100/80 py-2">{t("还没有做题记录")}</p>}
-        {list.slice(0, 10).map((r, i) => (
+        {(expanded ? list : list.slice(0, 3)).map((r, i) => (
           <div key={r.id} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm ${r.id === data.me.id ? "bg-white/25 font-bold" : "bg-white/10"}`}>
             <span className="w-6 text-center">{medal(i)}</span>
             <span className="flex-1 truncate">{r.username}{r.id === data.me.id ? " · " + t("你") : ""}</span>
@@ -49,6 +50,11 @@ export default function Leaderboard() {
           </div>
         ))}
       </div>
+      {list.length > 3 && (
+        <button onClick={() => setExpanded((v) => !v)} className="mt-2 w-full rounded-full bg-white/15 py-1.5 text-xs font-semibold hover:bg-white/25">
+          {expanded ? t("收起") : t("展开查看完整榜单") + " (" + list.length + ")"}
+        </button>
+      )}
     </div>
   );
 }
