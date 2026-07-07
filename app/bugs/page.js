@@ -6,6 +6,16 @@ import PerformTask from "@/components/PerformTask";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 function fmt(ts) { if (!ts) return ""; try { return new Date(ts.replace(" ", "T") + "Z").toLocaleString(); } catch { return ts; } }
+// 软删除 30 天后彻底清除;算出还剩多久
+function purgeLeft(deletedAt, t) {
+  if (!deletedAt) return "";
+  const purgeAt = new Date(deletedAt.replace(" ", "T") + "Z").getTime() + 30 * 86400000;
+  const ms = purgeAt - Date.now();
+  if (ms <= 0) return t("即将彻底删除");
+  const days = Math.ceil(ms / 86400000);
+  if (days <= 1) return t("不到 1 天后彻底删除");
+  return t("{n} 天后彻底删除").replace("{n}", days);
+}
 
 function BugCard({ b, t, reload }) {
   const [open, setOpen] = useState(false);
@@ -25,6 +35,7 @@ function BugCard({ b, t, reload }) {
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${b.deletedAt ? "bg-stone-200 text-stone-500" : b.status === "done" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>{b.deletedAt ? t("已删除") : b.status === "done" ? t("已完成") : t("待处理")}</span>
       </div>
+      {b.deletedAt && <p className="mt-1 text-xs font-medium text-red-500">🗑 {t("删除于")} {fmt(b.deletedAt)} · {purgeLeft(b.deletedAt, t)}</p>}
       <div className="flex flex-wrap gap-2 items-center mt-2"><button className="btn-ghost text-xs" onClick={() => setOpen((v) => !v)}>{open ? t("收起详情") : t("查看完整题目与作答")}</button><a className="btn-ghost text-xs" href={`/dev?q=${b.questionId}`}>🔧 {t("在开发者工具里修这道题")}</a></div>
       {open && (
         <div className="mt-2 space-y-2 text-sm border-t border-stone-100 pt-2">
