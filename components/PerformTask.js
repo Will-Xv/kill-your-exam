@@ -160,7 +160,11 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
       const d = await aiFetch(gradeUrl || "/api/perform/grade", { method: "POST", body: fd });
       setResult(d); setPhase("graded");
       try { onGraded && onGraded(d); } catch {}
-    } catch (e) { setErr(t("点评失败,请重试。")); setPhase("recorded"); }
+    } catch (e) {
+      let msg = t("点评失败,请重试。");
+      try { const j = JSON.parse(e?.message || ""); if (j.detail) msg += " · " + j.detail; } catch { if (e?.message && e.message.length < 220 && e.message !== "ai-error") msg += " · " + e.message; }
+      setErr(msg); setPhase("recorded");
+    }
   }
 
   function togglePreview() {

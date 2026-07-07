@@ -90,7 +90,8 @@ export async function POST(req) {
     return Response.json({ score, feedback: g.feedback, attemptId: info.lastInsertRowid });
   } catch (e) {
     if (e?.isAiError) return aiErrorResponse(e);
-    return Response.json({ error: CONTACT }, { status: 500 });
+    console.error("[perform/grade] error:", e?.message || e, e?.stack || "");
+    return Response.json({ error: CONTACT, detail: String(e?.message || e).slice(0, 400) }, { status: 500 });
   } finally {
     for (const n of uploaded) { try { await deleteMedia(n); } catch {} }
   }
