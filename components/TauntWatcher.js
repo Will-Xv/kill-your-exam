@@ -45,9 +45,9 @@ export default function TauntWatcher() {
   const fallback = isTaunt ? "🗡️😈" : "😒🙄";
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-3xl bg-[#f6efdd] p-5 text-center shadow-2xl ring-1 ring-amber-900/20">
+      <div className="w-full max-w-md rounded-3xl bg-[#f6efdd] p-5 text-center shadow-2xl ring-1 ring-amber-900/20">
         {imgOk ? (
-          <img src={`/taunts/${item.sticker}`} alt="" className="mx-auto mb-3 block max-h-60 w-auto rounded-2xl object-contain" onError={() => setImgOk(false)} />
+          <img src={`/taunts/${item.sticker}`} alt="" className="mx-auto mb-3 block max-h-[52vh] w-auto rounded-2xl object-contain" onError={() => setImgOk(false)} />
         ) : (
           <div className="mx-auto mb-3 flex h-40 w-40 items-center justify-center rounded-2xl bg-amber-100/60"><span className="text-6xl">{fallback}</span></div>
         )}
