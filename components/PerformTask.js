@@ -167,6 +167,16 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
     }
   }
 
+  async function dontKnow() {
+    try {
+      const d = await aiFetch("/api/perform/skip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id }) });
+      const parts = [];
+      if (d.rubric && d.rubric.length) parts.push("**" + t("评分维度:") + "** " + d.rubric.join(" · "));
+      if (d.notes) parts.push(d.notes);
+      setResult({ dontKnow: true, feedback: parts.join("\n\n") || t("这道题计为不会,来看看要点。") });
+      setPhase("graded");
+    } catch {}
+  }
   function togglePreview() {
     if (!mediaSrc) return;
     const a = previewAudioRef.current || new Audio(mediaSrc); previewAudioRef.current = a;
@@ -215,6 +225,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
         <div className="rounded-lg bg-amber-100/70 px-3 py-2 text-xs text-amber-800">🔇 {t("本题录像不开麦克风、不收声（这样外放的音乐才不会被手机掐掉、你才能听见）；评分只看画面并对齐所给音乐,不分析录到的声音。")}</div>
       )}
       {phase === "idle" && <button className="btn w-full" onClick={begin}>{isVideo ? "🎥" : "🎙️"} {t("开始录制")}</button>}
+      {phase === "idle" && !devBugId && <button className="btn-ghost w-full text-sm" onClick={dontKnow} title={t("直接看答案和解析,本题计为不会")}>🤷 {t("不会做")}</button>}
       {phase === "recorded" && (
         <div className="flex gap-2">
           <button className="btn-ghost flex-1" onClick={reset}>↺ {t("重录")}</button>
@@ -225,7 +236,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
 
       {phase === "graded" && result && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-3">
-          <p className="font-bold">{result.score} {t("分")}</p>
+          <p className="font-bold">{result.dontKnow ? "🤷 " + t("不会做 · 参考要点") : result.score + " " + t("分")}</p>
           <div className="text-sm mt-1"><MD>{result.feedback}</MD></div>
         </div>
       )}

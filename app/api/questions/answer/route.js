@@ -8,7 +8,7 @@ import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
   try {
-    const { questionId, userAnswer, mode = "practice", attachments } = await req.json();
+    const { questionId, userAnswer, mode = "practice", attachments, dontKnow } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
     if (!q) return Response.json({ error: "not found" }, { status: 404 });
     const { user, exam } = await requireUser();
@@ -16,6 +16,14 @@ export async function POST(req) {
     if (!exam || q.exam_id !== exam.id) return forbidden();
     const ans = JSON.parse(q.answer);
     let correct, score, feedback = "", gradeCross = null;
+    if (dontKnow) {
+      correct = 0; score = 0;
+      const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
+        .run(questionId, exam.id, q.kp_id, "[不会做]", 0, 0, "", mode);
+      updateReviewQueue(questionId, false);
+      maybeAutoUpdateOverall(user);
+      return Response.json({ attemptId: ins.lastInsertRowid, correct: false, score: 0, dontKnow: true, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real });
+    }
     if (q.qtype === "short") {
       const kpList = leafKpList(exam.id);
       const kpListStr = kpList.slice(0, 120).map((k) => `[${k.id}] ${k.chapter ? k.chapter + "/" : ""}${k.title}`).join("\n");

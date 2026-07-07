@@ -145,15 +145,15 @@ function PracticeInner() {
     for (const u of ups) { if (!u || !u.title || seen.has(u.kpId)) continue; seen.add(u.kpId); parts.push(`〈${u.title}〉${u.kind === "understanding" ? "↑" : "↓"}`); }
     return parts.length ? t("已据此更新熟悉程度:") + parts.join("、") : "";
   }
-  async function submit() {
+  async function submit(dontKnow = false) {
     const ans = q.qtype === "fill" || q.qtype === "short" ? text : [...sel].sort().join("");
     setBusy(true); setGradeErr("");
     try {
-      let attachments = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
+      let attachments = (!dontKnow && q.qtype === "short") ? await filesToAttachments(aFiles) : [];
       let handURL = hands[q.id] || null;
-      if (!handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
-      if (handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
-      const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments }) });
+      if (!dontKnow && !handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
+      if (!dontKnow && handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
+      const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments, dontKnow }) });
       const mn = fmtMastery(d.masteryUpdates); setResult(mn ? { ...d, masteryNote: mn } : d); setDone((arr) => [...arr, d.correct]);
       if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
     } catch (e) { setGradeErr(t("提交失败,请重试(若反复失败,截图发我)。") + " " + (e?.message || "")); }
@@ -386,7 +386,7 @@ function PracticeInner() {
       {result && (
         <div className={`card ${result.correct ? "border-amber-400 bg-amber-50" : (result.score >= 40 ? "border-amber-300 bg-amber-50" : "border-red-300 bg-red-50")}`}>
           <p className="font-bold">
-            {q.qtype === "short" ? `${result.score} ${t("分")}` : (result.correct ? t("✓ 答对了") : t("✗ 不对"))}
+            {result.dontKnow ? t("🤷 不会做 · 看看答案") : q.qtype === "short" ? `${result.score} ${t("分")}` : (result.correct ? t("✓ 答对了") : t("✗ 不对"))}
           </p>
           <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.qtype === "judge" ? t(result.answer) : <MD inline>{result.answer}</MD>}</p>
           {result.feedback && <div className="text-sm mt-1"><b>{t("点评:")}</b><MD inline>{result.feedback}</MD></div>}
@@ -431,7 +431,10 @@ function PracticeInner() {
       {gradeErr && <p className="text-sm text-red-600">{gradeErr}</p>}
       <div className="flex flex-wrap gap-2">
         {!result ? (
-          <button className="btn flex-1" onClick={submit} disabled={busy || (isChoice ? !sel.length : !text.trim() && q.qtype !== "short")}>{busy ? t("批改中…") : t("提交答案")}</button>
+          <>
+            <button className="btn flex-1" onClick={() => submit(false)} disabled={busy || (isChoice ? !sel.length : !text.trim() && q.qtype !== "short")}>{busy ? t("批改中…") : t("提交答案")}</button>
+            <button className="btn-ghost px-3" onClick={() => submit(true)} disabled={busy} title={t("直接看答案和解析,本题计为不会")}>🤷 {t("不会做")}</button>
+          </>
         ) : (
           <>
             {discuss === null && <button className="btn-ghost text-sm" onClick={() => setDiscuss([])}>💬 {t("有疑问?追问/争论")}</button>}
