@@ -13,13 +13,13 @@ function pickMime(video) {
   return "";
 }
 
-export default function PerformTask({ q, onNext }) {
+export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dry }) {
   const t = useT();
   const { lang } = useI18n();
   const aiFetch = useAiFetch();
   const body = q.body || {};
   const isVideo = body.captureType === "video";
-  const mediaSrc = body.mediaMaterialId ? `/api/materials/raw?id=${body.mediaMaterialId}` : null;
+  const mediaSrc = mediaSrcOverride || (body.mediaMaterialId ? `/api/materials/raw?id=${body.mediaMaterialId}` : null);
   const analyzeAudio = body.analyzeAudio || (isVideo && body.mediaMaterialId ? "music" : "recorded");
 
   const [phase, setPhase] = useState("idle"); // idle | countdown | recording | recorded | grading | graded
@@ -154,8 +154,9 @@ export default function PerformTask({ q, onNext }) {
     try {
       const fd = new FormData();
       fd.append("questionId", String(q.id));
+      if (dry) fd.append("dry", "1");
       fd.append("recording", blobRef.current, isVideo ? "perform.webm" : "perform.webm");
-      const d = await aiFetch("/api/perform/grade", { method: "POST", body: fd });
+      const d = await aiFetch(gradeUrl || "/api/perform/grade", { method: "POST", body: fd });
       setResult(d); setPhase("graded");
     } catch (e) { setErr(t("点评失败,请重试。")); setPhase("recorded"); }
   }
@@ -226,7 +227,7 @@ export default function PerformTask({ q, onNext }) {
       {phase === "graded" && (
         <div className="flex gap-2">
           <button className="btn-ghost flex-1" onClick={reset}>↺ {t("再练一次")}</button>
-          <button className="btn flex-1" onClick={onNext}>{t("下一题 →")}</button>
+          {onNext && <button className="btn flex-1" onClick={onNext}>{t("下一题 →")}</button>}
         </div>
       )}
     </div>

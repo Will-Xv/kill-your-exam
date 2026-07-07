@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
+import PerformTask from "@/components/PerformTask";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 function fmt(ts) { if (!ts) return ""; try { return new Date(ts.replace(" ", "T") + "Z").toLocaleString(); } catch { return ts; } }
@@ -9,7 +10,7 @@ function fmt(ts) { if (!ts) return ""; try { return new Date(ts.replace(" ", "T"
 function BugCard({ b, t, reload }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState(b.adminNote || "");
-  const [lt, setLt] = useState(""); const [lb, setLb] = useState(""); const [busy, setBusy] = useState(false);
+  const [lt, setLt] = useState(""); const [lb, setLb] = useState(""); const [busy, setBusy] = useState(false); const [tryOpen, setTryOpen] = useState(false);
   const s = b.snapshot || {};
   async function act(action, extra = {}) { setBusy(true); try { await fetch("/api/admin/bugs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.id, action, ...extra }) }); await reload(); } catch {} setBusy(false); }
   const imgs = (s.attMeta || []).map((a, i) => ({ ...a, i })).filter((a) => (a.mime || "").startsWith("image/") || /\.(png|jpg|jpeg|webp)$/i.test(a.name || ""));
@@ -57,6 +58,22 @@ function BugCard({ b, t, reload }) {
               <p>{t("麦克风权限")}: <b>{s.diag.micPermission}</b> · {t("支持录音")}: {String(s.diag.mediaSupported)} · {t("安全上下文")}: {String(s.diag.secure)}{s.diag.inApp ? " · ⚠️ " + t("内置浏览器(微信/QQ等,常不支持录音)") : ""}</p>
               <p className="break-all">{s.diag.screen} · {s.diag.platform} · {s.diag.lang}</p>
               <p className="break-all text-stone-400">{s.diag.ua}</p>
+            </div>
+          )}
+          {s.qtype === "perform" && s.perform && (
+            <div className="rounded-lg bg-amber-50/60 p-2">
+              <button className="btn-ghost text-xs" onClick={() => setTryOpen((v) => !v)}>🎬 {tryOpen ? t("收起") : t("亲自试做这道题(像用户一样录音/录像复现)")}</button>
+              <p className="text-[11px] text-stone-400 mt-1">{t("只判分、不写入用户记录;用户原本的作答不受影响。")}</p>
+              {tryOpen && (
+                <div className="mt-2">
+                  <PerformTask
+                    q={{ id: b.questionId, body: { stem: s.stem, captureType: s.perform.captureType, mediaMaterialId: s.perform.mediaMaterialId || 0, analyzeAudio: s.perform.analyzeAudio, countdownSec: 3, autoStopAfterMediaSec: 7, maxDurationSec: 300, rubric: s.perform.rubric || [], instructions: s.perform.instructions || "" } }}
+                    mediaSrcOverride={s.perform.mediaMaterialId ? `/api/admin/bug-media?bug=${b.id}&mid=${s.perform.mediaMaterialId}` : null}
+                    gradeUrl="/api/perform/grade"
+                    dry
+                  />
+                </div>
+              )}
             </div>
           )}
           {!!(s.discuss || []).length && (

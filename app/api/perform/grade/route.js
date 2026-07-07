@@ -14,9 +14,12 @@ export async function POST(req) {
   if (!user) return unauthorized();
   const form = await req.formData();
   const questionId = Number(form.get("questionId"));
+  const dry = !!form.get("dry"); // 开发者「亲自试做」:只判分、不写入用户记录
   const file = form.get("recording");
   const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
-  if (!q || !exam || q.exam_id !== exam.id) return forbidden();
+  if (!q) return forbidden();
+  if (dry) { if (!user.is_developer) return forbidden(); }
+  else if (!exam || q.exam_id !== exam.id) return forbidden();
   if (!file) return Response.json({ error: "没有录制文件" }, { status: 400 });
   const buffer = Buffer.from(await file.arrayBuffer());
   if (!buffer.length) return Response.json({ error: "录制为空" }, { status: 400 });
@@ -70,6 +73,7 @@ export async function POST(req) {
     const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...parts] }], jsonSchema: schema });
     const g = JSON.parse(res.text);
     const score = Math.max(0, Math.min(100, g.score || 0));
+    if (dry) return Response.json({ score, feedback: g.feedback, dry: true });
     const musicMat = (analyzeAudio === "music" && body.mediaMaterialId) ? body.mediaMaterialId : null; // 无麦克风的给定音乐题:回放时叠加这首原配乐
     const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id) VALUES(?,?,?,?,?,?,?,?,?,?)")
       .run(questionId, exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, g.feedback, "practice", body.stem || null, musicMat);
