@@ -37,6 +37,10 @@ function PracticeInner() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportNote, setReportNote] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
+  const [bugOpen, setBugOpen] = useState(false);
+  const [bugNote, setBugNote] = useState("");
+  const [bugBusy, setBugBusy] = useState(false);
+  const [bugDone, setBugDone] = useState(false);
   // 讨论(追问/争论)
   const [discuss, setDiscuss] = useState(null); // null | array of {role,content}
   const [dInput, setDInput] = useState("");
@@ -196,6 +200,21 @@ function PracticeInner() {
     } catch {}
     setReportOpen(false); setReportNote(""); setReportBusy(false);
   }
+  async function submitBug() {
+    setBugBusy(true);
+    try {
+      const uploads = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
+      let handImage = hands[q.id] || null;
+      try { if (!handImage && padRef.current) { const h = padRef.current.getImage(); if (h) handImage = `data:${h.mime || "image/png"};base64,${h.data}`; } } catch {}
+      let draftImage = drafts[q.id] || null;
+      try { if (!draftImage && draftRef.current) { const h = draftRef.current.getImage(); if (h) draftImage = `data:${h.mime || "image/png"};base64,${h.data}`; } } catch {}
+      const userAnswer = (q.qtype === "fill" || q.qtype === "short") ? text : [...sel].sort().join("");
+      const grade = result ? { correct: result.correct, score: result.score, feedback: result.feedback } : null;
+      await aiFetch("/api/bug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userNote: bugNote, context: { userAnswer, selected: sel, grade, discuss, draftImage, handImage, uploads } }) });
+      setBugDone(true); setBugNote("");
+    } catch {}
+    setBugBusy(false);
+  }
 
   if (busy && !questions.length) return <p className="mt-16 text-center text-slate-400 animate-pulse">{t("AI 正在准备题目…")}</p>;
   if (!questions.length) return mode === "review"
@@ -239,6 +258,8 @@ function PracticeInner() {
         <PerformTask key={q.id} q={q} onNext={next} />
         <div className="flex justify-end">
           <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
+        <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
+          <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
         </div>
         {reportOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setReportOpen(false)}>
@@ -380,6 +401,7 @@ function PracticeInner() {
         )}
         {result && <button className="btn-ghost text-xs" onClick={() => { setNoteOpen((v) => !v); }}>📝 {noteSaved ? t("已记入笔记本 · 再记") : t("记笔记")}</button>}
         <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
+        <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
       </div>
       {noteOpen && (
         <div className="card space-y-2">
@@ -408,6 +430,29 @@ function PracticeInner() {
           </div>
         </div>
       )}
+      {bugOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !bugBusy && setBugOpen(false)}>
+          <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold">🐞 {t("反馈bug(题目设计/功能问题)")}</h3>
+            <p className="text-xs text-slate-500 mt-1">{t("用于题目设计或功能问题——比如无法录音、题目与选项对不上、显示错乱、按钮无效等。(如果是题目本身出错/答案不对/歧义,请用「题目有问题」。)提交后会把这道题的完整信息和你的作答/草稿/追问一起发给开发者。")}</p>
+            {bugDone ? (
+              <div className="mt-3">
+                <p className="text-sm text-emerald-700">✓ {t("已提交,谢谢!开发者会看到,并可能给你回信。")}</p>
+                <button className="btn w-full py-2 mt-3" onClick={() => setBugOpen(false)}>{t("完成")}</button>
+              </div>
+            ) : (
+              <>
+                <textarea className="input mt-2" rows={3} value={bugNote} onChange={(e) => setBugNote(e.target.value)} placeholder={t("说说遇到的问题(可选):是什么坏了?怎么复现?")} />
+                <div className="mt-3 flex gap-2">
+                  <button className="btn-ghost flex-1 py-2" onClick={() => setBugOpen(false)} disabled={bugBusy}>{t("取消")}</button>
+                  <button className="btn flex-1 py-2" onClick={submitBug} disabled={bugBusy}>{bugBusy ? t("提交中…") : t("提交bug")}</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

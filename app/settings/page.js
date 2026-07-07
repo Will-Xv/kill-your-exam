@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import { useI18n } from "@/components/I18n";
 import { LANGS } from "@/lib/translations";
+import NotifSettings from "@/components/NotifSettings";
 
 export default function Settings() {
   const t = useT();
@@ -66,6 +67,7 @@ export default function Settings() {
           ))}
         </div>
       </div>
+      <NotifSettings />
       <div className="card flex items-center justify-between">
         <p className="text-sm">{t("当前账号:")}<b>{info.username}</b>{info.isAdmin ? t("(管理员)") : ""}</p>
         <div className="flex gap-3 items-center">

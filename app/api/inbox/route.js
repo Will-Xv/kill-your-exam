@@ -1,11 +1,20 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { listInbox, unreadCount } from "@/lib/inbox";
+import { notifyUser } from "@/lib/notify";
 
 export async function GET() {
   const { user } = await requireUser();
   if (!user) return unauthorized();
-  return Response.json({ items: listInbox(user.id), unread: unreadCount(user.id) });
+  const items = listInbox(user.id);
+  try {
+    const pend = db.prepare("SELECT id,title FROM inbox WHERE user_id=? AND deleted_at IS NULL AND read_at IS NULL AND notified_at IS NULL AND lkey LIKE 'update-%'").all(user.id);
+    if (pend.length) {
+      db.prepare("UPDATE inbox SET notified_at=datetime('now') WHERE user_id=? AND notified_at IS NULL AND lkey LIKE 'update-%'").run(user.id);
+      notifyUser(user.id, "updates", { title: pend[0].title || "有新更新", body: pend.length > 1 ? `${pend.length} 条新消息` : "", url: "/inbox" }).catch(() => {});
+    }
+  } catch {}
+  return Response.json({ items, unread: unreadCount(user.id) });
 }
 
 export async function POST(req) {

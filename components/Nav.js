@@ -33,6 +33,7 @@ export default function Nav() {
   const extra = [];
   if (me?.isAdmin) extra.push({ href: "/admin", label: "管理面板", icon: "📈", desc: "使用情况/子账号" });
   if (me?.isDeveloper) extra.push({ href: "/dev", label: "开发者工具", icon: "🛠️", desc: "调试" });
+  if (me?.isAdmin || me?.isDeveloper) extra.push({ href: "/bugs", label: "Bug 反馈", icon: "🐞", desc: "用户反馈的问题" });
 
   return (
     <>
