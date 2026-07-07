@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
@@ -26,6 +26,8 @@ export default function Onboarding() {
   const [examId, setExamId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [busyText, setBusyText] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => { if (!busy) return; setElapsed(0); const id = setInterval(() => setElapsed((x) => x + 1), 1000); return () => clearInterval(id); }, [busy]);
   const [files, setFiles] = useState([]);
   const [uploadLog, setUploadLog] = useState([]);
   const [report, setReport] = useState(null);
@@ -129,7 +131,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="text-2xl font-black mt-2">{t("设置考试")}</h1>
-      {busy && busyText && <div className="card border-amber-400 bg-amber-50 text-amber-800 text-sm animate-pulse">{busyText}</div>}
+      {busy && busyText && <div className="card border-amber-400 bg-amber-50 text-amber-800 text-sm"><span className="animate-pulse">{busyText}</span> <span className="text-amber-600">· {elapsed}s</span></div>}
 
       {step === 1 && (
         <div className="card space-y-3">
