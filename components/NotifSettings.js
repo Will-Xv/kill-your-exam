@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
-import { enablePush } from "@/lib/pushClient";
+import { enablePush, iosNeedsInstall } from "@/lib/pushClient";
 
 function urlB64ToUint8(base64) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -45,6 +45,7 @@ export default function NotifSettings() {
       <h2 className="font-semibold">🔔 {t("消息提醒")}</h2>
       <p className="text-xs text-stone-500 mt-1">{t("开启后可像聊天软件一样收到提醒。这些开关只影响提醒;收件箱始终会收到更新信息和 Bug 反馈回复,不受影响。")}</p>
       {!supported && <p className="text-xs text-amber-700 mt-2">{t("当前浏览器不支持消息提醒。")}</p>}
+      {iosNeedsInstall() && <p className="text-xs text-amber-700 mt-2">📲 {t("iPhone / iPad:需先把本网站「添加到主屏幕」,从主屏幕打开后才能收到推送(苹果的限制)。")}</p>}
       {supported && !on && (
         <button className="btn mt-2" onClick={enable} disabled={busy}>{busy ? t("开启中…") : t("开启消息提醒")}</button>
       )}
