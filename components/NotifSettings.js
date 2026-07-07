@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
+import { enablePush } from "@/lib/pushClient";
 
 function urlB64ToUint8(base64) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -22,16 +23,7 @@ export default function NotifSettings() {
   async function enable() {
     if (!supported) return;
     setBusy(true);
-    try {
-      const p = await Notification.requestPermission(); setPerm(p);
-      if (p !== "granted") { setBusy(false); return; }
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-      const d = data || (await fetch("/api/push").then((r) => r.json()));
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(d.vapidPublicKey) });
-      await fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscription: sub.toJSON() }) });
-      setData((x) => ({ ...(x || d), subscribed: true }));
-    } catch (e) { /* ignore */ }
+    try { const r = await enablePush(); setPerm(typeof Notification !== "undefined" ? Notification.permission : "default"); if (r.ok) setData((x) => ({ ...(x || {}), subscribed: true })); } catch {}
     setBusy(false);
   }
 

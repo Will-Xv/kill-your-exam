@@ -3,6 +3,7 @@ import { usePathname } from "next/navigation";
 import Nav from "@/components/Nav";
 import FeedbackButton from "@/components/FeedbackButton";
 import TauntWatcher from "@/components/TauntWatcher";
+import NotifPrompt from "@/components/NotifPrompt";
 
 // 营销/登录类公开页不套应用外壳(无导航、无反馈按钮、不限宽,全屏铺满)
 const BARE = ["/login", "/welcome", "/privacy"];
@@ -17,6 +18,7 @@ export default function AppShell({ children }) {
       <Nav />
       {path !== "/chat" && <FeedbackButton />}
       <TauntWatcher />
+      <NotifPrompt />
     </>
   );
 }
