@@ -7,7 +7,7 @@ import { useT } from "@/components/I18n";
 export default function FeedbackButton() {
   const t = useT();
   const path = usePathname();
-  if (path === "/feedback" || path === "/login") return null;
+  if (path === "/feedback" || path === "/login" || path.startsWith("/practice") || path.startsWith("/mock")) return null;
   return (
     <Link
       href="/feedback"

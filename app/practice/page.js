@@ -256,7 +256,7 @@ function PracticeInner() {
           <span className="flex items-center gap-2"><button type="button" className="btn-ghost px-2 py-0.5 text-xs" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button><span className="badge-model">🤖 {t("AI出题")}</span></span>
         </div>
         <PerformTask key={q.id} q={q} onNext={next} />
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-2">
           <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
           <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
         </div>
