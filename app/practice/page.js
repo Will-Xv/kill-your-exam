@@ -200,9 +200,19 @@ function PracticeInner() {
     } catch {}
     setReportOpen(false); setReportNote(""); setReportBusy(false);
   }
+  async function collectDiag() {
+    try {
+      const n = navigator; let mic = "unknown";
+      try { if (n.permissions?.query) { const p = await n.permissions.query({ name: "microphone" }); mic = p.state; } } catch {}
+      return { ua: n.userAgent, platform: n.platform, lang: n.language, screen: `${window.screen?.width}x${window.screen?.height} @${window.devicePixelRatio || 1}`,
+        mediaSupported: !!(n.mediaDevices && n.mediaDevices.getUserMedia), micPermission: mic, secure: window.isSecureContext,
+        inApp: /MicroMessenger|QQ\/|Weibo|Quark|UCBrowser/i.test(n.userAgent), path: location.pathname, ts: new Date().toISOString() };
+    } catch { return null; }
+  }
   async function submitBug() {
     setBugBusy(true);
     try {
+      const diag = await collectDiag();
       const uploads = q.qtype === "short" ? await filesToAttachments(aFiles) : [];
       let handImage = hands[q.id] || null;
       try { if (!handImage && padRef.current) { const h = padRef.current.getImage(); if (h) handImage = `data:${h.mime || "image/png"};base64,${h.data}`; } } catch {}
@@ -210,7 +220,7 @@ function PracticeInner() {
       try { if (!draftImage && draftRef.current) { const h = draftRef.current.getImage(); if (h) draftImage = `data:${h.mime || "image/png"};base64,${h.data}`; } } catch {}
       const userAnswer = (q.qtype === "fill" || q.qtype === "short") ? text : [...sel].sort().join("");
       const grade = result ? { correct: result.correct, score: result.score, feedback: result.feedback } : null;
-      await aiFetch("/api/bug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userNote: bugNote, context: { userAnswer, selected: sel, grade, discuss, draftImage, handImage, uploads } }) });
+      await aiFetch("/api/bug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userNote: bugNote, context: { userAnswer, selected: sel, grade, discuss, draftImage, handImage, uploads, diag } }) });
       setBugDone(true); setBugNote("");
     } catch {}
     setBugBusy(false);

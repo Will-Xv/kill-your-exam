@@ -24,12 +24,23 @@ function BugCard({ b, t, reload }) {
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${b.deletedAt ? "bg-stone-200 text-stone-500" : b.status === "done" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>{b.deletedAt ? t("已删除") : b.status === "done" ? t("已完成") : t("待处理")}</span>
       </div>
-      <button className="btn-ghost text-xs mt-2" onClick={() => setOpen((v) => !v)}>{open ? t("收起详情") : t("查看完整题目与作答")}</button>
+      <div className="flex flex-wrap gap-2 items-center mt-2"><button className="btn-ghost text-xs" onClick={() => setOpen((v) => !v)}>{open ? t("收起详情") : t("查看完整题目与作答")}</button><a className="btn-ghost text-xs" href={`/dev?q=${b.questionId}`}>🔧 {t("在开发者工具里修这道题")}</a></div>
       {open && (
         <div className="mt-2 space-y-2 text-sm border-t border-stone-100 pt-2">
           {!!(s.options || []).length && <div>{s.options.map((o, i) => <div key={i} className="text-stone-600">{"ABCDEF"[i]}. <MD inline>{o}</MD></div>)}</div>}
-          {s.perform && <p className="text-stone-600">🎭 {s.perform.captureType} · {t("配乐id")}:{s.perform.mediaMaterialId || 0} · {s.perform.analyzeAudio} · rubric: {(s.perform.rubric || []).join(" | ")}<br/>{s.perform.instructions}</p>}
-          {s.audioId ? <p className="text-stone-500">🎧 audioId: {s.audioId}</p> : null}
+          {s.perform && <p className="text-stone-600">🎭 {t("作答方式")}:{s.perform.captureType === "video" ? t("录像") : t("录音")} · {s.perform.analyzeAudio} · rubric: {(s.perform.rubric || []).join(" | ")}<br/>{s.perform.instructions}</p>}
+          {s.perform?.mediaMaterialId ? <div><p className="text-xs text-stone-500">🎵 {t("题目给定音乐(用户听到的)")}</p><audio controls preload="metadata" className="w-full" src={`/api/admin/bug-media?bug=${b.id}&mid=${s.perform.mediaMaterialId}`} /></div> : null}
+          {s.audioId ? <div><p className="text-xs text-stone-500">🎧 {t("题目音频(用户听到的)")}</p><audio controls preload="metadata" className="w-full" src={`/api/admin/bug-media?bug=${b.id}&mid=${s.audioId}`} /></div> : null}
+          {!!(s.examMedia || []).length && (
+            <div>
+              <p className="text-xs text-stone-500 mb-1">🖼️ {t("这门考试的图片/音频素材(题目可能用到)")}</p>
+              <div className="space-y-1">
+                {s.examMedia.map((m) => m.kind === "image"
+                  ? <div key={m.id}><p className="text-[11px] text-stone-400">{m.filename}</p><img src={`/api/admin/bug-media?bug=${b.id}&mid=${m.id}`} alt={m.filename} className="max-h-48 rounded border border-stone-200 bg-white" /></div>
+                  : <div key={m.id}><p className="text-[11px] text-stone-400">🎧 {m.filename}</p><audio controls preload="none" className="w-full" src={`/api/admin/bug-media?bug=${b.id}&mid=${m.id}`} /></div>)}
+              </div>
+            </div>
+          )}
           <p><b>{t("参考答案:")}</b><MD inline>{s.answer || ""}</MD></p>
           {s.explanation && <p className="text-stone-600"><b>{t("解析:")}</b><MD inline>{s.explanation}</MD></p>}
           <div className="rounded-lg bg-slate-50 p-2">
@@ -40,6 +51,14 @@ function BugCard({ b, t, reload }) {
           </div>
           {imgs.map((a) => <div key={a.i}><p className="text-xs text-stone-500">{a.name}</p><img src={`/api/admin/bug-att?bug=${b.id}&i=${a.i}`} alt={a.name} className="w-full rounded-lg border border-stone-200 bg-white" /></div>)}
           {files.map((a) => <a key={a.i} href={`/api/admin/bug-att?bug=${b.id}&i=${a.i}`} target="_blank" rel="noreferrer" className="block text-xs text-amber-700 underline">📎 {a.name}</a>)}
+          {s.diag && (
+            <div className="rounded-lg bg-amber-50 p-2 text-xs text-stone-600">
+              <p className="text-stone-500 mb-1">🩺 {t("环境诊断")}</p>
+              <p>{t("麦克风权限")}: <b>{s.diag.micPermission}</b> · {t("支持录音")}: {String(s.diag.mediaSupported)} · {t("安全上下文")}: {String(s.diag.secure)}{s.diag.inApp ? " · ⚠️ " + t("内置浏览器(微信/QQ等,常不支持录音)") : ""}</p>
+              <p className="break-all">{s.diag.screen} · {s.diag.platform} · {s.diag.lang}</p>
+              <p className="break-all text-stone-400">{s.diag.ua}</p>
+            </div>
+          )}
           {!!(s.discuss || []).length && (
             <div className="rounded-lg bg-slate-50 p-2">
               <p className="text-stone-500 text-xs mb-1">💬 {t("追问/争论记录")}</p>

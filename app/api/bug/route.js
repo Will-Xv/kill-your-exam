@@ -16,6 +16,8 @@ export async function POST(req) {
     if (!q || !exam || q.exam_id !== exam.id) return forbidden();
     const body = JSON.parse(q.body); let ans = {}; try { ans = JSON.parse(q.answer); } catch {}
     const c = context || {};
+    let examMedia = [];
+    try { examMedia = db.prepare("SELECT id, filename, kind, mime FROM materials WHERE exam_id=? AND kind IN ('image','audio') AND status='ready' ORDER BY id DESC LIMIT 10").all(exam.id).map((m) => ({ id: m.id, filename: m.filename, kind: m.kind, mime: m.mime })); } catch {}
 
     // 图片/文件类附件另存磁盘(草稿、手写、上传)
     const atts = [];
@@ -34,6 +36,8 @@ export async function POST(req) {
       grade: c.grade || null,               // { correct, score, feedback }
       discuss: Array.isArray(c.discuss) ? c.discuss : [],
       attMeta: atts.map((a) => ({ name: a.name, mime: a.mime })),
+      diag: c.diag || null,
+      examMedia,
       examName: exam.name,
     };
 
