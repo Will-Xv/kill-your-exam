@@ -65,6 +65,18 @@ export async function POST(req) {
     const perfExam = exam.exam_type === "performance";
     const perfOn = performOnly || perfExam;
 
+    // 封闭题库:该考试只从用户提供的题库(origin='fixed')出题,绝不生成新题(练习也严格锁定在这些题里)
+    if (exam.closed_bank) {
+      const notAns = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 AND origin='fixed' ${perfOn ? "AND qtype='perform'" : ""} ${excl.length ? "AND id NOT IN (" + excl.join(",") + ")" : ""} AND id NOT IN (SELECT question_id FROM attempts) ORDER BY RANDOM() LIMIT ?`).all(exam.id, count);
+      let res = [...notAns];
+      if (res.length < count) {
+        const exclIds = [...excl, ...res.map((q) => q.id), 0];
+        const more = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 AND origin='fixed' ${perfOn ? "AND qtype='perform'" : ""} AND id NOT IN (${exclIds.join(",")}) ORDER BY RANDOM() LIMIT ?`).all(exam.id, count - res.length);
+        res = res.concat(more);
+      }
+      return Response.json({ questions: res.slice(0, count).map(pub), closedBank: true, _via: (_log("closed"), "closed"), _ms: Date.now() - _t0 });
+    }
+
     const results = [];
     // 1) 题库复用(未答过的)
     if (reuse) {

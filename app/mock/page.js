@@ -147,6 +147,8 @@ export default function Mock() {
   useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, score, results]); // eslint-disable-line
   const [bpPeek, setBpPeek] = useState(null);
   useEffect(() => { fetch("/api/mock/blueprint?peek=1").then((r) => r.json()).then((d) => setBpPeek(d.blueprint || null)).catch(() => {}); }, []);
+  const [bank, setBank] = useState(null);
+  useEffect(() => { fetch("/api/mock/bank").then((r) => r.json()).then((d) => setBank(d)).catch(() => {}); }, []);
   function scheduleAttSave() {
     if (!hydrated.current) return;
     clearTimeout(saveTimer.current);
@@ -195,6 +197,11 @@ function stripLabel(op, i) {
       ) : (
         <p className="text-stone-500">{t("按考试蓝图组卷,一次做完再看结果,更接近真实考试。")}</p>
       )}
+      {bank && bank.closedBank ? (
+        <p className="text-sm text-amber-700">🔒 {t("封闭题库:只从你提供的 {n} 道题里出题(练习也一样)。").replace("{n}", (bank.questions || []).length)}</p>
+      ) : bank && (bank.questions || []).some((q) => q.must) ? (
+        <p className="text-sm text-amber-700">📌 {t("有 {n} 道必考原题每次必出。").replace("{n}", (bank.questions || []).filter((q) => q.must).length)}</p>
+      ) : null}
       <div className="flex flex-col gap-2 items-center">
         <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
         <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用你提供的资料组卷)")}</button>

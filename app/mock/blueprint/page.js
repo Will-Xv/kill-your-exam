@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import SourceBadge from "@/components/SourceBadge";
+import QuestionBank from "@/components/QuestionBank";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 
@@ -61,6 +62,7 @@ export default function Blueprint() {
         </>
       )}
 
+      <QuestionBank t={t} />
       <div className="card">
         <h2 className="font-bold mb-2">{t("让 AI 调整蓝图")}</h2>
         <textarea className="input" rows={2} placeholder={t("例如:多考简答、总分改成 150、重点考第三章、加上听力…")} value={instr} onChange={(e) => setInstr(e.target.value)} />
