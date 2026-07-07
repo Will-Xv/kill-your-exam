@@ -24,7 +24,7 @@ export default function Leaderboard() {
 
   return (
     <div className="relative overflow-hidden rounded-3xl p-4 shadow-lg ring-1 ring-amber-900/10 text-white"
-      style={{ backgroundColor: "#7a3b12", backgroundImage: "linear-gradient(135deg, rgba(90,40,10,.72), rgba(40,20,8,.82)), url('/taunts/leaderboard-bg.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      style={{ backgroundColor: "#7a3b12", backgroundImage: "linear-gradient(135deg, rgba(90,40,10,.72), rgba(40,20,8,.82)), url('/taunts/leaderboard-bg.png')", backgroundSize: "cover, auto 100%", backgroundRepeat: "no-repeat, repeat-x", backgroundPosition: "center, center" }}>
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-black tracking-tight">🏆 {t("排行榜")}</h2>
         <div className="flex gap-1 text-xs">
