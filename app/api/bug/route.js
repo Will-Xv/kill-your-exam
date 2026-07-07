@@ -1,6 +1,8 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { saveBugAtt } from "@/lib/files";
+import { sendLetter } from "@/lib/inbox";
+import { notifyUser } from "@/lib/notify";
 import { aiErrorResponse } from "@/lib/errors";
 
 // 用户点「反馈bug」(题目设计/功能问题,如无法录音、题目与选项乱套)。
@@ -38,6 +40,19 @@ export async function POST(req) {
     const ins = db.prepare("INSERT INTO bug_reports(exam_id,user_id,username,question_id,qtype,snapshot,user_note,status) VALUES(?,?,?,?,?,?,?, 'open')")
       .run(exam.id, user.id, user.username, questionId, q.qtype, JSON.stringify(snapshot), (userNote || "").slice(0, 2000));
     if (atts.length) { try { saveBugAtt(ins.lastInsertRowid, atts); } catch {} }
+
+    // 通知所有管理员/开发者:有新 bug(进收件箱 + 按各自设置发消息提醒)
+    try {
+      const staff = db.prepare("SELECT id FROM users WHERE (is_admin=1 OR is_developer=1) AND deleted_at IS NULL AND id != ?").all(user.id);
+      const stem = (snapshot.stem || "").slice(0, 60);
+      const title = "🐞 新 Bug 反馈";
+      const body = `来自 ${user.username} · ${exam.name}\n题目(${q.qtype}):${stem}${(snapshot.stem || "").length > 60 ? "…" : ""}${(userNote || "").trim() ? "\n用户说:" + userNote.trim().slice(0, 200) : ""}\n\n到导航「🐞 Bug 反馈」查看完整信息(题目/作答/草稿/追问)并处理。`;
+      for (const su of staff) {
+        try { sendLetter(su.id, { title, body, key: `newbug-${ins.lastInsertRowid}-${su.id}` }); } catch {}
+        notifyUser(su.id, "bugfeedback", { title, body: `${user.username}: ${stem}`, url: "/bugs" }).catch(() => {});
+      }
+    } catch {}
+
     return Response.json({ ok: true, id: ins.lastInsertRowid });
   } catch (e) { return aiErrorResponse(e); }
 }
