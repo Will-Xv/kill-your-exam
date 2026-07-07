@@ -2,10 +2,14 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
+import { WHATS_NEW, GUIDE_VERSION } from "@/lib/guide";
 
 export default function Inbox() {
   const t = useT();
   const [items, setItems] = useState(null);
+  const letterBody = (it) => it.lkey === `update-v${GUIDE_VERSION}`
+    ? WHATS_NEW.map((w) => `**${w.icon} ${t(w.title)}**\n${t(w.body)}`).join("\n\n")
+    : t(it.body);
   const [open, setOpen] = useState({});
 
   async function load() {
@@ -45,7 +49,7 @@ export default function Inbox() {
             </div>
             {open[it.id] && (
               <div className="mt-3 border-t border-stone-100 pt-3 text-sm">
-                <MD>{t(it.body)}</MD>
+                <MD>{letterBody(it)}</MD>
                 {it.att_kind === "devrec" && (
                   <div className="mt-3">
                     <p className="text-xs text-stone-500 mb-1">🎬 {t("开发者示范作答")}</p>
