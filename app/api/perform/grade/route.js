@@ -3,7 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, uploadMedia, deleteMedia } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveRec, readMat, saveBugDevRec } from "@/lib/files";
-import { hasFfmpeg, detectBeats, transcodeToMp3 } from "@/lib/media";
+import { hasFfmpeg, detectBeats, transcodeToMp3, transcodeToMp4 } from "@/lib/media";
 
 export const maxDuration = 300;
 const B64 = (b) => b.toString("base64");
@@ -42,7 +42,11 @@ export async function POST(req) {
     const parts = [];
     // 录像:走 File API(无 20MB 限制),并请求 5fps 采样
     if (isVideo) {
-      const up = await uploadMedia(buffer, recMime, "webm");
+      // MediaRecorder 产出 video/webm(VP9),Gemini File API 常处理失败(file not active: FAILED)。
+      // 先用 ffmpeg 转成 mp4(H.264,最稳)再上传;转码不可用时回退原始 webm(去掉 codecs 参数)。
+      let vBuf = buffer, vMime = (recMime || "video/webm").split(";")[0], vExt = "webm";
+      if (hasFfmpeg()) { const mp4 = transcodeToMp4(buffer); if (mp4 && mp4.length) { vBuf = mp4; vMime = "video/mp4"; vExt = "mp4"; } }
+      const up = await uploadMedia(vBuf, vMime, vExt);
       uploaded.push(up.name);
       parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType }, videoMetadata: { fps: 5 } });
     } else {
