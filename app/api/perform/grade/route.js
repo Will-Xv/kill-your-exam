@@ -3,7 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, uploadMedia, deleteMedia } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveRec, readMat, saveBugDevRec } from "@/lib/files";
-import { hasFfmpeg, detectBeats } from "@/lib/media";
+import { hasFfmpeg, detectBeats, transcodeToMp3 } from "@/lib/media";
 
 export const maxDuration = 300;
 const B64 = (b) => b.toString("base64");
@@ -46,9 +46,13 @@ export async function POST(req) {
       uploaded.push(up.name);
       parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType }, videoMetadata: { fps: 5 } });
     } else {
-      // 录音:小则内联,大则 File API
-      if (buffer.length <= 18 * 1024 * 1024) parts.push({ inlineData: { mimeType: recMime, data: B64(buffer) } });
-      else { const up = await uploadMedia(buffer, recMime, "webm"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
+      // 录音:MediaRecorder 产出的是 audio/webm(Opus),Gemini【不支持内联 webm 音频】,
+      // 所以先用 ffmpeg 转成 mp3(受支持)再送;转码不可用时回退 File API。
+      let aBuf = buffer, aMime = recMime;
+      const supported = /(^|\/)(wav|mpeg|mp3|aac|flac|ogg)(;|$|\+)/i.test(recMime);
+      if (!supported && hasFfmpeg()) { const mp3 = transcodeToMp3(buffer); if (mp3 && mp3.length) { aBuf = mp3; aMime = "audio/mp3"; } }
+      if (aBuf.length <= 18 * 1024 * 1024) parts.push({ inlineData: { mimeType: aMime, data: B64(aBuf) } });
+      else { const up = await uploadMedia(aBuf, aMime, aMime.includes("mp3") ? "mp3" : "webm"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
     }
     // 干净原曲 + 节拍(舞蹈类对齐用)
     let beatInfo = "";
@@ -76,7 +80,9 @@ export async function POST(req) {
 
     const schema = { type: "object", properties: { score: { type: "integer" }, feedback: { type: "string" } }, required: ["score", "feedback"] };
     const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...parts] }], jsonSchema: schema });
-    const g = JSON.parse(res.text);
+    if (!res.text || !res.text.trim()) { const fr = res.candidates?.[0]?.finishReason || "empty"; throw new Error("模型没有返回评分内容(" + fr + "),可能是录制内容无法识别或被安全策略拦截,请重录后再试"); }
+    let g; try { g = JSON.parse(res.text); } catch { const m = String(res.text).match(/\{[\s\S]*\}/); if (m) { try { g = JSON.parse(m[0]); } catch {} } }
+    if (!g || typeof g.score === "undefined") throw new Error("评分结果解析失败:" + String(res.text).slice(0, 160));
     const score = Math.max(0, Math.min(100, g.score || 0));
     if (devBugId) {
       try { saveBugDevRec(devBugId, buffer); } catch {}
