@@ -58,7 +58,7 @@ export async function POST(req) {
           const ns = out.newScore != null ? out.newScore : (nc ? 100 : 0);
           const fb = out.newFeedback || ("【讨论后修订】" + (out.reviseReason || ""));
           db.prepare("UPDATE attempts SET correct=?, score=?, feedback=? WHERE id=?").run(nc, ns, fb, attemptId);
-          applied.revised = true; applied.newScore = ns; applied.reason = out.reviseReason; applied.newFeedback = fb;
+          applied.revised = true; applied.newScore = ns; applied.newCorrect = !!nc; applied.reason = out.reviseReason; applied.newFeedback = fb;
         } else if (out.newFeedback && out.newFeedback.trim()) {
           db.prepare("UPDATE attempts SET feedback=? WHERE id=?").run(out.newFeedback.trim(), attemptId);
           applied.newFeedback = out.newFeedback.trim();

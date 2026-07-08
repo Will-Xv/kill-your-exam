@@ -179,7 +179,12 @@ function PracticeInner() {
         const d = await aiFetch("/api/questions/discuss/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, attemptId: result?.attemptId, history: discuss }) });
         const mn = fmtMastery(d.applied?.masteryUpdates);
         setResult((r) => ({ ...r,
-          ...(d.applied?.revised ? { revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")) } : {}),
+          ...(d.applied?.revised ? {
+            correct: d.applied.newCorrect,
+            score: d.applied.newScore,
+            feedback: d.applied.newFeedback || r.feedback,
+            revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")),
+          } : {}),
           ...(mn ? { masteryNote: mn } : {}) }));
       } catch {}
     }
