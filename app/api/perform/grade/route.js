@@ -3,7 +3,10 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, uploadMedia, deleteMedia } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveRec, readMat, saveBugDevRec } from "@/lib/files";
-import { hasFfmpeg, detectBeats, transcodeToMp3, transcodeToMp4 } from "@/lib/media";
+import { hasFfmpeg, detectBeats, extractFrames, extractAudio, transcodeToMp3, transcodeToMp4 } from "@/lib/media";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 export const maxDuration = 300;
 const B64 = (b) => b.toString("base64");
@@ -37,44 +40,63 @@ export async function POST(req) {
   const recMime = file.type || (isVideo ? "video/webm" : "audio/webm");
   const analyzeAudio = body.analyzeAudio || (isVideo && body.mediaMaterialId ? "music" : "recorded");
 
-  const uploaded = []; // File API 文件名,用完删
+  const uploaded = []; // File API 文件名,用完删(仅在过大兜底时用)
+  let tmp = null;
   try {
+    const BUDGET = 18 * 1024 * 1024;
     const parts = [];
-    // 录像:走 File API(无 20MB 限制),并请求 5fps 采样
-    if (isVideo) {
-      // MediaRecorder 产出 video/webm(VP9),Gemini File API 常处理失败(file not active: FAILED)。
-      // 先用 ffmpeg 转成 mp4(H.264,最稳)再上传;转码不可用时回退原始 webm(去掉 codecs 参数)。
-      let vBuf = buffer, vMime = (recMime || "video/webm").split(";")[0], vExt = "webm";
-      if (hasFfmpeg()) { const mp4 = transcodeToMp4(buffer); if (mp4 && mp4.length) { vBuf = mp4; vMime = "video/mp4"; vExt = "mp4"; } }
-      const up = await uploadMedia(vBuf, vMime, vExt);
-      uploaded.push(up.name);
-      parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType }, videoMetadata: { fps: 5 } });
-    } else {
-      // 录音:MediaRecorder 产出的是 audio/webm(Opus),Gemini【不支持内联 webm 音频】,
-      // 所以先用 ffmpeg 转成 mp3(受支持)再送;转码不可用时回退 File API。
-      let aBuf = buffer, aMime = recMime;
-      const supported = /(^|\/)(wav|mpeg|mp3|aac|flac|ogg)(;|$|\+)/i.test(recMime);
-      if (!supported && hasFfmpeg()) { const mp3 = transcodeToMp3(buffer); if (mp3 && mp3.length) { aBuf = mp3; aMime = "audio/mp3"; } }
-      if (aBuf.length <= 18 * 1024 * 1024) parts.push({ inlineData: { mimeType: aMime, data: B64(aBuf) } });
-      else { const up = await uploadMedia(aBuf, aMime, aMime.includes("mp3") ? "mp3" : "webm"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
+    let used = 0;
+    const pushInline = (mimeType, buf) => { if (!buf || used + buf.length > BUDGET) return false; parts.push({ inlineData: { mimeType, data: B64(buf) } }); used += buf.length; return true; };
+
+    // ---- 录像:抽 5fps / 720p 帧(JPEG + 时间戳)发给 Gemini。
+    // 【不】把整段 webm 交给 Gemini(它对 webm/VP9 常处理失败:file not active: FAILED)。----
+    let framesSent = 0;
+    if (isVideo && hasFfmpeg()) {
+      tmp = path.join(os.tmpdir(), `rec-${Date.now()}-${Math.random().toString(36).slice(2)}.webm`);
+      fs.writeFileSync(tmp, buffer);
+      const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: 150 });
+      for (const fr of frames) {
+        if (used + fr.jpeg.length > BUDGET - 4 * 1024 * 1024) break; // 给音频留 4MB
+        parts.push({ text: `【${fr.t}s】` });
+        parts.push({ inlineData: { mimeType: "image/jpeg", data: B64(fr.jpeg) } });
+        used += fr.jpeg.length; framesSent++;
+      }
     }
-    // 干净原曲 + 节拍(舞蹈类对齐用)
+
+    // ---- 给定音乐原曲(干净)+ 节拍(舞蹈类对齐用)----
     let beatInfo = "";
     if (body.mediaMaterialId && (analyzeAudio === "music" || analyzeAudio === "both")) {
       const m = db.prepare("SELECT mime FROM materials WHERE id=?").get(body.mediaMaterialId);
       const mbuf = readMat(body.mediaMaterialId);
       if (mbuf) {
         if (hasFfmpeg()) { const bt = detectBeats(mbuf); if (bt) beatInfo = `所给音乐估算 BPM≈${bt.bpm ?? "?"};重拍大约在(秒):${bt.beats.join(", ")}。`; }
-        if (mbuf.length <= 15 * 1024 * 1024) parts.push({ inlineData: { mimeType: m?.mime || "audio/mpeg", data: B64(mbuf) } });
-        else { const up = await uploadMedia(mbuf, m?.mime || "audio/mpeg", "mp3"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
+        if (!pushInline(m?.mime || "audio/mpeg", mbuf) && mbuf.length > BUDGET) { const up = await uploadMedia(mbuf, m?.mime || "audio/mpeg", "mp3"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
       }
     }
 
+    // ---- 录进去的人声:视频→抽音轨(mp4/aac,Gemini 受支持);纯录音→webm 不被内联接受,转 mp3 ----
+    if (analyzeAudio === "recorded" || analyzeAudio === "both") {
+      if (isVideo && hasFfmpeg() && tmp) { const a = extractAudio(tmp); if (a) pushInline("audio/mp4", a); }
+      else if (!isVideo) {
+        let ab = buffer, am = recMime;
+        const supported = /(wav|mpeg|mp3|aac|flac|ogg)/i.test(recMime);
+        if (!supported && hasFfmpeg()) { const mp3 = transcodeToMp3(buffer); if (mp3 && mp3.length) { ab = mp3; am = "audio/mp3"; } }
+        else if (supported) am = recMime.split(";")[0];
+        if (!pushInline(am, ab) && ab.length > BUDGET) { const up = await uploadMedia(ab, am, am.includes("mp3") ? "mp3" : "webm"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
+      }
+    }
+
+    // 录像没抽到帧(无 ffmpeg 或抽帧失败)→ 兜底:整段转 mp4 走 File API
+    if (isVideo && framesSent === 0) {
+      if (hasFfmpeg()) { const mp4 = transcodeToMp4(buffer); if (mp4 && mp4.length) { const up = await uploadMedia(mp4, "video/mp4", "mp4"); uploaded.push(up.name); parts.unshift({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType }, videoMetadata: { fps: 5 } }); } }
+      if (!parts.some((p) => p.fileData || p.inlineData)) return Response.json({ error: "服务器暂时无法处理这段录像,请缩短时长或降清晰度后重录。" }, { status: 400 });
+    }
+
     const howAnalyzed = isVideo
-      ? ("你的整段录像(按每秒 5 帧采样、自带时间戳)" + (analyzeAudio === "music" ? " + 所给音乐原曲(干净)" : analyzeAudio === "both" ? " + 所给音乐原曲 + 录像里的声音" : "(含录像里的声音)"))
+      ? (framesSent ? `按每秒 5 帧、720P 截取的 ${framesSent} 张画面(每张前标了时间戳)` : "整段录像(按每秒 5 帧采样)") + (analyzeAudio === "music" ? " + 所给音乐原曲" : analyzeAudio === "both" ? " + 所给音乐原曲 + 录进去的声音" : " + 录进去的声音")
       : "你的录音";
     const gradePrompt = `你是这门表演/技能类考试的评委。\n命题:${body.stem}\n评分维度:${rubric.join("、") || "综合表现"}\n${ans.notes ? "评分/示范要点:" + ans.notes + "\n" : ""}` +
-      `【材料】${howAnalyzed}。${isVideo ? "视频按时间顺序、每秒 5 帧;音乐与录制同一时刻(0 秒)开始,请据此判断动作是否踩上音乐/节拍。" : ""}${beatInfo ? "（" + beatInfo + "）" : ""}\n` +
+      `【材料】${howAnalyzed}。${isVideo && framesSent ? "画面帧按时间先后排列、每张前标了【x秒】时间戳;" : ""}${isVideo ? "音乐与录制从同一时刻(0 秒)开始,请据此判断动作是否踩上音乐/节拍。" : ""}${beatInfo ? "（" + beatInfo + "）" : ""}\n` +
       `【评分要求 · 从严、诚实,别一味鼓励】\n` +
       `- 先核对是否达到命题要求:时长够不够、是不是真的在按命题表演、规定内容有没有完成。时长严重不足(如只做了十几秒)、敷衍乱做、胡乱抡动、跑题、全程无有效动作或内容,一律算"未完成",综合分只能给 0~35。\n` +
       `- 要分清【笑场】和【符合情境的微笑/表情】:笑场=出戏、控制不住地笑、和角色/情境不符、把表演演崩了 —— 这是大忌,必须指出并扣分;但如果是贴合情境、有意为之、有感染力的微笑或笑容(是面部表演的一部分),那属于【表现力,应当肯定甚至加分】,别误判成笑场。看镜头发呆、明显糊弄仍要扣分。\n` +
@@ -103,6 +125,7 @@ export async function POST(req) {
     console.error("[perform/grade] error:", e?.message || e, e?.stack || "");
     return Response.json({ error: CONTACT, detail: String(e?.message || e).slice(0, 400) }, { status: 500 });
   } finally {
+    try { if (tmp) fs.rmSync(tmp, { force: true }); } catch {}
     for (const n of uploaded) { try { await deleteMedia(n); } catch {} }
   }
 }
