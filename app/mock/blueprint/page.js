@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
-import SourceBadge from "@/components/SourceBadge";
+import SourceConfidence from "@/components/SourceConfidence";
 import QuestionBank from "@/components/QuestionBank";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
@@ -45,7 +45,7 @@ export default function Blueprint() {
             )}
             <div className="mt-3 border-t border-stone-100 pt-2">
               <p className="text-xs font-medium text-stone-500 mb-1">{t("题量与考试结构的依据")}</p>
-              <SourceBadge level={bp.sourceLevel} note={bp.sourceNote} t={t} />
+              <SourceConfidence level={bp.sourceLevel} note={bp.sourceNote} t={t} />
             </div>
           </div>
           <div className="card">

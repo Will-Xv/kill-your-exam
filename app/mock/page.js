@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
-import SourceBadge from "@/components/SourceBadge";
+import SourceConfidence from "@/components/SourceConfidence";
 import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import HandwritePad from "@/components/HandwritePad";
@@ -201,7 +201,7 @@ function stripLabel(op, i) {
       {bpPeek && bpPeek.totalQuestions ? (
         <div className="text-stone-500 space-y-2">
           <p>{t("本次按「考试蓝图」组卷,共 {n} 道题,一次做完再看结果。").replace("{n}", bpPeek.totalQuestions)}</p>
-          <div className="flex justify-center"><SourceBadge level={bpPeek.sourceLevel} note={bpPeek.sourceNote} t={t} /></div>
+          <div className="flex justify-center"><SourceConfidence level={bpPeek.sourceLevel} note={bpPeek.sourceNote} t={t} /></div>
         </div>
       ) : (
         <p className="text-stone-500">{t("按考试蓝图组卷,一次做完再看结果,更接近真实考试。")}</p>
