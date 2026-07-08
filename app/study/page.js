@@ -15,6 +15,9 @@ function StudyInner() {
   const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
   const [busy, setBusy] = useState(false);
+  const [rbOpen, setRbOpen] = useState(false);
+  const [rbBusy, setRbBusy] = useState(false);
+  const [rbMsg, setRbMsg] = useState("");
 
   const kpParam = useSearchParams().get("kp");
   useEffect(() => {
@@ -42,6 +45,31 @@ function StudyInner() {
     } catch { setCurrent(null); }
     setBusy(false);
   }
+
+  async function rebuild(mode) {
+    setRbBusy(true); setRbMsg(t("重建中…(可能要一会儿,别关页面)"));
+    try {
+      const r = await aiFetch("/api/kp/rebuild", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) });
+      if (r.ok) { setRbMsg(t("重建完成")); setTimeout(() => window.location.reload(), 600); return; }
+      setRbMsg(r.error || "error");
+    } catch { setRbMsg("error"); }
+    setRbBusy(false);
+  }
+  const rebuildModal = rbOpen ? (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4" onClick={() => !rbBusy && setRbOpen(false)}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-bold">🌳 {t("重建知识点树")}</h2>
+        <p className="text-sm text-slate-500 mt-1">{t("重建会重新生成整个知识点树。你已有的做题记录和掌握度怎么处理?")}</p>
+        <div className="mt-3 space-y-2">
+          <button className="btn-ghost w-full text-left text-sm ring-1 ring-slate-200" disabled={rbBusy} onClick={() => rebuild("keep")}>✅ <b>{t("完全保留")}</b> — {t("把旧记录与掌握度按语义迁移到新知识点")}</button>
+          <button className="btn-ghost w-full text-left text-sm ring-1 ring-slate-200" disabled={rbBusy} onClick={() => rebuild("summarize")}>📝 <b>{t("总结后重插")}</b> — {t("把旧表现浓缩成观察挂到新知识点,清掉原始做题记录")}</button>
+          <button className="btn-ghost w-full text-left text-sm ring-1 ring-red-200 text-red-600" disabled={rbBusy} onClick={() => rebuild("none")}>🗑 <b>{t("全部清空")}</b> — {t("清掉做题记录与观察,干净重来(题库保留)")}</button>
+          <button className="btn-ghost w-full text-sm text-slate-500" disabled={rbBusy} onClick={() => setRbOpen(false)}>← {t("取消操作(不重建)")}</button>
+        </div>
+        {rbMsg && <p className="mt-2 text-sm text-amber-700">{rbMsg}</p>}
+      </div>
+    </div>
+  ) : null;
 
   if (!tree) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
   if (!tree.length) return <p className="mt-16 text-center text-stone-400">{t("还没有知识点树,请先完成")}<a href="/onboarding" className="underline">{t("考试设置")}</a>。</p>;
@@ -77,8 +105,12 @@ function StudyInner() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black">{t("学习与掌握度")}</h1>
-        <a href="/practice?fresh=1" className="btn py-2 text-sm">✍️ {t("开始自由练习")}</a>
+        <div className="flex gap-2">
+          <button className="btn-ghost py-2 text-sm ring-1 ring-slate-200" onClick={() => { setRbMsg(""); setRbOpen(true); }}>🌳 {t("重建")}</button>
+          <a href="/practice?fresh=1" className="btn py-2 text-sm">✍️ {t("开始自由练习")}</a>
+        </div>
       </div>
+      {rebuildModal}
       <div className="card flex justify-around text-center text-sm">
         {Object.keys(LVDOT).map((k) => (
           <div key={k}><div className={`mx-auto h-3 w-3 rounded-full ${LVDOT[k]} mb-1`} /><b>{levelCounts[k] || 0}</b> {LVLABEL[k]}</div>
