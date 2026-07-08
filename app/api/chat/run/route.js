@@ -14,5 +14,6 @@ export async function GET(req) {
   if (run.user_id !== user.id) return forbidden();
   let steps = []; try { steps = JSON.parse(run.steps_json || "[]"); } catch {}
   let actions = null; try { actions = run.actions_json ? JSON.parse(run.actions_json) : null; } catch {}
-  return Response.json({ run: { id: run.id, status: run.status, steps, reply: run.reply || null, token: run.token || null, actions } });
+  let plan = null; try { plan = run.plan_json ? JSON.parse(run.plan_json) : null; } catch {}
+  return Response.json({ run: { id: run.id, status: run.status, steps, reply: run.reply || null, token: run.token || null, actions, pendingKind: run.pending_kind || null, plan } });
 }

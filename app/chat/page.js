@@ -13,7 +13,8 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState(null); // { token, actions, approve:{idx:bool} }
+  const [pending, setPending] = useState(null); // { token, kind, plan, actions, approve:{idx:bool} }
+  const [planFeedback, setPlanFeedback] = useState("");
   const [bjobs, setBjobs] = useState([]);
   const [steps, setSteps] = useState([]);
   const pollRef = useRef(null);
@@ -38,7 +39,7 @@ export default function Chat() {
       const run = d.run; if (!run) return;
       setSteps(run.steps || []);
       if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); }
-      else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, actions: run.actions || [], approve }); }
+      else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, kind: run.pendingKind, plan: run.plan, actions: run.actions || [], approve }); }
       else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: "(出错了,请重试)" }]); }
     } catch {}
   }
@@ -55,6 +56,13 @@ export default function Chat() {
     catch { setMessages((m) => m.slice(0, -1)); setInput(text); setBusy(false); }
   }
 
+  async function resolvePlan(action) {
+    if (!pending) return;
+    const p = pending; const fb = planFeedback.trim();
+    setPending(null); setPlanFeedback(""); setBusy(true); setSteps([]);
+    try { const d = await aiFetch("/api/chat/resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: p.token, action, feedback: fb }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
+    catch { setBusy(false); }
+  }
   async function resolvePending(approveAll) {
     if (!pending) return;
     const approvals = {};
@@ -96,7 +104,21 @@ export default function Chat() {
         {bjobs.filter((j) => j.status === "done").slice(0, 1).map((j) => (
           <p key={j.id} className="text-center text-xs text-amber-700">🌐 {t("采集完成")}:{j.goal}({t("共")} {j.collected} {t("页")})</p>
         ))}
-        {pending && (
+        {pending && pending.kind === "plan" && (
+          <div className="card border-amber-300 bg-amber-50/70">
+            <p className="text-sm font-semibold text-amber-900">📋 {t("杀手拟好了执行计划,同意就开始,或说说要改哪里:")}</p>
+            {pending.plan?.summary && <p className="text-sm text-amber-800 mt-1">{pending.plan.summary}</p>}
+            <ol className="mt-2 space-y-1 text-sm list-decimal list-inside">
+              {(pending.plan?.steps || []).map((st, i) => <li key={i}><b>{st.title}</b>{st.detail ? " — " + st.detail : ""}</li>)}
+            </ol>
+            <textarea className="input mt-3" rows={2} value={planFeedback} onChange={(e) => setPlanFeedback(e.target.value)} placeholder={t("想改动的地方(可留空直接同意)…例如:不要删记录、第 2 步和第 3 步对调")} />
+            <div className="mt-2 flex gap-2">
+              <button className="btn flex-1 py-2 text-sm" onClick={() => resolvePlan("approve")}>✅ {t("同意,开始")}</button>
+              <button className="btn-ghost py-2 text-sm" disabled={!planFeedback.trim()} onClick={() => resolvePlan("revise")}>✏️ {t("按意见改计划")}</button>
+            </div>
+          </div>
+        )}
+        {pending && pending.kind !== "plan" && (
           <div className="card border-amber-300 bg-amber-50/70">
             <p className="text-sm font-semibold text-amber-900">🔐 {t("AI 想做以下改动,需要你确认:")}</p>
             <div className="mt-2 space-y-1.5">
