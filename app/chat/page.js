@@ -113,16 +113,35 @@ export default function Chat() {
             </div>
           </div>
         )}
-        {busy && (
-          <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-500">
-            {(() => { const vis = steps.filter((x) => x.kind !== "done"); return vis.length === 0
-              ? <span className="animate-pulse">{t("正在思考(可能需要查资料/改文档,请稍候)…")}</span>
-              : <div className="space-y-1">{vis.slice(-6).map((x, i, a) => (
-                  <div key={i} className={i === a.length - 1 ? "text-slate-700 animate-pulse" : "opacity-50"}>
-                    {x.kind === "think" ? "💭 " + t("思考中…") : x.kind === "tool" ? "🔧 " + x.detail : x.kind === "pending" ? "⏸ " + t("等待你确认…") : x.kind === "error" ? "⚠️ " + t("出错了") : ""}
-                  </div>))}</div>; })()}
-          </div>
-        )}
+        {busy && (() => {
+          let plan = null;
+          const pstep = [...steps].reverse().find((x) => x.kind === "plan");
+          if (pstep) { try { plan = JSON.parse(pstep.detail); } catch {} }
+          const vis = steps.filter((x) => x.kind !== "done" && x.kind !== "plan");
+          const label = (x) => x.kind === "think" ? "💭 " + t("思考中…")
+            : x.kind === "tool" ? "🔧 " + x.detail
+            : x.kind === "result" ? "✅ " + x.detail
+            : x.kind === "pending" ? "⏸ " + t("等待你确认…")
+            : x.kind === "error" ? "⚠️ " + t("出错了") : (x.detail || "");
+          return (
+            <div className="max-w-[90%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-500 space-y-2">
+              {plan && (
+                <div className="rounded-xl bg-amber-50 p-2 ring-1 ring-amber-200">
+                  <p className="text-xs font-bold text-amber-800">📋 {t("执行计划")}</p>
+                  {plan.summary && <p className="text-xs text-amber-700 mt-0.5">{plan.summary}</p>}
+                  <ol className="mt-1 space-y-0.5 text-xs text-slate-600 list-decimal list-inside">
+                    {(plan.steps || []).map((st, i) => <li key={i}><b>{st.title}</b>{st.detail ? " — " + st.detail : ""}</li>)}
+                  </ol>
+                </div>
+              )}
+              {vis.length === 0 && !plan
+                ? <span className="animate-pulse">{t("正在思考(可能需要查资料/改文档,请稍候)…")}</span>
+                : <div className="space-y-1">{vis.slice(-10).map((x, i, a) => (
+                    <div key={i} className={i === a.length - 1 ? "text-slate-700 animate-pulse" : "opacity-60"}>{label(x)}</div>
+                  ))}</div>}
+            </div>
+          );
+        })()}
         <div ref={bottom} />
       </div>
       {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}
