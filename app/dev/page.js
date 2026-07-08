@@ -18,6 +18,7 @@ export default function Dev() {
       <h1 className="text-2xl font-black">🛠️ {t("开发者工具")}</h1>
       <p className="text-xs text-slate-400">{t("这些技术/调试工具只对开发者账号开放,普通用户和纯管理员看不到。")}</p>
       <DevSwitcher t={t} />
+      <a href="/dev/bricks" className="card block hover:brightness-105"><h2 className="font-bold">🧱 {t("砖头实验室")}</h2><p className="text-xs text-slate-400">{t("跨考试管理等可组合小工具,独立于现有功能;在这里测试、发布。")}</p></a>
       <QuestionTool t={t} />
       <div className="card overflow-x-auto">
         <h2 className="font-bold mb-2">{t("所有考试数据量")}</h2>
