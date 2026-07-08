@@ -46,7 +46,7 @@ function PracticeInner() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [gradeErr, setGradeErr] = useState("");
-  const [done, setDone] = useState([]);
+  const [done, setDone] = useState({}); // { [questionId]: correct }
   const [note, setNote] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportNote, setReportNote] = useState("");
@@ -93,7 +93,7 @@ function PracticeInner() {
   // 换一批:优先用已经在后台预取好的那批(秒开);没有再现拉。不清预取,免得白等。
   function reroll() { try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {} loadQuestions(); }
   async function loadQuestions() {
-    setBusy(true); setQuestions([]); setIdx(0); setDone([]); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
+    setBusy(true); setQuestions([]); setIdx(0); setDone({}); setResult(null); setDiscuss(null); setAnswers({}); setDrafts({}); setHands({}); setSel([]); setText(""); setDraftOpen(false);
     // 若有预取好的一批,直接用,零等待
     if (prefetched.current && prefetched.current.questions.length) {
       const b = prefetched.current; prefetched.current = null;
@@ -122,7 +122,7 @@ function PracticeInner() {
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved && Array.isArray(saved.questions) && saved.questions.length && Date.now() - (saved.ts || 0) < 12 * 3600 * 1000) {
-          setQuestions(saved.questions); setIdx(saved.idx || 0); setDone(saved.done || []); setNote(saved.note || "");
+          setQuestions(saved.questions); setIdx(saved.idx || 0); setDone(saved.done && !Array.isArray(saved.done) ? saved.done : {}); setNote(saved.note || "");
           const ans = saved.answers || {}; setAnswers(ans);
           let drf = {}; try { drf = JSON.parse(localStorage.getItem(storeKey + ":drafts") || "{}"); } catch {}
           setDrafts(drf);
@@ -168,7 +168,7 @@ function PracticeInner() {
       if (!dontKnow && !handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
       if (!dontKnow && handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments, dontKnow }) });
-      const mn = fmtMastery(d.masteryUpdates); setResult(mn ? { ...d, masteryNote: mn } : d); setDone((arr) => [...arr, d.correct]);
+      const mn = fmtMastery(d.masteryUpdates); setResult(mn ? { ...d, masteryNote: mn } : d); setDone((m) => ({ ...m, [q.id]: !!d.correct }));
       if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
     } catch (e) { setGradeErr(t("提交失败,请重试(若反复失败,截图发我)。") + " " + (e?.message || "")); }
     setBusy(false);
@@ -186,6 +186,7 @@ function PracticeInner() {
             revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")),
           } : {}),
           ...(mn ? { masteryNote: mn } : {}) }));
+        if (d.applied?.revised) setDone((m) => ({ ...m, [q.id]: !!d.applied.newCorrect }));
       } catch {}
     }
     setDiscuss(null); setDInput("");
@@ -256,11 +257,11 @@ function PracticeInner() {
     : <p className="mt-16 text-center text-slate-400">{note ? note + " " : t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</p>;
 
   if (idx >= questions.length) {
-    const right = done.filter(Boolean).length;
+    const doneVals = Object.values(done); const right = doneVals.filter(Boolean).length;
     return (
       <div className="mt-16 text-center space-y-4">
-        <div className="text-5xl">{right === done.length ? "🎉" : "💪"}</div>
-        <h1 className="text-2xl font-bold">{t("本轮完成:")}{right} / {done.length}</h1>
+        <div className="text-5xl">{right === doneVals.length ? "🎉" : "💪"}</div>
+        <h1 className="text-2xl font-bold">{t("本轮完成:")}{right} / {doneVals.length}</h1>
         <div className="flex gap-2 justify-center">
           <button className="btn" onClick={loadQuestions}>{t("再来一轮")}</button>
           <a className="btn-ghost" href="/mistakes">{t("错题本")}</a>

@@ -67,7 +67,7 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
 }
 
 // 交卷后:每道题的作答回顾(只读)
-function ReviewBlock({ q, t, idx, ua, atts, res, letters }) {
+function ReviewBlock({ q, t, idx, ua, atts, res, letters, onRevised }) {
   const isChoice = ["single", "multi", "judge"].includes(q.qtype);
   const options = q.qtype === "judge" ? ["对", "错"] : q.body.options || [];
   const hand = (atts || []).find((a) => a.name === "handwriting.png");
@@ -100,7 +100,7 @@ function ReviewBlock({ q, t, idx, ua, atts, res, letters }) {
           {res.explanation && <div className="mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{res.explanation}</MD></div>}
         </div>
       )}
-      {res?.attemptId && <Discuss questionId={q.id} attemptId={res.attemptId} userAnswer={ua} />}
+      {res?.attemptId && <Discuss questionId={q.id} attemptId={res.attemptId} userAnswer={ua} onApplied={onRevised} />}
     </div>
   );
 }
@@ -173,6 +173,15 @@ export default function Mock() {
     } catch {}
     setBusy(false);
   }
+  // 争论改判后:权威重算这场模拟考的成绩,刷新显示(并回写到历史记录)
+  async function rescoreMock() {
+    if (!mockId) return;
+    try {
+      const d = await aiFetch("/api/mock/rescore", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId }) });
+      if (d.score) setScore(d.score);
+      if (d.results) setResults(d.results);
+    } catch {}
+  }
   function restart() { idbDel(KEY); attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setStage("intro"); setScore(null); setResults(null); setAnswers({}); setQs([]); }
 
   const letters = ["A", "B", "C", "D", "E", "F"];
@@ -236,7 +245,7 @@ function stripLabel(op, i) {
         )}
         <h2 className="font-bold px-1 pt-2">{t("作答回顾")}</h2>
         {qs.map((q, idx) => (
-          <ReviewBlock key={q.id} q={q} t={t} idx={idx} ua={answers[q.id]} atts={attachRef.current[q.id]} res={resMap[q.id]} letters={letters} />
+          <ReviewBlock key={q.id} q={q} t={t} idx={idx} ua={answers[q.id]} atts={attachRef.current[q.id]} res={resMap[q.id]} letters={letters} onRevised={rescoreMock} />
         ))}
         <div className="flex gap-2 pt-2">
           <button className="btn flex-1" onClick={restart}>{t("再考一次")}</button>

@@ -8,6 +8,8 @@ import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 300;
 
+const DEFAULT_MARKS = { single: 2, multi: 3, judge: 1, fill: 3, short: 10, perform: 20 };
+
 export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
@@ -28,6 +30,7 @@ export async function POST(req) {
       const ua = answers[qid];
       let correct = 0;
       let gradeCross = null;
+      let shortScore = -1;
       if (q.qtype === "short") {
         const ap = attachParts(attachments[qid]);
         const kpList = leafKpList(exam.id);
@@ -46,17 +49,20 @@ export async function POST(req) {
         shortScore = Math.max(0, Math.min(100, g.score || 0)); correct = shortScore >= 60 ? 1 : 0;
         gradeCross = g.crossKp;
       } else correct = norm(ua) === norm(ans.answer) ? 1 : 0;
-      total++; got += correct;
+      const scoreVal = shortScore >= 0 ? shortScore : (correct ? 100 : 0);
+      const qMarks = marksMap[qid] != null ? marksMap[qid] : (DEFAULT_MARKS[q.qtype] ?? 2);
+      const earnedMarks = Math.round(qMarks * (scoreVal / 100) * 10) / 10;
+      const ch = q.kp_id ? (db.prepare("SELECT ch.title FROM knowledge_points kp LEFT JOIN knowledge_points ch ON ch.id=kp.parent_id WHERE kp.id=?").get(q.kp_id)?.title || "其他") : "其他";
+      total++; got += correct; totalMarks += qMarks; gotMarks += earnedMarks;
       const insA = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,mode) VALUES(?,?,?,?,?,?,'exam')")
-        .run(qid, exam.id, q.kp_id, String(ua || ""), correct, correct ? 100 : 0);
+        .run(qid, exam.id, q.kp_id, String(ua || ""), correct, scoreVal);
       const attemptId = insA.lastInsertRowid;
-      results.push({ id: qid, qtype: q.qtype, correct, answer: ans.answer, explanation: ans.explanation || "", attemptId });
+      results.push({ id: qid, qtype: q.qtype, correct, score: scoreVal, marks: qMarks, earned: earnedMarks, chapter: ch, answer: ans.answer, explanation: ans.explanation || "", attemptId });
       if (gradeCross) { try { recordCrossKp(exam.id, qid, gradeCross, q.kp_id); } catch {} }
       const atts = Array.isArray(attachments[qid]) ? attachments[qid] : [];
       if (atts.length) { try { saveMockAtt(attemptId, atts); } catch {} }
       const qbody = JSON.parse(q.body);
-      answersOut.push({ qid, attemptId, qtype: q.qtype, stem: qbody.stem || "", options: qbody.options || [], ua: String(ua || ""), correct, answer: ans.answer, explanation: ans.explanation || "", atts: atts.map((a) => ({ name: a.name, mime: a.mime })) });
-      const ch = q.kp_id ? (db.prepare("SELECT ch.title FROM knowledge_points kp LEFT JOIN knowledge_points ch ON ch.id=kp.parent_id WHERE kp.id=?").get(q.kp_id)?.title || "其他") : "其他";
+      answersOut.push({ qid, attemptId, qtype: q.qtype, stem: qbody.stem || "", options: qbody.options || [], ua: String(ua || ""), correct, score: scoreVal, marks: qMarks, earned: earnedMarks, chapter: ch, answer: ans.answer, explanation: ans.explanation || "", atts: atts.map((a) => ({ name: a.name, mime: a.mime })) });
       byChapter[ch] = byChapter[ch] || { total: 0, got: 0, totalMarks: 0, gotMarks: 0 };
       byChapter[ch].total++; byChapter[ch].got += correct; byChapter[ch].totalMarks += qMarks; byChapter[ch].gotMarks += earnedMarks;
     }

@@ -5,7 +5,7 @@ import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 // 复用的「追问/争论」组件:对某道题和 AI 讨论,结束时提炼进掌握度(含跨知识点)、并在有理时改分。
-export default function Discuss({ questionId, attemptId, userAnswer }) {
+export default function Discuss({ questionId, attemptId, userAnswer, onApplied }) {
   const t = useT();
   const aiFetch = useAiFetch();
   const [open, setOpen] = useState(false);
@@ -43,6 +43,7 @@ export default function Discuss({ questionId, attemptId, userAnswer }) {
         const mn = fmtMastery(d.applied?.masteryUpdates);
         if (mn) parts.push(mn);
         setNote(parts.join(" · "));
+        if (d.applied?.revised) { try { onApplied && onApplied(d.applied); } catch {} }
       } catch {}
       setBusy(false);
     }
