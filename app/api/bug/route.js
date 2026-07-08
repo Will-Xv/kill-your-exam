@@ -16,8 +16,8 @@ export async function POST(req) {
     if (!q || !exam || q.exam_id !== exam.id) return forbidden();
     const body = JSON.parse(q.body); let ans = {}; try { ans = JSON.parse(q.answer); } catch {}
     const c = context || {};
-    let examMedia = [];
-    try { examMedia = db.prepare("SELECT id, filename, kind, mime FROM materials WHERE exam_id=? AND kind IN ('image','audio') AND status='ready' ORDER BY id DESC LIMIT 10").all(exam.id).map((m) => ({ id: m.id, filename: m.filename, kind: m.kind, mime: m.mime })); } catch {}
+    // 只带这道题真正用到的媒体(给定音乐/听力音频在下面单独放),不再转储整门考试的所有音频/图片(会混进大量无关音乐)。
+    const examMedia = [];
 
     // 图片/文件类附件另存磁盘(草稿、手写、上传)
     const atts = [];

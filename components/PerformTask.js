@@ -164,6 +164,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
       let msg = t("点评失败,请重试。");
       try { const j = JSON.parse(e?.message || ""); if (j.detail) msg += " · " + j.detail; } catch { if (e?.message && e.message.length < 220 && e.message !== "ai-error") msg += " · " + e.message; }
       setErr(msg); setPhase("recorded");
+      try { onGraded && onGraded({ error: msg }); } catch {}
     }
   }
 
