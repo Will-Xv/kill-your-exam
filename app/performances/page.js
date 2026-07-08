@@ -48,7 +48,7 @@ export default function Performances() {
             {it.hasRecording
               ? <div className="mt-2"><Replay t={t} videoUrl={`/api/perform/recording?attemptId=${it.attemptId}`} musicUrl={it.musicMaterialId ? `/api/materials/raw?id=${it.musicMaterialId}` : null} /></div>
               : <p className="mt-2 text-xs text-stone-400">{t("(这次的录像已不在了)")}</p>}
-            {it.feedback && <div className="mt-2 text-sm"><MD>{it.feedback}</MD></div>}
+            {it.feedback && <div className="mt-2 text-sm"><MD>{String(it.feedback).replace(/\\r\\n|\\r|\\n/g, "\n")}</MD></div>}
             <div className="mt-2">
               {it.questionExists
                 ? <a href={`/practice?q=${it.questionId}&fresh=1`} className="btn-ghost text-sm py-1.5 px-3">↺ {t("重做这道题")}</a>

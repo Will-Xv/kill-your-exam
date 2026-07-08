@@ -117,16 +117,17 @@ export async function POST(req) {
     let g; try { g = JSON.parse(res.text); } catch { const m = String(res.text).match(/\{[\s\S]*\}/); if (m) { try { g = JSON.parse(m[0]); } catch {} } }
     if (!g || typeof g.score === "undefined") throw new Error("评分结果解析失败:" + String(res.text).slice(0, 160));
     const score = Math.max(0, Math.min(100, g.score || 0));
+    const fb = String(g.feedback || "").replace(/\\r\\n|\\r|\\n/g, "\n"); // 模型偶尔输出字面 \n,转成真换行
     if (devBugId) {
       try { saveBugDevRec(devBugId, buffer); } catch {}
-      try { db.prepare("UPDATE bug_reports SET dev_answer_mime=?, dev_answer_score=?, dev_answer_feedback=? WHERE id=?").run(recMime, score, g.feedback, devBugId); } catch {}
-      return Response.json({ score, feedback: g.feedback, saved: true });
+      try { db.prepare("UPDATE bug_reports SET dev_answer_mime=?, dev_answer_score=?, dev_answer_feedback=? WHERE id=?").run(recMime, score, fb, devBugId); } catch {}
+      return Response.json({ score, feedback: fb, saved: true });
     }
     const musicMat = (analyzeAudio === "music" && body.mediaMaterialId) ? body.mediaMaterialId : null; // 无麦克风的给定音乐题:回放时叠加这首原配乐
     const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id) VALUES(?,?,?,?,?,?,?,?,?,?)")
-      .run(questionId, exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, g.feedback, "practice", body.stem || null, musicMat);
+      .run(questionId, exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat);
     try { saveRec(info.lastInsertRowid, buffer); } catch {}
-    return Response.json({ score, feedback: g.feedback, attemptId: info.lastInsertRowid });
+    return Response.json({ score, feedback: fb, attemptId: info.lastInsertRowid });
   } catch (e) {
     if (e?.isAiError) return aiErrorResponse(e);
     console.error("[perform/grade] error:", e?.message || e, e?.stack || "");

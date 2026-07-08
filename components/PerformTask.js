@@ -238,7 +238,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
       {phase === "graded" && result && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-3">
           <p className="font-bold">{result.dontKnow ? "🤷 " + t("不会做 · 参考要点") : result.score + " " + t("分")}</p>
-          <div className="text-sm mt-1"><MD>{result.feedback}</MD></div>
+          <div className="text-sm mt-1"><MD>{String(result.feedback || "").replace(/\\r\\n|\\r|\\n/g, "\n")}</MD></div>
         </div>
       )}
 

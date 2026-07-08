@@ -88,7 +88,7 @@ function BugCard({ b, t, reload }) {
                 <div className="mt-2 rounded-lg bg-white p-2 ring-1 ring-stone-200">
                   <p className="text-xs text-stone-500 mb-1">✅ {t("已保存的示范作答")} · {b.devAnswer.score}{t("分")}</p>
                   {(b.devAnswer.mime || "").startsWith("video") ? <video controls preload="metadata" className="w-full rounded-lg border border-stone-200 bg-black" src={`/api/admin/bug-devrec?bug=${b.id}`} /> : <audio controls preload="metadata" className="w-full" src={`/api/admin/bug-devrec?bug=${b.id}`} />}
-                  {b.devAnswer.feedback && <p className="text-xs text-stone-500 mt-1">{b.devAnswer.feedback}</p>}
+                  {b.devAnswer.feedback && <p className="text-xs text-stone-500 mt-1 whitespace-pre-line">{String(b.devAnswer.feedback).replace(/\\r\\n|\\r|\\n/g, "\n")}</p>}
                   <button className="btn text-xs mt-2 py-1" onClick={() => { if (confirm(t("把这个示范作答发到反馈者的收件箱?"))) act("sendDevAnswer"); }} disabled={busy}>📩 {t("把示范作答发给用户")}</button>
                 </div>
               )}
