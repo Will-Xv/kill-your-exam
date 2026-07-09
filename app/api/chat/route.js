@@ -1,4 +1,4 @@
-import db, { rootExamId } from "@/lib/db";
+import db, { rootExamId, familyScope, scopeSql } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { startRun } from "@/lib/chatAgent";
@@ -10,7 +10,7 @@ export async function GET() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!exam) return Response.json({ messages: [] });
-  const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT 60").all(rootExamId(exam.id)).reverse();
+  const messages = db.prepare(`SELECT * FROM chat_messages WHERE exam_id IN ${scopeSql(familyScope(exam.id))} ORDER BY id DESC LIMIT 60`).all().reverse();
   return Response.json({ messages });
 }
 
@@ -25,7 +25,7 @@ export async function POST(req) {
 
     // 自动压缩上下文:保留最近 RECENT 轮原文,更早的对话滚动压缩成摘要(节省 token、不丢关键信息)
     const RECENT = 16;
-    const rows = db.prepare("SELECT id, role, content FROM chat_messages WHERE exam_id=? AND role IN ('user','model') ORDER BY id").all(_cid);
+    const rows = db.prepare(`SELECT id, role, content FROM chat_messages WHERE exam_id IN ${scopeSql(familyScope(exam.id))} AND role IN ('user','model') ORDER BY id`).all();
     let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(_cid) || { summary: "", last_id: 0 };
     const recent = rows.slice(-RECENT);
     const recentMinId = recent.length ? recent[0].id : Infinity;
