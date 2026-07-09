@@ -59,3 +59,16 @@ export async function POST(req) {
     return Response.json({ runId });
   } catch (e) { return aiErrorResponse(e); }
 }
+
+// 清空当前家族的杀手对话(聊天记录/摘要/运行/生成的文件),用于全新开始/演示
+export async function DELETE() {
+  const { user, exam } = await requireUser();
+  if (!user) return unauthorized();
+  if (!exam) return Response.json({ ok: true });
+  const scope = scopeSql(familyScope(exam.id));
+  try { db.prepare(`DELETE FROM chat_messages WHERE exam_id IN ${scope}`).run(); } catch {}
+  try { db.prepare(`DELETE FROM chat_summary WHERE exam_id IN ${scope}`).run(); } catch {}
+  try { db.prepare(`DELETE FROM chat_runs WHERE exam_id IN ${scope}`).run(); } catch {}
+  try { db.prepare(`DELETE FROM chat_files WHERE exam_id IN ${scope}`).run(); } catch {}
+  return Response.json({ ok: true });
+}

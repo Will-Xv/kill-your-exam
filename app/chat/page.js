@@ -27,11 +27,13 @@ export default function Chat() {
   const [planFeedback, setPlanFeedback] = useState("");
   const [bjobs, setBjobs] = useState([]);
   const [steps, setSteps] = useState([]);
+  const [me, setMe] = useState(null);
   const pollRef = useRef(null);
   const bottom = useRef(null);
   const taRef = useRef(null);
 
   useEffect(() => { fetch("/api/chat").then((r) => r.json()).then((d) => setMessages(d.messages || [])); }, []);
+  useEffect(() => { fetch("/api/me").then((r) => r.ok ? r.json() : null).then((d) => setMe(d?.user)).catch(() => {}); }, []);
   useEffect(() => {
     // 断线重连:若后台还有一次未完成的运行,继续跟它的进度(离线期间它照跑)
     fetch("/api/chat/run").then((r) => r.json()).then((d) => { if (d.run && (d.run.status === "running" || d.run.status === "pending")) startPolling(d.run.id); }).catch(() => {});
@@ -84,6 +86,12 @@ export default function Chat() {
     }
   }
 
+  async function clearChat() {
+    if (!confirm(t("清空和杀手的这段对话?聊天记录、上下文摘要、以及杀手生成的文件都会删除,不可恢复。(不影响你的考试/知识点/做题数据)"))) return;
+    try { await fetch("/api/chat", { method: "DELETE" }); } catch {}
+    stopPoll(); setMessages([]); setPending(null); setSteps([]); setBusy(false); setPlanFeedback("");
+  }
+
   async function resolvePlan(action) {
     if (!pending) return;
     const p = pending; const fb = planFeedback.trim();
@@ -103,7 +111,10 @@ export default function Chat() {
   const suggestions = [t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 130px)" }}>
-      <h1 className="text-2xl font-black mb-2">{t("问问杀手")}</h1>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-black">{t("问问杀手")}</h1>
+        {messages.length > 0 && me?.isDeveloper && <button className="btn-ghost shrink-0 text-xs text-rose-500" onClick={clearChat}>🗑️ {t("清空对话")}</button>}
+      </div>
       <div className="flex-1 overflow-y-auto space-y-3 pb-3">
         {!messages.length && !pending && (
           <div className="text-center text-[#cdbfa0] text-sm mt-10 space-y-2">
