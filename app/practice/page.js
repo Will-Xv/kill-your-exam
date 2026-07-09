@@ -49,6 +49,7 @@ function PracticeInner() {
   const [gradeErr, setGradeErr] = useState("");
   const [done, setDone] = useState({}); // { [questionId]: correct }
   const [note, setNote] = useState("");
+  const [pendingFinalize, setPendingFinalize] = useState(0); // 后台讨论改判未完成的数量,结算页据此先 load
   const [reportOpen, setReportOpen] = useState(false);
   const [reportNote, setReportNote] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
@@ -178,6 +179,7 @@ function PracticeInner() {
   // 后台收尾讨论(判分修订):不阻塞“下一题”。更新的是【离开的那道题】的存档,不碰当前显示。
   function finalizeDiscussBg(qid, hist, attemptId) {
     if (!(hist && hist.length >= 2)) return;
+    setPendingFinalize((n) => n + 1);
     aiFetch("/api/questions/discuss/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: qid, attemptId, history: hist }) })
       .then((d) => {
         const mn = fmtMastery(d.applied?.masteryUpdates);
@@ -189,7 +191,7 @@ function PracticeInner() {
             ...(mn ? { masteryNote: mn } : {}) } } };
         });
         if (d.applied?.revised) setDone((m) => ({ ...m, [qid]: !!d.applied.newCorrect }));
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => setPendingFinalize((n) => Math.max(0, n - 1)));
   }
   function next() {
     try { window.speechSynthesis?.cancel(); } catch {}
@@ -262,6 +264,12 @@ function PracticeInner() {
       </div>;
 
   if (idx >= questions.length) {
+    if (pendingFinalize > 0) return (
+      <div className="mt-24 text-center text-slate-400 space-y-3">
+        <div className="shimmer mx-auto h-10 w-10 rounded-full" />
+        <p>{t("正在结算…应用讨论改判中")}</p>
+      </div>
+    );
     const doneVals = Object.values(done); const right = doneVals.filter(Boolean).length;
     return (
       <div className="mt-16 text-center space-y-4">

@@ -46,11 +46,24 @@ function unwrapProseMath(s) {
   });
 }
 
+// 结构化:AI 常把标题/块公式/列表和正文挤在一行,导致 Markdown 无法识别(标题变原文、块公式错乱)。
+// 把这些块级元素拆到各自的行上,让 react-markdown 能正确解析。
+function blockify(s) {
+  if (!s) return s;
+  s = s.replace(/\$\$([\s\S]*?)\$\$/g, (m) => "\n\n" + m + "\n\n"); // 块公式 $$...$$ 独占一段
+  s = s.replace(/([^\n])(#{1,6}\s+)/g, "$1\n\n$2");                        // 行内的 ATX 标题 -> 换行到行首
+  s = s.replace(/\s+---\s+/g, "\n\n---\n\n");                             // 行内分隔线 ---
+  s = s.replace(/([^\n])\s+([*-])\s+(?=\*\*)/g, "$1\n\n$2 ");            // 形如 " * **要点**" 的列表项换行(避开乘号)
+  s = s.replace(/\n{3,}/g, "\n\n");
+  return s;
+}
+
 const KATEX_OPTS = { strict: false, throwOnError: false, errorColor: "#9a7b4f", maxExpand: 1000 };
 
 export default function MD({ children, className = "", inline = false }) {
   let raw = String(children ?? "").replace(/\\r\\n|\\n(?![a-zA-Z])/g, "  \n"); // AI 偶尔输出字面量 \n,转成真正的换行
-  let s = autoMath(raw);
+  let s = blockify(raw);
+  s = autoMath(s);
   s = unwrapProseMath(s);
   s = balanceDelims(s);
   const comps = inline ? { p: ({ children }) => <>{children}</> } : {};
