@@ -3,7 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, uploadMedia, deleteMedia } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveRec, readMat, saveBugDevRec } from "@/lib/files";
-import { hasFfmpeg, detectBeats, extractFrames, extractAudio, transcodeToMp3, transcodeToMp4 } from "@/lib/media";
+import { hasFfmpeg, detectBeats, extractFrames, extractAudio, transcodeToMp3, transcodeToMp4, probeDurationSec } from "@/lib/media";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -52,25 +52,29 @@ export async function POST(req) {
     // 短视频:自己抽 5fps/720p 帧(JPEG + 时间戳)+ 音轨内联发给 Gemini(精确可控)。
     // 长视频:内联放不下(单次请求约 20MB 上限),改成转 mp4(保 720p、高画质)走 File API,
     //          让 Gemini【自己按 5fps 采样】——语义等价于"每秒 5 帧 + 音轨",但没有大小/长度限制。
-    // 短视频(≤~40s):自己抽 5fps/720p 帧 + 音轨内联(精确、快)。
-    // 长视频:内联放不下(约 20MB 上限),转 mp4(保 720p)走 File API,让 Gemini 自己按【5fps】采样,长度不限、不降帧率。
+    // 【一次只走一条路,避免同时占用两份大内存导致进程 OOM 被杀(空 body 500)】
+    // 先探测时长:短视频(≤34s)只抽 5fps/720p 帧内联;长视频【直接】转 mp4 走 File API(不预抽帧),
+    // 让 Gemini 自己按 5fps 采样、长度不限、不降帧率。
     let framesSent = 0, usedFileApi = false;
     if (isVideo && hasFfmpeg()) {
       tmp = path.join(os.tmpdir(), `rec-${Date.now()}-${Math.random().toString(36).slice(2)}.webm`);
       fs.writeFileSync(tmp, buffer);
-      const CAP = 200; // ~40s @5fps
-      const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: CAP });
-      const recAudio = (analyzeAudio === "recorded" || analyzeAudio === "both") ? extractAudio(tmp) : null;
-      const framesBytes = frames.reduce((n, fr) => n + fr.jpeg.length, 0);
-      const fits = frames.length > 0 && frames.length < CAP && (framesBytes + (recAudio ? recAudio.length : 0)) < 13 * 1024 * 1024;
-      if (fits) {
+      const dur = probeDurationSec(buffer) || 0;
+      const isShort = dur > 0 && dur <= 34; // ≤34s @5fps ≈ 170 帧,内联可控
+      if (isShort) {
+        const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: 170 });
+        const recAudio = (analyzeAudio === "recorded" || analyzeAudio === "both") ? extractAudio(tmp) : null;
         for (const fr of frames) {
+          if (used + fr.jpeg.length > BUDGET - 3 * 1024 * 1024) break; // 给音频/给定音乐留 3MB
           parts.push({ text: `【${fr.t}s】` });
           parts.push({ inlineData: { mimeType: "image/jpeg", data: B64(fr.jpeg) } });
           used += fr.jpeg.length; framesSent++;
         }
         if (recAudio) pushInline("audio/mp4", recAudio);
-      } else {
+      }
+      if (framesSent === 0) {
+        // 长视频 / 时长未知 / 抽帧失败 → 只走 File API(不预抽帧,省内存)
+        parts.length = 0; used = 0;
         const mp4 = transcodeToMp4(buffer);
         if (mp4 && mp4.length) { const up = await uploadMedia(mp4, "video/mp4", "mp4"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType }, videoMetadata: { fps: 5 } }); usedFileApi = true; }
       }
