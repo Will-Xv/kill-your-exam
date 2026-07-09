@@ -34,7 +34,13 @@ export async function POST(req) {
   let bp;
   try { bp = await ensureBlueprint(exam, user); } catch (e) { return Response.json({ error: "生成考试蓝图失败,请稍后再试。" }, { status: 500 }); }
   const comp = await composeFromBlueprint(exam, user, bp);
-  if (!comp.questionIds.length) return Response.json({ error: "题库太少且暂时无法生成,请先在练习页多生成一些题,或让杀手帮忙出题。" }, { status: 400 });
+  if (!comp.questionIds.length) {
+    let msg;
+    if (!comp.kpCount) msg = "这门考试还没有知识点,先去「设置考试」或让杀手建好知识树,才能按蓝图组卷。";
+    else if (comp.genError) msg = "题库不足,且即时生成题目失败:" + comp.genError;
+    else msg = "题库太少且暂时无法生成,请先在练习页多生成一些题,或让杀手帮忙出题。";
+    return Response.json({ error: msg, kpCount: comp.kpCount, bankCount: comp.bankCount }, { status: 400 });
+  }
   const info = db.prepare("INSERT INTO mock_exams(exam_id,config_json) VALUES(?,?)").run(exam.id, JSON.stringify({ questionIds: comp.questionIds, marks: comp.marks, totalMarks: comp.totalMarks, durationMin: comp.durationMin, mode: "blueprint", createdAt: Date.now() }));
   return Response.json({ mockId: info.lastInsertRowid, totalMarks: comp.totalMarks, durationMin: comp.durationMin, overview: bp.overview || "", totalQuestions: comp.questionIds.length, plannedQuestions: bp.totalQuestions || null, sourceLevel: bp.sourceLevel || "estimated", sourceNote: bp.sourceNote || "", questions: comp.questions });
 }
