@@ -256,7 +256,10 @@ function PracticeInner() {
   if (busy && !questions.length) return <GenProgress />;
   if (!questions.length) return mode === "review"
     ? <div className="mt-16 text-center text-slate-400 space-y-3"><p>{t("🎉 没有到期的错题,今天不用重练。")}</p><a className="btn" href="/practice">{t("去做新题")}</a></div>
-    : <p className="mt-16 text-center text-slate-400">{note ? note + " " : t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</p>;
+    : <div className="mt-16 text-center text-slate-400 space-y-3">
+        <p>{note ? note + " " : <>{t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</>}</p>
+        <button type="button" className="btn" onClick={reroll} disabled={busy}>🔄 {busy ? t("出题中…") : t("换一批")}</button>
+      </div>;
 
   if (idx >= questions.length) {
     const doneVals = Object.values(done); const right = doneVals.filter(Boolean).length;
