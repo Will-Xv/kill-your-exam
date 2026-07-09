@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { rootExamId } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 
 // 轮询某次杀手运行的状态/步骤/结果;不传 id 则返回本考试最近一个未完成(running/pending)的运行。
@@ -8,8 +8,8 @@ export async function GET(req) {
   if (!exam) return Response.json({ run: null });
   const id = new URL(req.url).searchParams.get("id");
   let run;
-  if (id) run = db.prepare("SELECT * FROM chat_runs WHERE id=? AND exam_id=?").get(Number(id), exam.id);
-  else run = db.prepare("SELECT * FROM chat_runs WHERE exam_id=? AND status IN ('running','pending') ORDER BY id DESC LIMIT 1").get(exam.id);
+  if (id) run = db.prepare("SELECT * FROM chat_runs WHERE id=? AND exam_id=?").get(Number(id), rootExamId(exam.id));
+  else run = db.prepare("SELECT * FROM chat_runs WHERE exam_id=? AND status IN ('running','pending') ORDER BY id DESC LIMIT 1").get(rootExamId(exam.id));
   if (!run) return Response.json({ run: null });
   if (run.user_id !== user.id) return forbidden();
   let steps = []; try { steps = JSON.parse(run.steps_json || "[]"); } catch {}

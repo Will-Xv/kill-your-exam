@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { rootExamId } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { startRun } from "@/lib/chatAgent";
@@ -10,7 +10,7 @@ export async function GET() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!exam) return Response.json({ messages: [] });
-  const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT 60").all(exam.id).reverse();
+  const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT 60").all(rootExamId(exam.id)).reverse();
   return Response.json({ messages });
 }
 
@@ -20,12 +20,13 @@ export async function POST(req) {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "请先创建考试" }, { status: 400 });
-    db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(exam.id, "user", message + (attachments?.length ? " 📎" : ""));
+    const _cid = rootExamId(exam.id);
+    db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(_cid, "user", message + (attachments?.length ? " 📎" : ""));
 
     // 自动压缩上下文:保留最近 RECENT 轮原文,更早的对话滚动压缩成摘要(节省 token、不丢关键信息)
     const RECENT = 16;
-    const rows = db.prepare("SELECT id, role, content FROM chat_messages WHERE exam_id=? AND role IN ('user','model') ORDER BY id").all(exam.id);
-    let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(exam.id) || { summary: "", last_id: 0 };
+    const rows = db.prepare("SELECT id, role, content FROM chat_messages WHERE exam_id=? AND role IN ('user','model') ORDER BY id").all(_cid);
+    let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(_cid) || { summary: "", last_id: 0 };
     const recent = rows.slice(-RECENT);
     const recentMinId = recent.length ? recent[0].id : Infinity;
     const toSummarize = rows.filter((m) => m.id > (sum.last_id || 0) && m.id < recentMinId);
@@ -39,7 +40,7 @@ export async function POST(req) {
         if (ns) {
           const lastId = toSummarize[toSummarize.length - 1].id;
           db.prepare("INSERT INTO chat_summary(exam_id,summary,last_id) VALUES(?,?,?) ON CONFLICT(exam_id) DO UPDATE SET summary=excluded.summary, last_id=excluded.last_id")
-            .run(exam.id, ns, lastId);
+            .run(_cid, ns, lastId);
           sum = { summary: ns, last_id: lastId };
         }
       } catch {}
