@@ -233,6 +233,9 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
       {phase === "idle" && <button className="btn w-full" onClick={begin}>{isVideo ? "🎥" : "🎙️"} {t("开始录制")}</button>}
       {phase === "idle" && !devBugId && <button className="btn-ghost w-full text-sm" onClick={dontKnow} title={t("直接看答案和解析,本题计为不会")}>🤷 {t("不会做")}</button>}
       {phase === "recorded" && (
+        <p className="rounded-lg bg-amber-100/80 px-3 py-2 text-xs text-amber-800">⚠️ {t("这段录制要「提交点评」判分后才会保存;现在离开、刷新或重录都会丢失。")}</p>
+      )}
+      {phase === "recorded" && (
         <div className="flex gap-2">
           <button className="btn-ghost flex-1" onClick={reset}>↺ {t("重录")}</button>
           <button className="btn flex-1" onClick={submit}>{t("提交点评")}</button>
