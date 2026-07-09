@@ -1,6 +1,6 @@
 import db, { rootExamId, familyScope, scopeSql } from "@/lib/db";
 import { extractMemoryBg } from "@/lib/memory";
-import { requireUser, unauthorized } from "@/lib/auth";
+import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { startRun } from "@/lib/chatAgent";
 import { attachParts, generate } from "@/lib/gemini";
@@ -64,6 +64,7 @@ export async function POST(req) {
 export async function DELETE() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
+  if (!user.is_developer) return forbidden(); // 硬门控:只有开发者账号能清空对话,普通用户(含让杀手绕道)一律拒绝
   if (!exam) return Response.json({ ok: true });
   const scope = scopeSql(familyScope(exam.id));
   try { db.prepare(`DELETE FROM chat_messages WHERE exam_id IN ${scope}`).run(); } catch {}
