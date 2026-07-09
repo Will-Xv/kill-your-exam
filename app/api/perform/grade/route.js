@@ -59,10 +59,10 @@ export async function POST(req) {
     if (isVideo && hasFfmpeg()) {
       tmp = path.join(os.tmpdir(), `rec-${Date.now()}-${Math.random().toString(36).slice(2)}.webm`);
       fs.writeFileSync(tmp, buffer);
-      const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: 240, q: 12 });
+      const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: 240, q: 13 });
       const recAudio = (analyzeAudio === "recorded" || analyzeAudio === "both") ? extractAudio(tmp) : null;
       for (const fr of frames) {
-        if (used + fr.jpeg.length > BUDGET - 3 * 1024 * 1024) break; // 给音频/给定音乐留 3MB
+        if (used + fr.jpeg.length > 12 * 1024 * 1024) break; // 帧总量控制在 ~12MB(base64 后 ~16MB),给音频与 Gemini 20MB 请求上限留余量
         parts.push({ text: `【${fr.t}s】` });
         parts.push({ inlineData: { mimeType: "image/jpeg", data: B64(fr.jpeg) } });
         used += fr.jpeg.length; framesSent++;
