@@ -1,60 +1,115 @@
-# AI 备考助手
+# Kill Your Exam
 
-单用户、考试无关的 AI 备考网站。手机/电脑打开同一网址即可使用,进度自动同步(数据都在服务器上)。
+An AI-driven, exam-agnostic study companion. Give it any exam and it first researches the exam online, honestly reports what it does and doesn't know, then builds a personalized knowledge map, generates and grades questions, tracks your true understanding, and drills your weak spots until you "kill" the exam.
 
-## 功能
-- **新建考试向导**:AI 联网搜索考试信息 → 生成"认知自评报告"(知道什么/不知道什么/风险)→ 资料收集清单 → 知识点树 + 备考策略
-- **资料库(RAG)**:上传 PDF/Word/文本/图片(拍照 OCR),所有讲解和出题优先基于资料
-- **学习**:知识点讲解,🟢基于资料 / 🟡模型知识 溯源标记
-- **练习**:自动挑薄弱知识点出题(单选/多选/判断/填空/简答),AI 批改简答,"这题有问题"一键反馈
-- **聊天管家**:说想法即可改备考策略/考试档案,可检索资料、联网搜索、读进度数据
-- **API 故障透明提示**:AI 服务出问题时明确告知"不是你的问题",一键邮件联系 Will
-- **每日任务首页**:每天自动生成(到期错题重练 + 薄弱知识点 + 自由练习),完成自动打勾
-- **错题本 + 间隔重复**:错题按 1/3/7/15/30 天自动安排重练
-- **掌握度矩阵**:按作答记录规则计算,近期作答权重更高
-- **PWA**:手机"添加到主屏幕"即可像 App 一样使用
-- **多用户账号**:用户名+密码(scrypt 加盐哈希),注册需邀请码(环境变量 ACCESS_CODE),数据按用户完全隔离
-- **管理员面板**:首个注册账号为管理员,可配置 AI 密钥/模型,并查看各用户使用频率(仅频率,不含学习内容)
+Open the same URL on phone or desktop — progress syncs automatically (all data lives on the server). Live at **killyourexam.up.railway.app**.
 
-## 部署(Railway,推荐)
-1. 把本项目推到 GitHub 私有仓库
-2. railway.app → New Project → Deploy from GitHub repo,Railway 会自动识别 Dockerfile
-3. 给服务挂一个 Volume,Mount Path 填 `/data`(数据库存这里,重新部署不丢数据)
-4. Variables 里设置 `ACCESS_CODE=注册邀请码`(默认 666666)+ `PORT=3000`
-5. Settings → Networking → Generate Domain,得到访问网址
-6. 打开网址 → 注册第一个账号(自动成为管理员)→ 设置页粘贴 Gemini API key → 测试连接 → 开始设置考试
+The UI is Chinese-first with a playful "assassin / murder plan" theme (the exam is the target, the AI is your private killer), and is fully localized into 7 languages.
 
-## 本地运行(开发)
+---
+
+## Features
+
+### Exam setup & onboarding
+- **New-exam wizard**: pick a type (school / professional / language / entrance / other / "study-only"), then the AI searches the exam online and produces a **cognitive self-assessment** (what it knows, what it doesn't, the risks) — it does not pretend to be omniscient.
+- Flow: exam info → online research + self-assessment → supplementary materials (upload files + answer an AI-generated checklist, skippable) → knowledge tree + strategy.
+- Suggests borrowable materials from your other exams via embedding similarity.
+
+### Multimodal material library (RAG)
+- Upload PDF / Word / text / images / audio (camera capture, drag, paste). A free-text "other notes" field and a collection checklist.
+- Every file is viewable in place (image / audio player / inline PDF / extracted text).
+- **Chrome capture extension** pulls content (incl. images/audio/PDFs) from logged-in study sites into the library, without touching your password.
+- Images, audio, and PDFs are read **natively by Gemini** across explanation, question generation, grading, mock exams, chat, and tree building.
+
+### Knowledge tree & mastery
+- A personalized knowledge map, colored by mastery (mastered / ok / weak / unlearned) with material-coverage dots.
+- **Mastery reflects understanding, not just right/wrong**: it weighs three kinds of evidence (answers, short-answer reasoning, and discussion) with recency weighting.
+- **Cross-topic inference**: showing understanding of another topic in an answer/discussion updates that topic too; showing a misconception marks it weak.
+- **Rebuild tree** (via the killer) with a retention choice: keep (semantically migrate old records), summarize (condense into observations on new points), or wipe.
+
+### Learn & practice
+- Per-topic AI explanations with source badges (material-based vs model-knowledge).
+- Practice by weak topic with instant grading; short answers scored with feedback.
+- **Ask / argue**: the AI only changes a grade when you're genuinely right — never to please you; the revised verdict updates live.
+- **Handwriting** (stylus/pad/mouse) or photo upload, OCR-graded; a per-question scratchpad (hidden from the AI unless you send it).
+- **"Don't know"** button on all question types.
+
+### Performance / skill exams (art, recitation, singing, speech, dance…)
+- **Audio & video answers**, graded multimodally against a rubric.
+- Video is analyzed by sampling frames across the whole clip (up to 5fps, 720p) plus the extracted audio track — reliable for any length, no size/timeout limits.
+- Beat alignment for given-music tasks; a mic-off exception for dance-with-given-music (so the phone can keep playing the music); performance replays are stored permanently.
+
+### Mock exams
+- The AI plans an **exam blueprint** (which topics, how many questions each, marks, total, duration) and assembles the paper from it (generating what the bank lacks).
+- **Question count follows the real exam** (not a fixed 20); a **structure-source confidence** badge (official / inferred / estimated).
+- **Real-paper mode** (only your provided materials); persistent state across refresh; history; post-submission discuss that re-grades and recomputes the total.
+- **User question bank / closed bank**: paste known/guaranteed questions in verbatim, mark some "always include", or lock practice + mock to only your provided questions.
+
+### The Killer (agentic chat)
+- Your private assistant that operates the study loop with tools (read/write docs, RAG, web search, generate questions, build tree, send files, customize the blueprint, drive the capture extension, …).
+- Runs as a **background job** (survives disconnect) with a live process panel and reconnect.
+- **Planner**: complex/system-affecting requests produce a previewable ordered plan you can one-click approve or revise before execution; simple requests skip it.
+- Dangerous writes still ask for per-action confirmation; confirmations arrive as an in-app banner or a push when you're away.
+
+### Social & engagement
+- **Leaderboard** (weekly + all-time by questions done) with a medieval hand-drawn sticker theme; **taunt / disdain** duels with real-time popups.
+- **Inbox** (updates, bug replies, letters/attachments), **Web Push notifications** with per-category prefs and an iOS "add to Home Screen" note.
+
+### Feedback & support
+- **One-tap bug report** that ships the whole question to admins/developers (media, the user's recording, their answer, the AI's grade incl. failures, discussion) with device diagnostics; developers can "try it themselves" to reproduce and send a demo answer back to the user.
+- A floating feedback button (prefilled email).
+
+### Platform
+- **7 UI languages** (Simplified Chinese, English, French, Spanish, Russian, Arabic w/ RTL, Indonesian) + Traditional Chinese (TW/HK); all new features localized.
+- Daily task home, wrong-question book with spaced repetition (1/3/7/15/30 days), notebook, "all your killing skills" cross-exam profile, pre-exam prep.
+- PWA; data export; admin panel (usage frequency only, never learning content); developer sub-accounts with debug tools and quick account switching.
+
+---
+
+## Tech stack
+- **Next.js 15** (App Router, JS) + Tailwind CSS
+- **SQLite** (better-sqlite3); data dir via `DATA_DIR` (default `./data`)
+- **Google Gemini** (`@google/genai`) — generation / JSON / grounded search / multimodal / embeddings; model configurable in Settings
+- Vector retrieval: Gemini embeddings + in-memory cosine similarity
+- **Web Push** (VAPID), service worker; **ffmpeg** (video frame extraction, audio transcode, beat detection) and Noto CJK fonts in the runtime image
+- Background agent jobs on the persistent server; IndexedDB client persistence; LaTeX rendering
+- Deployed on **Railway** via a standalone Docker build; auto-deploy on push
+
+## Deploy (Railway)
+1. Push this repo to GitHub.
+2. railway.app → New Project → Deploy from GitHub repo (the Dockerfile is auto-detected).
+3. Attach a Volume with mount path `/data` (the database lives here; survives redeploys).
+4. Set variables: `ACCESS_CODE` (registration invite code) and `PORT=3000`.
+5. Settings → Networking → Generate Domain.
+6. Open the URL → register the first account (becomes admin) → paste your Gemini API key in Settings → test connection → set up an exam.
+
+## Local development
 ```bash
 npm install
 npm run dev        # http://localhost:3000
 ```
-环境变量(可选):`ACCESS_CODE` 访问口令;`GEMINI_API_KEY` 也可直接在网站设置页填。
+Optional env: `ACCESS_CODE` (invite code); `GEMINI_API_KEY` can also be entered in Settings.
 
-## 技术说明
-- Next.js 15(App Router,JS)+ Tailwind CSS 3
-- SQLite(better-sqlite3),数据目录由 `DATA_DIR` 控制,默认 `./data`
-- 向量检索:Gemini embedding(768 维)+ 内存余弦相似度(单用户规模足够)
-- AI:Google Gemini(@google/genai),模型名可在设置页改,默认 gemini-2.5-flash
-- 所有 AI 错误经 `lib/errors.js` 统一分类,前端 `AiErrorDialog` 弹窗提示并可一键联系维护者
-
-## 目录速览
+## Project structure
 ```
-app/            页面与 API 路由
-  onboarding/   新建考试向导(认知自评/清单/上传)
-  study/        知识点树 + 讲解
-  practice/     做题与批改
-  materials/    资料库
-  chat/         聊天管家(带工具)
-  settings/     API 配置
-lib/db.js       SQLite schema 与常用查询
-lib/gemini.js   Gemini 适配层(生成/JSON/搜索/多模态/embedding)
-lib/errors.js   错误分类与友好提示
-lib/rag.js      分块、索引、检索
-lib/parse.js    PDF/docx/图片解析
-middleware.js   访问口令拦截
+app/                      Pages & API routes
+  onboarding/             New-exam wizard (self-assessment / checklist / upload)
+  study/  practice/       Knowledge tree + explanations; question practice & grading
+  mock/                   Mock exams, blueprint, question bank, history
+  materials/  chat/        Material library (RAG); the Killer agent (with tools)
+  performances/           Performance replays + AI feedback
+  bugs/  inbox/  dev/      Bug console; message inbox; developer tools
+lib/db.js                 SQLite schema & queries
+lib/gemini.js             Gemini adapter (generate / JSON / search / multimodal / embed)
+lib/generators.js         Knowledge-tree build/rebuild + question generation
+lib/blueprint.js          Mock blueprint + paper composition
+lib/chatAgent.js          The Killer: tools, planner, background run loop
+lib/media.js              ffmpeg: frame extraction, audio/mp3 transcode, beat detection
+lib/bricks/               Isolated composable "bricks" (e.g. cross-exam management)
+lib/translations.js       i18n dictionaries
 ```
 
-## 第二期计划(未实现)
-掌握度矩阵、每日任务首页、错题本 + 间隔重复、联网找资料入库、资料覆盖度视图、PWA。
-维护者:Will <xuy413682@gmail.com>
+## Vision (in progress)
+Turning the app from a single study tool into a **configurable learning-agent platform**: choose or let the AI design a workflow to match your plan (study-only, practice-only, discuss-only, homework help, Socratic tutoring, closed question banks, cross-exam sub-tasks…), with a customizable UI where no function is ever lost, domain-isolated agents, previewable plans, and one-click revert. The ultimate goal: anyone facing any learning goal gets an AI that truly understands them and helps their way — killing an exam is only the start.
+
+Maintainer: Will &lt;xuy413682@gmail.com&gt;
