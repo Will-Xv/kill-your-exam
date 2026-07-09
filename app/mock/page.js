@@ -117,6 +117,7 @@ export default function Mock() {
   const draftsRef = useRef({});
   const restoredDrafts = useRef({});
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
   const [score, setScore] = useState(null);
   const [results, setResults] = useState(null);
   const [started, setStarted] = useState(0);
@@ -156,11 +157,17 @@ export default function Mock() {
   }
 
   async function start(realOnly = false) {
-    setBusy(true);
+    setBusy(true); setErr("");
     try {
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
+      if (!d || !Array.isArray(d.questions) || !d.questions.length) throw new Error(d && d.error ? d.error : t("组卷失败:没有拿到题目"));
       attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
-    } catch {}
+    } catch (e) {
+      let msg = String((e && e.message) || e || "");
+      try { const j = JSON.parse(msg); if (j && j.error) msg = j.error; } catch {}
+      if (msg === "ai-error" || msg === "network") msg = "";  // 这些已由全局弹窗提示
+      setErr(msg || t("组卷失败,请稍后再试。"));
+    }
     setBusy(false);
   }
   async function submit() {
@@ -217,6 +224,13 @@ function stripLabel(op, i) {
         <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
         <a className="btn-ghost text-sm" href="/mock/history">📚 {t("历史模拟考")}</a>
       </div>
+      {busy && <p className="mx-auto max-w-md rounded-lg bg-amber-100/80 px-3 py-2 text-xs text-amber-800">⏳ {t("正在组卷…题库不够会即时生成,可能要等一会儿。生成的题会存进题库,你可以先去别处,回来再点开始会快很多。")}</p>}
+      {err && (
+        <div className="mx-auto max-w-md rounded-lg bg-rose-100 px-3 py-2 text-sm text-rose-800">
+          <p className="font-semibold">⚠️ {t("开始失败")}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-xs">{err}</p>
+        </div>
+      )}
       <p className="text-xs text-stone-400 max-w-md mx-auto">{t("现在按「考试蓝图」组卷:先规划这门正式考试该考什么、各知识点出几道、总分多少,再据此组卷(题库不够会即时生成,所以组卷可能稍慢)。")}</p>
     </div>
   );
