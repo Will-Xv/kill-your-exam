@@ -26,6 +26,7 @@ export default function Chat() {
   const [pending, setPending] = useState(null); // { token, kind, plan, actions, approve:{idx:bool} }
   const [planFeedback, setPlanFeedback] = useState("");
   const [bjobs, setBjobs] = useState([]);
+  const [genExams, setGenExams] = useState([]);
   const [steps, setSteps] = useState([]);
   const [me, setMe] = useState(null);
   const pollRef = useRef(null);
@@ -41,6 +42,10 @@ export default function Chat() {
   }, []); // eslint-disable-line
   useEffect(() => {
     const load = () => fetch("/api/browser/status").then((r) => r.json()).then((d) => setBjobs(d.jobs || [])).catch(() => {});
+    load(); const iv = setInterval(load, 4000); return () => clearInterval(iv);
+  }, []);
+  useEffect(() => {
+    const load = () => fetch("/api/exam/list").then((r) => r.ok ? r.json() : null).then((d) => setGenExams((d?.exams || []).filter((e) => e.setup_state === "generating"))).catch(() => {});
     load(); const iv = setInterval(load, 4000); return () => clearInterval(iv);
   }, []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, pending]);
@@ -134,6 +139,12 @@ export default function Chat() {
         ))}
         {bjobs.filter((j) => j.status === "done").slice(0, 1).map((j) => (
           <p key={j.id} className="text-center text-xs text-amber-700">🌐 {t("采集完成")}:{j.goal}({t("共")} {j.collected} {t("页")})</p>
+        ))}
+        {genExams.map((e) => (
+          <div key={"gen" + e.id} className="card border-amber-200 bg-amber-50/70 text-sm">
+            <p className="font-semibold text-amber-900">🛠️ {t("正在后台创建考试")}:{e.name}</p>
+            <p className="text-xs text-amber-700 mt-0.5 animate-pulse">{e.setup_progress ? t(e.setup_progress) : t("生成中…")}</p>
+          </div>
         ))}
         {pending && pending.kind === "plan" && (
           <div className="card border-amber-300 bg-amber-50/70">

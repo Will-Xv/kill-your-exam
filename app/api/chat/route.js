@@ -10,7 +10,8 @@ export const maxDuration = 300;
 export async function GET() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
-  const _scope = exam ? scopeSql(familyScope(exam.id)) : "(" + (-user.id) + ")";
+  const _ids = exam ? familyScope(exam.id) : []; _ids.push(-user.id);
+  const _scope = scopeSql(_ids); // 始终并入“无考试建考试对话”,避免建好考试后创建过程的对话消失
   const messages = db.prepare(`SELECT * FROM chat_messages WHERE exam_id IN ${_scope} ORDER BY id DESC LIMIT 60`).all().reverse();
   return Response.json({ messages });
 }
@@ -21,7 +22,8 @@ export async function POST(req) {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
     const _cid = exam ? rootExamId(exam.id) : -user.id;
-    const _fscope = exam ? scopeSql(familyScope(exam.id)) : "(" + _cid + ")";
+    const _fids = exam ? familyScope(exam.id) : []; _fids.push(-user.id);
+    const _fscope = scopeSql(_fids);
     db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(_cid, "user", message + (attachments?.length ? " 📎" : ""));
 
     // 自动压缩上下文:保留最近 RECENT 轮原文,更早的对话滚动压缩成摘要(节省 token、不丢关键信息)

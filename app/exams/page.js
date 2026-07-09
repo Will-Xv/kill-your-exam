@@ -7,7 +7,7 @@ export default function Exams() {
   const [exams, setExams] = useState(null);
   const load = () => fetch("/api/exam/list").then((r) => r.json()).then((d) => setExams(d.exams));
   useEffect(() => { load(); }, []);
-  useEffect(() => { if (!exams?.some((e) => e.status === "setup" && e.setup_state === "generating")) return; const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [exams]);
+  useEffect(() => { if (!exams?.some((e) => e.setup_state === "generating")) return; const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [exams]);
   async function switchTo(id) {
     await fetch("/api/exam/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId: id }) });
     try { Object.keys(localStorage).filter((k) => k.startsWith("kye_practice:")).forEach((k) => localStorage.removeItem(k)); } catch {}
@@ -31,13 +31,13 @@ export default function Exams() {
       </div>
       {live.map((e) => {
         const setup = e.status === "setup";
-        const generating = setup && e.setup_state === "generating";
+        const generating = e.setup_state === "generating";
         return (
         <div key={e.id} className={`card ${e.status === "active" ? "border-amber-500" : setup ? "border-dashed border-stone-300" : ""}`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold">{e.name} {e.status === "completed" && <span className="badge-material">{t("已完成")}</span>}</p>
-              <p className="text-xs text-stone-400">{e.exam_date || t("未设日期")} · {generating ? "⏳ " + t("生成中…") : setup ? "🚧 " + t("正在设置") : (STATUS[e.status] || e.status)}</p>
+              <p className="text-xs text-stone-400">{e.exam_date || t("未设日期")} · {generating ? "⏳ " + (e.setup_progress ? t(e.setup_progress) : t("生成中…")) : setup ? "🚧 " + t("正在设置") : (STATUS[e.status] || e.status)}</p>
             </div>
             {generating ? <span className="text-xs text-amber-600 animate-pulse">{t("AI 后台生成中")}</span>
               : setup ? <button className="btn py-2 text-sm" onClick={() => (location.href = `/onboarding?resume=${e.id}`)}>{t("继续设置")}</button>
