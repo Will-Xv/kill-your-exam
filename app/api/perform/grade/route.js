@@ -15,7 +15,9 @@ const CONTACT = "处理失败了,请稍后再试;如果一直不行,请点右下
 export async function POST(req) {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
-  const form = await req.formData();
+  let form;
+  try { form = await req.formData(); }
+  catch (e) { return Response.json({ error: "上传解析失败(可能文件过大或网络中断),请重试或缩短时长后重录。", detail: String(e?.message || e).slice(0, 200) }, { status: 413 }); }
   const questionId = Number(form.get("questionId"));
   const devBugId = Number(form.get("devBugId")) || 0; // 开发者在 Bug 里「亲自试做」:判分并把作答存到该 bug,不写入用户练习记录
   const bodyJson = form.get("bodyJson"); const answerJson = form.get("answerJson");
