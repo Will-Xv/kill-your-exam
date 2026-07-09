@@ -1,5 +1,5 @@
-import db, { getDocument } from "@/lib/db";
-import { requireUser, unauthorized } from "@/lib/auth";
+import db, { getDocument, inScope } from "@/lib/db";
+import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { getOverallDoc } from "@/lib/overall";
 import { generateJson, searchWeb, langInstruction, examLangInstruction, LANG_NAMES } from "@/lib/gemini";
@@ -52,9 +52,18 @@ export async function POST(req) {
     const { kpId, count = 5, reuse = true, exclude = [] } = await req.json();
     const _log = (via) => { try { console.error(`[generate] via=${via} ms=${Date.now() - _t0} exam=${exam?.id} kp=${kpId}`); } catch {} };
     const excl = (Array.isArray(exclude) ? exclude : []).map(Number).filter(Number.isFinite);
-    const { user, exam } = await requireUser();
+    let { user, exam } = await requireUser();
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
+    // 汇总复习:若请求的知识点属于当前母考试作用域内的某个子考试,就切到该子考试的语境下出题(素材/名称/语言都用子考试的)。
+    if (kpId) {
+      const _kp = db.prepare("SELECT id, exam_id FROM knowledge_points WHERE id=?").get(Number(kpId));
+      if (_kp && _kp.exam_id !== exam.id) {
+        if (!inScope(exam.id, _kp.exam_id)) return forbidden();
+        const _cx = db.prepare("SELECT * FROM exams WHERE id=?").get(_kp.exam_id);
+        if (_cx) exam = _cx;
+      }
+    }
 
     // 表演/技能类:强制出录音录像题(练习页 + 题库复用都按此过滤)
     let otherNote = ""; try { const cl = JSON.parse(exam.checklist || "[]"); otherNote = (cl.find((c) => c.item === "其他文件或说明")?.answer || ""); } catch {}

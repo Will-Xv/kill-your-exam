@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { saveBugAtt } from "@/lib/files";
 import { sendLetter } from "@/lib/inbox";
@@ -13,7 +13,7 @@ export async function POST(req) {
     if (!user) return unauthorized();
     const { questionId, userNote, context } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
-    if (!q || !exam || q.exam_id !== exam.id) return forbidden();
+    if (!q || !exam || !inScope(exam.id, q.exam_id)) return forbidden();
     const body = JSON.parse(q.body); let ans = {}; try { ans = JSON.parse(q.answer); } catch {}
     const c = context || {};
     // 只带这道题真正用到的媒体(给定音乐/听力音频在下面单独放),不再转储整门考试的所有音频/图片(会混进大量无关音乐)。

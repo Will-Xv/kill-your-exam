@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, attachParts } from "@/lib/gemini";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
@@ -13,7 +13,7 @@ export async function POST(req) {
     if (!user) return unauthorized();
     const { questionId, userAnswer, history, attachments } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
-    if (!q || !exam || q.exam_id !== exam.id) return forbidden();
+    if (!q || !exam || !inScope(exam.id, q.exam_id)) return forbidden();
     const body = JSON.parse(q.body), ans = JSON.parse(q.answer);
     const kp = q.kp_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title : "";
     const hits = await retrieve(exam.id, `${kp} ${body.stem}`, 4);

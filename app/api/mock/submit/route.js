@@ -55,7 +55,7 @@ export async function POST(req) {
       const ch = q.kp_id ? (db.prepare("SELECT ch.title FROM knowledge_points kp LEFT JOIN knowledge_points ch ON ch.id=kp.parent_id WHERE kp.id=?").get(q.kp_id)?.title || "其他") : "其他";
       total++; got += correct; totalMarks += qMarks; gotMarks += earnedMarks;
       const insA = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,mode) VALUES(?,?,?,?,?,?,'exam')")
-        .run(qid, exam.id, q.kp_id, String(ua || ""), correct, scoreVal);
+        .run(qid, q.exam_id, q.kp_id, String(ua || ""), correct, scoreVal);
       const attemptId = insA.lastInsertRowid;
       try { updateReviewQueue(qid, correct); } catch {}
       results.push({ id: qid, qtype: q.qtype, correct, score: scoreVal, marks: qMarks, earned: earnedMarks, chapter: ch, answer: ans.answer, explanation: ans.explanation || "", attemptId });

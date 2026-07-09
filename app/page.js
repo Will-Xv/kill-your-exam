@@ -61,7 +61,7 @@ export default function Home() {
     );
   }
 
-  const { exam, stats, topExam, subExams } = data;
+  const { exam, stats, topExam, subExams, aggregating, aggregateCount } = data;
   const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date) - Date.now()) / 86400000) : null;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
@@ -114,6 +114,9 @@ export default function Home() {
             <button onClick={() => switchExam(topExam.id)} title={t("点标题回到最顶层考试")} className="block text-left text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>↰ {topExam.name}</button>
           ) : (
             <Link href="/exams" className="block text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{(topExam && topExam.name) || exam.name}</Link>
+          )}
+          {aggregating && (
+            <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#2f2413]/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">🧩 {t("汇总复习")} · {t("含 {n} 门子考试").replace("{n}", aggregateCount)}</div>
           )}
           {subExams && subExams.length > 0 && (
             <div className="mt-2">

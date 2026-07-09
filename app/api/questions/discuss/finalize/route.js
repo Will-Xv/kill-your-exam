@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, langInstruction } from "@/lib/gemini";
 import { leafKpList, recordCrossKp } from "@/lib/mastery";
@@ -13,11 +13,11 @@ export async function POST(req) {
     if (!user) return unauthorized();
     const { questionId, attemptId, history } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
-    if (!q || !exam || q.exam_id !== exam.id) return forbidden();
+    if (!q || !exam || !inScope(exam.id, q.exam_id)) return forbidden();
     if (!history || history.length < 2) return Response.json({ ok: true, applied: null });
     const body = JSON.parse(q.body), ans = JSON.parse(q.answer);
     const convo = history.map((m) => `${m.role === "user" ? "考生" : "AI"}:${m.content}`).join("\n").slice(0, 6000);
-    const kpList = leafKpList(exam.id);
+    const kpList = leafKpList(q.exam_id);
     const kpListStr = kpList.slice(0, 120).map((k) => `[${k.id}] ${k.chapter ? k.chapter + "/" : ""}${k.title}`).join("\n");
 
     const schema = { type: "object", properties: {
@@ -42,16 +42,16 @@ export async function POST(req) {
     let applied = { revised: false };
     const masteryUpdates = [];
     if (out.kind !== "none" && out.insight?.trim()) {
-      db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text) VALUES(?,?,?,?,?)").run(exam.id, q.kp_id, questionId, out.kind, out.insight.trim());
+      db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text) VALUES(?,?,?,?,?)").run(q.exam_id, q.kp_id, questionId, out.kind, out.insight.trim());
       applied.insight = out.insight.trim();
       if (q.kp_id) { const th = db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title; masteryUpdates.push({ kpId: q.kp_id, title: th, kind: out.kind }); }
     }
     // 跨知识点:在本题讨论里体现出对别的知识点的理解/薄弱,也据此改动那些知识点的掌握度
-    const cross = recordCrossKp(exam.id, questionId, out.crossKp, q.kp_id);
+    const cross = recordCrossKp(q.exam_id, questionId, out.crossKp, q.kp_id);
     for (const c of cross) masteryUpdates.push(c);
     applied.masteryUpdates = masteryUpdates;
     if (attemptId) {
-      const at = db.prepare("SELECT * FROM attempts WHERE id=? AND exam_id=?").get(attemptId, exam.id);
+      const at = db.prepare("SELECT * FROM attempts WHERE id=? AND exam_id=?").get(attemptId, q.exam_id);
       if (at) {
         if (out.revise) {
           const nc = out.newCorrect ? 1 : 0;

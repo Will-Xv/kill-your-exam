@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, langInstruction } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
@@ -12,7 +12,7 @@ export async function POST(req) {
     if (!user) return unauthorized();
     const { questionId, note } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
-    if (!q || !exam || q.exam_id !== exam.id) return forbidden();
+    if (!q || !exam || !inScope(exam.id, q.exam_id)) return forbidden();
     const body = JSON.parse(q.body), ans = JSON.parse(q.answer);
     const isPerform = q.qtype === "perform";
     const desc = isPerform

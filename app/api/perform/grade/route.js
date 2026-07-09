@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, uploadMedia, deleteMedia } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
@@ -28,7 +28,7 @@ export async function POST(req) {
     if (bodyJson) q = { ...(q || { id: questionId, kp_id: null, exam_id: null }), body: bodyJson, answer: answerJson || (q && q.answer) || "{}" };
     if (!q) return forbidden();
   } else {
-    if (!q || !exam || q.exam_id !== exam.id) return forbidden();
+    if (!q || !exam || (q.exam_id != null && !inScope(exam.id, q.exam_id))) return forbidden();
   }
   if (!file) return Response.json({ error: "没有录制文件" }, { status: 400 });
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -132,7 +132,7 @@ export async function POST(req) {
     }
     const musicMat = (analyzeAudio === "music" && body.mediaMaterialId) ? body.mediaMaterialId : null; // 无麦克风的给定音乐题:回放时叠加这首原配乐
     const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id) VALUES(?,?,?,?,?,?,?,?,?,?)")
-      .run(questionId, exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat);
+      .run(questionId, q.exam_id ?? exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat);
     try { saveRec(info.lastInsertRowid, buffer); } catch {}
     return Response.json({ score, feedback: fb, attemptId: info.lastInsertRowid });
   } catch (e) {

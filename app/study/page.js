@@ -86,7 +86,7 @@ function StudyInner() {
       </div>
       {tree.map((ch) => (
         <div key={ch.id} className="card">
-          <h2 className="font-bold mb-2">{ch.title}</h2>
+          <h2 className="font-bold mb-2 flex items-center gap-2">{ch.title}{ch.isSub && ch.fromExamName && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-300">📎 {ch.fromExamName}</span>}</h2>
           <div className="space-y-1">
             {ch.points.map((p) => (
               <button key={p.id} onClick={() => open(p)} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-50">
