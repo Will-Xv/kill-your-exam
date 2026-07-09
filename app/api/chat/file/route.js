@@ -9,7 +9,7 @@ export async function GET(req) {
   const id = Number(new URL(req.url).searchParams.get("id"));
   if (!id) return Response.json({ error: "bad" }, { status: 400 });
   const f = db.prepare("SELECT * FROM chat_files WHERE id=?").get(id);
-  if (!f || !exam || f.exam_id !== exam.id) return forbidden();
+  if (!f || f.user_id !== user.id) return forbidden(); // 家族共享聊天:按文件归属的用户放行,不看当前激活考试
   const buf = readChatFile(id);
   if (!buf) return Response.json({ error: "not found" }, { status: 404 });
   const name = encodeURIComponent(f.filename || "file");

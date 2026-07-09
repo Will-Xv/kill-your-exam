@@ -29,6 +29,7 @@ export default function Chat() {
   const [steps, setSteps] = useState([]);
   const pollRef = useRef(null);
   const bottom = useRef(null);
+  const taRef = useRef(null);
 
   useEffect(() => { fetch("/api/chat").then((r) => r.json()).then((d) => setMessages(d.messages || [])); }, []);
   useEffect(() => {
@@ -55,11 +56,21 @@ export default function Chat() {
   }
   function startPolling(runId) { setBusy(true); stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }
 
+  function autoGrow(el) {
+    if (!el) return;
+    el.style.height = "auto";
+    const w = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const maxRows = w < 640 ? 5 : w < 1024 ? 7 : 10;   // 手机/平板/电脑不同上限
+    const max = maxRows * 24 + 16;
+    el.style.height = Math.min(el.scrollHeight, max) + "px";
+    el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
+  }
   async function send(textOverride) {
     const text = (textOverride || input).trim();
     if ((!text && !files.length) || busy || pending) return;
     const attachments = await filesToAttachments(files);
     setInput(""); setFiles([]);
+    if (taRef.current) { taRef.current.style.height = "auto"; taRef.current.style.overflowY = "hidden"; }
     setMessages((m) => [...m, { role: "user", content: text + (attachments.length ? " 📎" + attachments.length : "") }]);
     setBusy(true); setSteps([]);
     try { const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
@@ -170,8 +181,8 @@ export default function Chat() {
       </div>
       {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}
       <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="flex gap-2 pt-2">
-        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt" /></label>
-        <input className="input flex-1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(可拖拽/粘贴文件)")} disabled={!!pending} />
+        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt,.md,.csv,.doc,.docx,audio/*" /></label>
+        <textarea ref={taRef} rows={1} className="input flex-1 resize-none leading-6" style={{ maxHeight: "260px" }} value={input} onChange={(e) => { setInput(e.target.value); autoGrow(e.target); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(Enter 发送,Shift+Enter 换行)")} disabled={!!pending} />
         <button className="btn" onClick={() => send()} disabled={busy || (!input.trim() && !files.length) || !!pending}>{t("发送")}</button>
       </DropZone>
     </div>
