@@ -37,6 +37,13 @@ export default function Home() {
     try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setDate", examId: data?.exam?.id, examDate: v || null }) }); } catch {}
   }
 
+  async function switchExam(id) {
+    if (!id || id === data?.exam?.id) return;
+    try { await fetch("/api/exam/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId: id }) }); } catch {}
+    try { const d = await fetch("/api/exam").then((r) => r.json()); setData(d); } catch {}
+    fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
+  }
+
   if (!data) return <div className="mx-auto max-w-3xl px-4 pt-6"><div className="shimmer h-40 rounded-3xl" /></div>;
 
   if (!data.exam) {
@@ -54,7 +61,7 @@ export default function Home() {
     );
   }
 
-  const { exam, stats } = data;
+  const { exam, stats, topExam, subExams } = data;
   const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date) - Date.now()) / 86400000) : null;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
@@ -103,7 +110,24 @@ export default function Home() {
           <circle cx="49" cy="150" r="2.6" fill="#9e140c" opacity=".85" />
         </svg>
         <div className="relative z-10">
-          <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{exam.name}</Link>
+          <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{(topExam && topExam.name) || exam.name}</Link>
+          {subExams && subExams.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试")}:</span>
+              {topExam && exam.id !== topExam.id && (
+                <button onClick={() => switchExam(topExam.id)} className="rounded-full bg-[#3d2b10]/[0.06] px-2.5 py-1 text-xs font-medium text-[#5b431f] ring-1 ring-[#dbc999] hover:brightness-95" title={t("回到最顶层考试")}>👑 {topExam.name}</button>
+              )}
+              {subExams.map((sx) => {
+                const on = sx.id === exam.id;
+                return (
+                  <button key={sx.id} onClick={() => switchExam(sx.id)} title={on ? t("当前考试") : t("切换到这个子考试")}
+                    className={"rounded-full px-2.5 py-1 text-xs font-medium transition " + (on ? "bg-[#2f2413] text-[#f6efdd] ring-1 ring-[#2f2413]" : "bg-[#3d2b10]/[0.06] text-[#5b431f] ring-1 ring-[#dbc999] hover:brightness-95")}>
+                    {sx.depth > 0 ? "› " : ""}{sx.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div className="mt-1">
             {dateOpen ? (
               <input type="date" autoFocus defaultValue={exam.exam_date || ""} className="rounded-lg border border-[#d9c89b] bg-white/80 px-2 py-1 text-sm text-[#2f2413]" onChange={(e) => saveDate(e.target.value)} onBlur={() => setDateOpen(false)} />
