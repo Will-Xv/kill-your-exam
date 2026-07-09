@@ -73,8 +73,15 @@ export default function Chat() {
     if (taRef.current) { taRef.current.style.height = "auto"; taRef.current.style.overflowY = "hidden"; }
     setMessages((m) => [...m, { role: "user", content: text + (attachments.length ? " 📎" + attachments.length : "") }]);
     setBusy(true); setSteps([]);
-    try { const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
-    catch { setMessages((m) => m.slice(0, -1)); setInput(text); setBusy(false); }
+    try {
+      const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments }) });
+      if (d.runId) startPolling(d.runId);
+      else { setBusy(false); setMessages((m) => [...m, { role: "tool_note", content: t("没能开始:") + (d.error || t("未知原因")) }]); }
+    } catch (e) {
+      setMessages((m) => m.slice(0, -1)); setInput(text); setBusy(false);
+      const msg = String((e && e.message) || e || "");
+      if (msg !== "ai-error" && msg !== "network") setMessages((m) => [...m, { role: "tool_note", content: t("发送失败:") + msg }]);
+    }
   }
 
   async function resolvePlan(action) {

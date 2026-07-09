@@ -33,20 +33,18 @@ export async function POST(req) {
     try { extractMemoryBg(user, _cid, recent.slice(-6).map((m) => (m.role === "user" ? "用户: " : "AI: ") + m.content).join("\n")); } catch {}
     const recentMinId = recent.length ? recent[0].id : Infinity;
     const toSummarize = rows.filter((m) => m.id > (sum.last_id || 0) && m.id < recentMinId);
+    // 摘要压缩改到【后台】做,不阻塞发送(用现有摘要 + 最近消息作上下文足够;新摘要留给下一次用)。
     if (toSummarize.length) {
-      const text = toSummarize.map((m) => (m.role === "user" ? "用户: " : "AI: ") + m.content).join("\n");
-      try {
-        const res = await generate(
-          `把下面这段备考助手对话压缩成简洁的要点摘要,保留:用户的目标/偏好/已确认的决定/待办/关键结论,用于让 AI 延续对话时有记忆。已有摘要在前,请把新内容并入、去重,整体控制在 400 字内,直接输出摘要正文。\n\n【已有摘要】\n${sum.summary || "(无)"}\n\n【新增对话】\n${text}`
-        );
-        const ns = (res.text || "").trim();
-        if (ns) {
-          const lastId = toSummarize[toSummarize.length - 1].id;
-          db.prepare("INSERT INTO chat_summary(exam_id,summary,last_id) VALUES(?,?,?) ON CONFLICT(exam_id) DO UPDATE SET summary=excluded.summary, last_id=excluded.last_id")
-            .run(_cid, ns, lastId);
-          sum = { summary: ns, last_id: lastId };
-        }
-      } catch {}
+      const _prevSummary = sum.summary || "";
+      const _text = toSummarize.map((m) => (m.role === "user" ? "用户: " : "AI: ") + m.content).join("\n");
+      const _lastId = toSummarize[toSummarize.length - 1].id;
+      Promise.resolve().then(async () => {
+        try {
+          const res = await generate(`把下面这段备考助手对话压缩成简洁的要点摘要,保留:用户的目标/偏好/已确认的决定/待办/关键结论,用于让 AI 延续对话时有记忆。已有摘要在前,请把新内容并入、去重,整体控制在 400 字内,直接输出摘要正文。\n\n【已有摘要】\n${_prevSummary || "(无)"}\n\n【新增对话】\n${_text}`);
+          const ns = (res.text || "").trim();
+          if (ns) db.prepare("INSERT INTO chat_summary(exam_id,summary,last_id) VALUES(?,?,?) ON CONFLICT(exam_id) DO UPDATE SET summary=excluded.summary, last_id=excluded.last_id").run(_cid, ns, _lastId);
+        } catch {}
+      });
     }
 
     const contents = [];
