@@ -121,6 +121,7 @@ export default function Onboarding() {
     <div className="card space-y-3">
       <h2 className="font-bold">📎 {t("补充资料(可选)")}</h2>
       <p className="text-sm text-slate-500">{t("按上面 AI 说它「不知道 / 需要你提供」的部分,补充资料或直接回答。也可以先跳过,以后随时补。")}</p>
+      <p className="text-xs text-amber-700">{t("💡 这些都是可选的,不用每项都填——即使标了 🔴 也可以留空/跳过,以后随时补。填得多 AI 更准,但空着也能生成。")}</p>
       <p className="text-[11px] text-slate-400">{t("请确保你有权使用所上传的资料,仅用于个人备考。")}</p>
       <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,image/*,audio/*" />
       {files.length > 0 && <button className="btn-ghost w-full" onClick={doUpload} disabled={busy}>{t("上传")} {files.length}</button>}

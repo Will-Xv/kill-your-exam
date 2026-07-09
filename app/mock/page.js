@@ -275,6 +275,7 @@ function stripLabel(op, i) {
             <DraftPad q={q} t={t} initial={restoredDrafts.current[q.id]} onDraft={setDraft} />
             {isChoice && (
               <div className="mt-2 space-y-1.5">
+                {q.qtype === "multi" && <p className="text-sm font-semibold text-amber-700">🔵 {t("多选题 · 可选多个正确答案")}</p>}
                 {options.map((op, i) => {
                   const v = q.qtype === "judge" ? op : letters[i];
                   const active = q.qtype === "multi" ? (cur || "").includes(v) : cur === v;

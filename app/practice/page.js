@@ -21,6 +21,7 @@ function GenProgress() {
       <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-amber-300 border-t-amber-600" />
       <p className="text-slate-500">{msg}</p>
       <p className="mt-1 text-xs text-slate-400">{sec}s</p>
+      <p className="mx-auto mt-3 max-w-xs text-xs text-slate-400">{t("生成较慢?可以先去别处——题目会在后台继续备好,回来就有了。")}</p>
     </div>
   );
 }
@@ -366,6 +367,7 @@ function PracticeInner() {
         </div>
         {isChoice && (
           <div className="mt-3 space-y-2">
+            {q.qtype === "multi" && <p className="text-sm font-semibold text-amber-700">🔵 {t("多选题 · 可选多个正确答案")}</p>}
             {options.map((op, i) => {
               const v = optValue(i); const active = sel.includes(v);
               return (
