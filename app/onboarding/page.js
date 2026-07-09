@@ -169,7 +169,7 @@ export default function Onboarding() {
             <h2 className="font-bold">{t("这是一个「只学习」的目标")}</h2>
             <p className="text-sm text-slate-500">{t("不需要联网搜索考试信息——名称只作为标题,相关信息以你上传的资料和补充说明为准。AI 会据此直接生成学习地图和计划。(练习题仍会正常出题/搜题)")}</p>
           </div>
-          <SupplyBlock />
+          {SupplyBlock()}
           <button className="btn w-full" onClick={finalize} disabled={busy}>{t("生成学习地图和计划")}</button>
         </>
       )}
@@ -187,17 +187,17 @@ export default function Onboarding() {
           <div className="card space-y-3">
             <h2 className="font-bold">🤖 {t("🤖 AI 认知自评:关于这门考试,我先跟你交个底")}</h2>
             <p className="text-sm">{t("总体把握:")}<b>{CONF[report.confidence]}</b></p>
-            <Section title={t("✅ 我比较有把握的")} items={report.known} />
-            <Section title={t("❓ 我不太确定的")} items={report.uncertain} />
-            <Section title={t("🚫 我不知道、需要你提供资料的")} items={report.unknown} />
-            <Section title={t("⚠️ 用 AI 备考这门考试的风险")} items={report.risks} tone="text-red-700" />
+            {Section({ title: t("✅ 我比较有把握的"), items: report.known })}
+            {Section({ title: t("❓ 我不太确定的"), items: report.uncertain })}
+            {Section({ title: t("🚫 我不知道、需要你提供资料的"), items: report.unknown })}
+            {Section({ title: t("⚠️ 用 AI 备考这门考试的风险"), items: report.risks, tone: "text-red-700" })}
             {sources.length > 0 && (
               <details className="text-xs text-slate-500"><summary>{t("本次搜索参考的网页")}({sources.length})</summary>
                 {sources.map((s, i) => <a key={i} className="block underline truncate" href={s.url} target="_blank">{s.title}</a>)}
               </details>
             )}
           </div>
-          <SupplyBlock />
+          {SupplyBlock()}
           <button className="btn w-full" onClick={finalize} disabled={busy}>{t("确认,生成知识点树和备考策略")}</button>
         </>
       )}
