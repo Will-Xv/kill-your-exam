@@ -152,6 +152,8 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
     if (!blobRef.current) return;
     if (blobRef.current.size > 300 * 1024 * 1024) { setErr(t("录制文件太大(超过 300MB),请缩短时长后重录。")); return; }
     setPhase("grading"); setErr("");
+    const t0 = Date.now();
+    const mb = (blobRef.current.size / 1024 / 1024).toFixed(1);
     try {
       const fd = new FormData();
       fd.append("questionId", String(q.id));
@@ -161,8 +163,11 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
       setResult(d); setPhase("graded");
       try { onGraded && onGraded(d); } catch {}
     } catch (e) {
-      let msg = t("点评失败,请重试。");
-      try { const j = JSON.parse(e?.message || ""); if (j.detail) msg += " · " + j.detail; } catch { if (e?.message && e.message.length < 220 && e.message !== "ai-error") msg += " · " + e.message; }
+      const secs = Math.round((Date.now() - t0) / 1000);
+      // 直接把服务器给的原因显示出来(方便 debug);空 body 崩溃时靠"用时 + 体积"判断内存/超时
+      let reason = "";
+      try { const j = JSON.parse(e?.message || ""); reason = j.detail || j.error || ""; } catch { reason = (e?.message && e.message !== "ai-error" && e.message !== "network") ? e.message : ""; }
+      const msg = t("点评失败,请重试。") + (reason ? " · " + reason : "") + ` (${secs}s · ${mb}MB)`;
       setErr(msg); setPhase("recorded");
       try { onGraded && onGraded({ error: msg }); } catch {}
     }

@@ -4,7 +4,7 @@ An AI-driven, exam-agnostic study companion. Give it any exam and it first resea
 
 Open the same URL on phone or desktop — progress syncs automatically (all data lives on the server). Live at **killyourexam.up.railway.app**.
 
-The UI is Chinese-first with a playful "assassin / murder plan" theme (the exam is the target, the AI is your private killer), and is fully localized into 7 languages.
+The default UI language is English, with a playful "assassin / murder plan" theme (the exam is the target, the AI is your private killer), and full localization into 7 languages (including Chinese, with the killer/追杀 wording most vivid there).
 
 ---
 
