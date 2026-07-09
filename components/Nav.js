@@ -16,6 +16,7 @@ const more = [
   { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
   { href: "/notes", label: "笔记本", icon: "📓", desc: "收藏的题+随手笔记" },
   { href: "/profile", label: "你的全部杀技", icon: "🧭", desc: "跨考试综合评估" },
+  { href: "/checkpoints", label: "回档", icon: "↩️", desc: "撤销结构类大改" },
   { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
 ];
 
