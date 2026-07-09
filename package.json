@@ -27,5 +27,6 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17"
-  }
+  },
+  "description": "Kill Your Exam — an AI-driven, exam-agnostic study companion: researches any exam, builds a personalized knowledge map, generates & grades questions (incl. audio/video performance), tracks true understanding, and drills your weak spots. Multimodal (Gemini), 7 languages."
 }
