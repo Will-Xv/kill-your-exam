@@ -2,7 +2,8 @@ import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemini";
 import { materialParts } from "@/lib/rag";
-import { updateReviewQueue, leafKpList, recordCrossKp } from "@/lib/mastery";
+import { updateReviewQueue, leafKpList, recordCrossKp, kpMasteryLevel } from "@/lib/mastery";
+import { addFact } from "@/lib/memory";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -62,6 +63,17 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
     const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
       .run(questionId, q.exam_id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode);
     updateReviewQueue(questionId, !!correct);
+    // 做题反映的熟悉度 -> 并入同一套记忆(冲突并存、按新近加权;和自述说法可相互印证)
+    try {
+      if (q.kp_id) {
+        const lvl = kpMasteryLevel(q.kp_id);
+        if (lvl && lvl !== "unlearned") {
+          const kt = db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title || "该知识点";
+          const label = { weak: "偏弱", ok: "一般", mastered: "较熟" }[lvl] || lvl;
+          addFact(user.id, q.exam_id, { subject: kt, kind: "observation", claim: `做题反映:「${kt}」目前${label}`, valence: lvl });
+        }
+      }
+    } catch {}
     const masteryUpdates = gradeCross ? recordCrossKp(q.exam_id, questionId, gradeCross, q.kp_id) : [];
     maybeAutoUpdateOverall(user); // 里程碑时后台刷新整体画像
     return Response.json({ attemptId: ins.lastInsertRowid, correct: !!correct, score, feedback, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real, masteryUpdates });
