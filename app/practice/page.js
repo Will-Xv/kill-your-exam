@@ -175,33 +175,33 @@ function PracticeInner() {
     } catch (e) { setGradeErr(t("提交失败,请重试(若反复失败,截图发我)。") + " " + (e?.message || "")); }
     setBusy(false);
   }
-  async function finalizeDiscuss() {
-    if (discuss && discuss.length >= 2) {
-      try {
-        const d = await aiFetch("/api/questions/discuss/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, attemptId: result?.attemptId, history: discuss }) });
+  // 后台收尾讨论(判分修订):不阻塞“下一题”。更新的是【离开的那道题】的存档,不碰当前显示。
+  function finalizeDiscussBg(qid, hist, attemptId) {
+    if (!(hist && hist.length >= 2)) return;
+    aiFetch("/api/questions/discuss/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: qid, attemptId, history: hist }) })
+      .then((d) => {
         const mn = fmtMastery(d.applied?.masteryUpdates);
-        setResult((r) => ({ ...r,
-          ...(d.applied?.revised ? {
-            correct: d.applied.newCorrect,
-            score: d.applied.newScore,
-            feedback: d.applied.newFeedback || r.feedback,
-            revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")),
-          } : {}),
-          ...(mn ? { masteryNote: mn } : {}) }));
-        if (d.applied?.revised) setDone((m) => ({ ...m, [q.id]: !!d.applied.newCorrect }));
-      } catch {}
-    }
-    setDiscuss(null); setDInput("");
+        if (!d.applied?.revised && !mn) return;
+        setAnswers((a) => {
+          const prev = a[qid] || {}; const r = prev.result || {};
+          return { ...a, [qid]: { ...prev, result: { ...r,
+            ...(d.applied?.revised ? { correct: d.applied.newCorrect, score: d.applied.newScore, feedback: d.applied.newFeedback || r.feedback, revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")) } : {}),
+            ...(mn ? { masteryNote: mn } : {}) } } };
+        });
+        if (d.applied?.revised) setDone((m) => ({ ...m, [qid]: !!d.applied.newCorrect }));
+      }).catch(() => {});
   }
-  async function next() {
+  function next() {
     try { window.speechSynthesis?.cancel(); } catch {}
-    await finalizeDiscuss();
-    setAnswers((a) => ({ ...a, [q.id]: { sel, text, result } }));
+    const qid = q.id, curDiscuss = discuss, curAttemptId = result?.attemptId;
+    setAnswers((a) => ({ ...a, [qid]: { sel, text, result } }));
     const ni = idx + 1; const nq = questions[ni]; const ns = nq ? answers[nq.id] : null;
     setResult(ns?.result ?? null); setSel(ns?.sel ?? []); setText(ns?.text ?? "");
     setReportOpen(false); setReportNote(""); setNoteOpen(false); setNoteBody(""); setNoteSaved(false);
     setDraftOpen(nq ? !!drafts[nq.id] : false);
-    setIdx(ni);
+    setDiscuss(null); setDInput("");
+    setIdx(ni);                       // 立即前进,不等网络
+    finalizeDiscussBg(qid, curDiscuss, curAttemptId); // 讨论收尾放后台
   }
   async function sendDiscuss() {
     const msg = dInput.trim(); if ((!msg && !dFiles.length) || dBusy) return;
