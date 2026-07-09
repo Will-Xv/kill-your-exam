@@ -224,7 +224,7 @@ function stripLabel(op, i) {
         <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
         <a className="btn-ghost text-sm" href="/mock/history">📚 {t("历史模拟考")}</a>
       </div>
-      {busy && <p className="mx-auto max-w-md rounded-lg bg-amber-100/80 px-3 py-2 text-xs text-amber-800">⏳ {t("正在组卷…题库不够会即时生成,可能要等一会儿。生成的题会存进题库,你可以先去别处,回来再点开始会快很多。")}</p>}
+      {busy && <p className="mx-auto max-w-md rounded-lg bg-amber-100/80 px-3 py-2 text-xs text-amber-800">⏳ {t("正在组卷…题库不够会即时生成,可能要等一会儿。退出之后后台会继续生成,可以过一会回来看看。")}</p>}
       {err && (
         <div className="mx-auto max-w-md rounded-lg bg-rose-100 px-3 py-2 text-sm text-rose-800">
           <p className="font-semibold">⚠️ {t("开始失败")}</p>
