@@ -1,4 +1,5 @@
 import db, { rootExamId, familyScope, scopeSql } from "@/lib/db";
+import { extractMemoryBg } from "@/lib/memory";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { startRun } from "@/lib/chatAgent";
@@ -28,6 +29,8 @@ export async function POST(req) {
     const rows = db.prepare(`SELECT id, role, content FROM chat_messages WHERE exam_id IN ${scopeSql(familyScope(exam.id))} AND role IN ('user','model') ORDER BY id`).all();
     let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(_cid) || { summary: "", last_id: 0 };
     const recent = rows.slice(-RECENT);
+    // 后台抽取持久记忆事实(自我评估/偏好/目标/约束),不阻塞聊天
+    try { extractMemoryBg(user, _cid, recent.slice(-6).map((m) => (m.role === "user" ? "用户: " : "AI: ") + m.content).join("\n")); } catch {}
     const recentMinId = recent.length ? recent[0].id : Infinity;
     const toSummarize = rows.filter((m) => m.id > (sum.last_id || 0) && m.id < recentMinId);
     if (toSummarize.length) {
