@@ -182,7 +182,7 @@ export default function Chat() {
       {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}
       <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="flex gap-2 pt-2">
         <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt,.md,.csv,.doc,.docx,audio/*" /></label>
-        <textarea ref={taRef} rows={1} className="input flex-1 resize-none leading-6" style={{ maxHeight: "260px" }} value={input} onChange={(e) => { setInput(e.target.value); autoGrow(e.target); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(Enter 发送,Shift+Enter 换行)")} disabled={!!pending} />
+        <textarea ref={taRef} rows={1} className="input flex-1 resize-none leading-6" style={{ maxHeight: "260px" }} value={input} onChange={(e) => { setInput(e.target.value); autoGrow(e.target); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); send(); } }} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(Enter 发送,Shift+Enter 换行)")} disabled={!!pending} />
         <button className="btn" onClick={() => send()} disabled={busy || (!input.trim() && !files.length) || !!pending}>{t("发送")}</button>
       </DropZone>
     </div>
