@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { runLoop, execTool, WRITE_TOOLS, resumePlanApprove, resumePlanRevise } from "@/lib/chatAgent";
+import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise } from "@/lib/chatAgent";
 
 export const maxDuration = 300;
 
@@ -30,7 +30,7 @@ export async function POST(req) {
     for (let idx = 0; idx < calls.length; idx++) {
       const c = calls[idx];
       let result;
-      if (WRITE_TOOLS.has(c.name)) {
+      if (isWrite(c.name)) {
         if (approvals && approvals[idx]) { result = await execTool(c.name, c.args || {}, exam, user); if (result?.note) toolNotes.push(result.note); }
         else { result = { declined: true, note: "考生拒绝了这个操作" }; }
       } else { result = await execTool(c.name, c.args || {}, exam, user); if (result?.note) toolNotes.push(result.note); }

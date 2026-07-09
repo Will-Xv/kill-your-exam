@@ -172,10 +172,10 @@ export default function Chat() {
           if (pstep) { try { plan = JSON.parse(pstep.detail); } catch {} }
           const vis = steps.filter((x) => x.kind !== "done" && x.kind !== "plan");
           const label = (x) => x.kind === "think" ? "💭 " + t("思考中…")
-            : x.kind === "tool" ? "🔧 " + x.detail
-            : x.kind === "result" ? "✅ " + x.detail
+            : x.kind === "tool" ? "🔧 " + t(x.detail || "")
+            : x.kind === "result" ? "✅ " + t(x.detail || "")
             : x.kind === "pending" ? "⏸ " + t("等待你确认…")
-            : x.kind === "error" ? "⚠️ " + t("出错了") : (x.detail || "");
+            : x.kind === "error" ? "⚠️ " + t("出错了") : t(x.detail || "");
           return (
             <div className="max-w-[90%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-500 space-y-2">
               {plan && (
