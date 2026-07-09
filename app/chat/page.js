@@ -1,10 +1,20 @@
 "use client";
 import { useT } from "@/components/I18n";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
 import { useAiFetch } from "@/components/AiErrorDialog";
+
+// 记忆化消息气泡:内容没变就不重渲染——避免每次在输入框打字都重新解析所有 Markdown/KaTeX,导致输入卡顿。
+const ChatMsg = memo(function ChatMsg({ role, content }) {
+  if (role === "tool_note") return <p className="text-center text-xs text-amber-700">⚙️ {content}</p>;
+  return (
+    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${role === "user" ? "ml-auto bg-amber-600 text-white" : "bg-[#f5eed6] border border-[#e4d5af] text-[#2f2413]"}`}>
+      {role === "user" ? <p className="whitespace-pre-wrap">{content}</p> : <MD className="prose-zh">{content}</MD>}
+    </div>
+  );
+});
 
 export default function Chat() {
   const t = useT();
@@ -85,15 +95,7 @@ export default function Chat() {
             ))}
           </div>
         )}
-        {messages.map((m, i) =>
-          m.role === "tool_note" ? (
-            <p key={i} className="text-center text-xs text-amber-700">⚙️ {m.content}</p>
-          ) : (
-            <div key={i} className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "ml-auto bg-amber-600 text-white" : "bg-[#f5eed6] border border-[#e4d5af] text-[#2f2413]"}`}>
-              {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <MD className="prose-zh">{m.content}</MD>}
-            </div>
-          )
-        )}
+        {messages.map((m, i) => <ChatMsg key={i} role={m.role} content={m.content} />)}
         {bjobs.filter((j) => j.status === "pending" || j.status === "running").map((j) => (
           <div key={j.id} className="card border-sky-200 bg-sky-50/70 text-sm">
             <p className="font-semibold text-sky-900">🌐 {t("浏览器采集")}:{j.goal}</p>
