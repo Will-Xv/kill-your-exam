@@ -5,13 +5,17 @@ import { APP_CAPABILITIES } from "@/lib/appGuide";
 import { aiErrorResponse } from "@/lib/errors";
 
 export async function POST(req) {
+  let _eid = null;
   try {
     const { user } = await requireUser();
     if (!user) return unauthorized();
     const { examId } = await req.json();
+    _eid = examId;
     const exam = db.prepare("SELECT * FROM exams WHERE id=?").get(examId);
     if (!exam) return Response.json({ error: "exam not found" }, { status: 404 });
     if (exam.user_id !== user.id) return forbidden();
+    // 标记「生成中」:用户此时退出,AI 仍在后台继续,列表显示生成中
+    db.prepare("UPDATE exams SET setup_state='generating' WHERE id=?").run(examId);
     const dossier = getDocument(examId, "dossier")?.content_md || "";
     const sample = db.prepare("SELECT heading_path, substr(content,1,200) c FROM chunks WHERE exam_id=? LIMIT 40").all(examId);
     const sampleText = sample.map((s) => `${s.heading_path}: ${s.c}`).join("\n").slice(0, 12000);
@@ -78,8 +82,12 @@ ${sampleText ? "资料摘要:\n" + sampleText : ""}` + langInstruction(user.lang
     );
     upsertDocument(examId, "strategy", st.strategy_md);
     upsertDocument(examId, "progress", `# 进度档案\n\n创建于 ${new Date().toLocaleDateString("zh-CN")}。尚未开始练习,暂无数据。`);
+    // 生成完成:归档旧 active、这门转正、清掉设置态
+    db.prepare("UPDATE exams SET status='archived' WHERE user_id=? AND status='active' AND id!=?").run(exam.user_id, examId);
+    db.prepare("UPDATE exams SET status='active', setup_state=NULL WHERE id=?").run(examId);
     return Response.json({ ok: true });
   } catch (e) {
+    try { if (_eid) db.prepare("UPDATE exams SET setup_state='draft' WHERE id=?").run(_eid); } catch {} // 失败回到可续设置
     return aiErrorResponse(e);
   }
 }

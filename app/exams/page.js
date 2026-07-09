@@ -7,6 +7,7 @@ export default function Exams() {
   const [exams, setExams] = useState(null);
   const load = () => fetch("/api/exam/list").then((r) => r.json()).then((d) => setExams(d.exams));
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (!exams?.some((e) => e.status === "setup" && e.setup_state === "generating")) return; const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [exams]);
   async function switchTo(id) {
     await fetch("/api/exam/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId: id }) });
     try { Object.keys(localStorage).filter((k) => k.startsWith("kye_practice:")).forEach((k) => localStorage.removeItem(k)); } catch {}
@@ -28,21 +29,26 @@ export default function Exams() {
         <h1 className="text-2xl font-bold">{t("追杀计划")}</h1>
         <a href="/onboarding" className="btn py-2 text-sm">+ {t("新考试")}</a>
       </div>
-      {live.map((e) => (
-        <div key={e.id} className={`card ${e.status === "active" ? "border-amber-500" : ""}`}>
+      {live.map((e) => {
+        const setup = e.status === "setup";
+        const generating = setup && e.setup_state === "generating";
+        return (
+        <div key={e.id} className={`card ${e.status === "active" ? "border-amber-500" : setup ? "border-dashed border-stone-300" : ""}`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold">{e.name} {e.status === "completed" && <span className="badge-material">{t("已完成")}</span>}</p>
-              <p className="text-xs text-stone-400">{e.exam_date || t("未设日期")} · {STATUS[e.status] || e.status}</p>
+              <p className="text-xs text-stone-400">{e.exam_date || t("未设日期")} · {generating ? "⏳ " + t("生成中…") : setup ? "🚧 " + t("正在设置") : (STATUS[e.status] || e.status)}</p>
             </div>
-            {e.status !== "active" && <button className="btn-ghost py-2 text-sm" onClick={() => switchTo(e.id)}>{t("切换到这个")}</button>}
+            {generating ? <span className="text-xs text-amber-600 animate-pulse">{t("AI 后台生成中")}</span>
+              : setup ? <button className="btn py-2 text-sm" onClick={() => (location.href = `/onboarding?resume=${e.id}`)}>{t("继续设置")}</button>
+              : e.status !== "active" ? <button className="btn-ghost py-2 text-sm" onClick={() => switchTo(e.id)}>{t("切换到这个")}</button> : null}
           </div>
           <div className="mt-2 flex gap-3 text-xs">
-            {e.status !== "completed" && <button className="text-stone-500 underline" onClick={() => manage("complete", e.id, t("标记为已完成?记录会保留,之后仍可切换回来或迁移资料。"))}>{t("标记为已完成")}</button>}
-            <button className="text-red-500 underline" onClick={() => manage("delete", e.id, t("删除这门考试?60 天内可恢复,之后永久删除全部记录。"))}>{t("删除")}</button>
+            {!setup && e.status !== "completed" && <button className="text-stone-500 underline" onClick={() => manage("complete", e.id, t("标记为已完成?记录会保留,之后仍可切换回来或迁移资料。"))}>{t("标记为已完成")}</button>}
+            <button className="text-red-500 underline" onClick={() => manage("delete", e.id, setup ? t("删除这个未完成的设置?") : t("删除这门考试?60 天内可恢复,之后永久删除全部记录。"))}>{t("删除")}</button>
           </div>
         </div>
-      ))}
+      );})}
       {trashed.length > 0 && (
         <div className="pt-2">
           <h2 className="text-sm font-semibold text-stone-500 mb-2">🗑️ {t("回收站")}</h2>

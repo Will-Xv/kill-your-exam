@@ -26,10 +26,9 @@ export async function POST(req) {
       return Response.json({ examId });
     }
   }
-  // 归档旧的 active,建新的
-  db.prepare("UPDATE exams SET status='archived' WHERE user_id=? AND status='active'").run(user.id);
-  const info = db.prepare(`INSERT INTO exams(name,exam_date,daily_minutes,exam_type,school,notes,status,assess_status,user_id)
-    VALUES(?,?,?,?,?,?,'active',?,?)`).run(nm, examDate || null, dailyMinutes || 60, examType || null, school || null, notes || null, examType === "study" ? "done" : "pending", user.id);
+  // 建为「设置中」草稿(setup/draft):此时【不】归档旧考试、也不占用 active——设置完成(finalize)后才转正。
+  const info = db.prepare(`INSERT INTO exams(name,exam_date,daily_minutes,exam_type,school,notes,status,assess_status,setup_state,user_id)
+    VALUES(?,?,?,?,?,?,'setup',?,'draft',?)`).run(nm, examDate || null, dailyMinutes || 60, examType || null, school || null, notes || null, examType === "study" ? "done" : "pending", user.id);
   if (examType === "study") upsertDocument(info.lastInsertRowid, "dossier", `# ${nm}\n\n${notes || "(用户只想学习这个主题,无需考试信息)"}`);
   return Response.json({ examId: info.lastInsertRowid });
 }

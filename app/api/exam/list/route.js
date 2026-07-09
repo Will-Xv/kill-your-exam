@@ -4,6 +4,6 @@ export async function GET() {
   const u = await getSessionUser();
   if (!u) return unauthorized();
   purgeExpiredExams();
-  const exams = db.prepare(`SELECT id, name, exam_date, status, deleted_at FROM exams WHERE user_id=? ORDER BY (status='active' AND deleted_at IS NULL) DESC, deleted_at IS NOT NULL, id DESC`).all(u.id);
+  const exams = db.prepare(`SELECT id, name, exam_date, status, setup_state, deleted_at FROM exams WHERE user_id=? ORDER BY (status='active' AND deleted_at IS NULL) DESC, deleted_at IS NOT NULL, id DESC`).all(u.id);
   return Response.json({ exams });
 }

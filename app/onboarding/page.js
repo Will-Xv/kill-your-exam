@@ -36,6 +36,28 @@ export default function Onboarding() {
   const [other, setOther] = useState("");
   const OTHER = "其他文件或说明";
   const [related, setRelated] = useState(null);
+  const [bgGen, setBgGen] = useState(false); // 正在做 AI 生成(可后台继续 + 显示退出键)
+
+  useEffect(() => {
+    const rid = new URLSearchParams(window.location.search).get("resume");
+    if (!rid) return;
+    (async () => {
+      try {
+        const d = await fetch(`/api/onboarding/draft?examId=${rid}`).then((r) => r.json());
+        if (!d || d.error) return;
+        if (d.setupState === "generating") { location.href = "/exams"; return; } // 还在后台生成,去追杀计划看
+        setExamId(d.examId);
+        setName(d.name || ""); setExamType(d.examType || ""); setExamDate(d.examDate || "");
+        setDailyMinutes(d.dailyMinutes || 60); setSchool(d.school || ""); setNotes(d.notes || "");
+        const cl = (d.checklist || []);
+        const otherItem = cl.find((c) => c.item === OTHER);
+        if (otherItem) setOther(otherItem.answer || "");
+        setChecklist(cl.map((c) => ({ ...c, answer: c.answer || "", done: !!c.done })));
+        if (d.report) { setReport(d.report); setSources(d.sources || []); setStep(4); }
+        else setStep(3);
+      } catch {}
+    })();
+  }, []); // eslint-disable-line
 
   async function createExam() {
     if (!name.trim() || !examType) return;
@@ -49,7 +71,7 @@ export default function Onboarding() {
   }
   async function doUpload() {
     if (!files.length) return;
-    setBusy(true);
+    setBgGen(false); setBusy(true);
     for (const f of files) {
       setBusyText(`${t("正在解析")} ${f.name}…`);
       const fd = new FormData(); fd.append("file", f);
@@ -59,7 +81,7 @@ export default function Onboarding() {
     setFiles([]); setBusy(false); setBusyText("");
   }
   async function generatePlan() {
-    setBusy(true); setBusyText(t("正在联网搜索这门考试的公开信息,并生成 AI 认知自评…(约 1 分钟)"));
+    setBgGen(true); setBusy(true); setBusyText(t("正在联网搜索这门考试的公开信息,并生成 AI 认知自评…(约 2 分钟,可能更久)"));
     try {
       const d = await aiFetch("/api/onboarding/assess", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId }) });
       setReport(d.report); setSources(d.sources || []);
@@ -73,7 +95,7 @@ export default function Onboarding() {
     try { await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: next, examId }) }); } catch {}
   }
   async function finalize() {
-    setBusy(true); setBusyText(t("正在生成知识点树和备考策略…(约 1 分钟)"));
+    setBgGen(true); setBusy(true); setBusyText(t("正在生成知识点树和备考策略…(约 2 分钟,可能更久)"));
     try {
       const cl = checklist.filter((c) => c.item !== OTHER);
       if (other.trim()) cl.push({ kind: "qa", item: OTHER, why: "", priority: "opt", fixed: true, answer: other, done: true });
@@ -131,7 +153,12 @@ export default function Onboarding() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="text-2xl font-black mt-2">{t("设置考试")}</h1>
-      {busy && busyText && <div className="card border-amber-400 bg-amber-50 text-amber-800 text-sm"><span className="animate-pulse">{busyText}</span> <span className="text-amber-600">· {elapsed}s</span></div>}
+      {busy && busyText && (
+        <div className="card border-amber-400 bg-amber-50 text-amber-800 text-sm">
+          <div><span className="animate-pulse">{busyText}</span> <span className="text-amber-600">· {elapsed}s</span></div>
+          {bgGen && <button className="btn-ghost mt-2 text-xs" onClick={() => (location.href = "/exams")}>{t("先退出(AI 会在后台继续生成,稍后在「追杀计划」里查看;没设完的也能续)")}</button>}
+        </div>
+      )}
 
       {step === 1 && (
         <div className="card space-y-3">
@@ -177,7 +204,7 @@ export default function Onboarding() {
         <div className="card space-y-3 text-center">
           <div className="text-4xl">🤖</div>
           <h2 className="font-bold">{t("准备好了,让 AI 分析这门考试")}</h2>
-          <p className="text-sm text-slate-500">{t("现在 AI 会联网搜索这门考试,并坦白它知道什么、不知道什么、有哪些风险。(约 1 分钟,请稍候)")}</p>
+          <p className="text-sm text-slate-500">{t("现在 AI 会联网搜索这门考试,并坦白它知道什么、不知道什么、有哪些风险。(约 2 分钟,请稍候)")}</p>
           <button className="btn w-full" onClick={generatePlan} disabled={busy}>{t("开始分析")}</button>
         </div>
       )}
