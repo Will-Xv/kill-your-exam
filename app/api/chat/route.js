@@ -10,8 +10,8 @@ export const maxDuration = 300;
 export async function GET() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
-  if (!exam) return Response.json({ messages: [] });
-  const messages = db.prepare(`SELECT * FROM chat_messages WHERE exam_id IN ${scopeSql(familyScope(exam.id))} ORDER BY id DESC LIMIT 60`).all().reverse();
+  const _scope = exam ? scopeSql(familyScope(exam.id)) : "(" + (-user.id) + ")";
+  const messages = db.prepare(`SELECT * FROM chat_messages WHERE exam_id IN ${_scope} ORDER BY id DESC LIMIT 60`).all().reverse();
   return Response.json({ messages });
 }
 
@@ -20,13 +20,13 @@ export async function POST(req) {
     const { message, attachments } = await req.json();
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    if (!exam) return Response.json({ error: "请先创建考试" }, { status: 400 });
-    const _cid = rootExamId(exam.id);
+    const _cid = exam ? rootExamId(exam.id) : -user.id;
+    const _fscope = exam ? scopeSql(familyScope(exam.id)) : "(" + _cid + ")";
     db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(_cid, "user", message + (attachments?.length ? " 📎" : ""));
 
     // 自动压缩上下文:保留最近 RECENT 轮原文,更早的对话滚动压缩成摘要(节省 token、不丢关键信息)
     const RECENT = 16;
-    const rows = db.prepare(`SELECT id, role, content FROM chat_messages WHERE exam_id IN ${scopeSql(familyScope(exam.id))} AND role IN ('user','model') ORDER BY id`).all();
+    const rows = db.prepare(`SELECT id, role, content FROM chat_messages WHERE exam_id IN ${_fscope} AND role IN ('user','model') ORDER BY id`).all();
     let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(_cid) || { summary: "", last_id: 0 };
     const recent = rows.slice(-RECENT);
     // 后台抽取持久记忆事实(自我评估/偏好/目标/约束),不阻塞聊天

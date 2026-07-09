@@ -5,11 +5,10 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 export async function GET(req) {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
-  if (!exam) return Response.json({ run: null });
   const id = new URL(req.url).searchParams.get("id");
   let run;
-  if (id) run = db.prepare(`SELECT * FROM chat_runs WHERE id=? AND exam_id IN ${scopeSql(familyScope(exam.id))}`).get(Number(id));
-  else run = db.prepare(`SELECT * FROM chat_runs WHERE exam_id IN ${scopeSql(familyScope(exam.id))} AND status IN ('running','pending') ORDER BY id DESC LIMIT 1`).get();
+  if (id) run = db.prepare(`SELECT * FROM chat_runs WHERE id=? AND exam_id IN ${exam ? scopeSql(familyScope(exam.id)) : "(" + (-user.id) + ")"}`).get(Number(id));
+  else run = db.prepare(`SELECT * FROM chat_runs WHERE exam_id IN ${exam ? scopeSql(familyScope(exam.id)) : "(" + (-user.id) + ")"} AND status IN ('running','pending') ORDER BY id DESC LIMIT 1`).get();
   if (!run) return Response.json({ run: null });
   if (run.user_id !== user.id) return forbidden();
   let steps = []; try { steps = JSON.parse(run.steps_json || "[]"); } catch {}

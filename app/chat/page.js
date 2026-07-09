@@ -108,7 +108,7 @@ export default function Chat() {
     catch { setBusy(false); }
   }
 
-  const suggestions = [t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
+  const suggestions = [t("我要准备一门新考试,帮我从零建起来"), t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 130px)" }}>
       <div className="mb-2 flex items-center justify-between gap-2">
