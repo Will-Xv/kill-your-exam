@@ -156,7 +156,7 @@ export default function Chat() {
               {pending.actions.map((a) => (
                 <label key={a.idx} className="flex items-start gap-2 text-sm">
                   <input type="checkbox" checked={pending.approve[a.idx]} onChange={(e) => setPending((p) => ({ ...p, approve: { ...p.approve, [a.idx]: e.target.checked } }))} className="mt-1" />
-                  <span>{a.desc}</span>
+                  <span>{t(a.desc)}</span>
                 </label>
               ))}
             </div>
