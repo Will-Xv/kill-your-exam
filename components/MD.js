@@ -66,7 +66,16 @@ export default function MD({ children, className = "", inline = false }) {
   s = autoMath(s);
   s = unwrapProseMath(s);
   s = balanceDelims(s);
-  const comps = inline ? { p: ({ children }) => <>{children}</> } : {};
+  const linkRenderer = ({ href, children }) => {
+    const h = typeof href === "string" ? href : "";
+    // 杀手生成、发给主人下载的文件 -> 渲染成醒目的下载按钮
+    if (h.includes("/api/chat/file")) {
+      return <a href={h} download className="my-1 inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white no-underline shadow-sm transition hover:bg-amber-700">⬇️ {children}</a>;
+    }
+    const ext = h.startsWith("http");
+    return <a href={h} className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800" {...(ext ? { target: "_blank", rel: "noreferrer" } : {})}>{children}</a>;
+  };
+  const comps = inline ? { a: linkRenderer, p: ({ children }) => <>{children}</> } : { a: linkRenderer };
   const Wrapper = inline ? "span" : "div";
   return (
     <Wrapper className={className}>
