@@ -52,32 +52,22 @@ export async function POST(req) {
     // 短视频:自己抽 5fps/720p 帧(JPEG + 时间戳)+ 音轨内联发给 Gemini(精确可控)。
     // 长视频:内联放不下(单次请求约 20MB 上限),改成转 mp4(保 720p、高画质)走 File API,
     //          让 Gemini【自己按 5fps 采样】——语义等价于"每秒 5 帧 + 音轨",但没有大小/长度限制。
-    // 【一次只走一条路,避免同时占用两份大内存导致进程 OOM 被杀(空 body 500)】
-    // 先探测时长:短视频(≤34s)只抽 5fps/720p 帧内联;长视频【直接】转 mp4 走 File API(不预抽帧),
-    // 让 Gemini 自己按 5fps 采样、长度不限、不降帧率。
-    let framesSent = 0, usedFileApi = false;
+    // 【纯抽帧,不做 H.264 转码 / 不走 File API】——转码那一步太吃内存,会把容器压崩(空 body 500)。
+    // 抽帧只用 ffmpeg 导出 JPEG,很轻。为尽量保住 5fps,把 JPEG 压小一点(仍 720p),这样能塞进去的帧数多得多:
+    // ≤~48s 基本是真 5fps;更长则均匀取帧、覆盖全程(帧率略降但整段都看到)。再加录进去的人声。
+    let framesSent = 0;
     if (isVideo && hasFfmpeg()) {
       tmp = path.join(os.tmpdir(), `rec-${Date.now()}-${Math.random().toString(36).slice(2)}.webm`);
       fs.writeFileSync(tmp, buffer);
-      const dur = probeDurationSec(buffer) || 0;
-      const isShort = dur > 0 && dur <= 34; // ≤34s @5fps ≈ 170 帧,内联可控
-      if (isShort) {
-        const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: 170 });
-        const recAudio = (analyzeAudio === "recorded" || analyzeAudio === "both") ? extractAudio(tmp) : null;
-        for (const fr of frames) {
-          if (used + fr.jpeg.length > BUDGET - 3 * 1024 * 1024) break; // 给音频/给定音乐留 3MB
-          parts.push({ text: `【${fr.t}s】` });
-          parts.push({ inlineData: { mimeType: "image/jpeg", data: B64(fr.jpeg) } });
-          used += fr.jpeg.length; framesSent++;
-        }
-        if (recAudio) pushInline("audio/mp4", recAudio);
+      const frames = extractFrames(tmp, { fps: 5, height: 720, maxFrames: 240, q: 12 });
+      const recAudio = (analyzeAudio === "recorded" || analyzeAudio === "both") ? extractAudio(tmp) : null;
+      for (const fr of frames) {
+        if (used + fr.jpeg.length > BUDGET - 3 * 1024 * 1024) break; // 给音频/给定音乐留 3MB
+        parts.push({ text: `【${fr.t}s】` });
+        parts.push({ inlineData: { mimeType: "image/jpeg", data: B64(fr.jpeg) } });
+        used += fr.jpeg.length; framesSent++;
       }
-      if (framesSent === 0) {
-        // 长视频 / 时长未知 / 抽帧失败 → 只走 File API(不预抽帧,省内存)
-        parts.length = 0; used = 0;
-        const mp4 = transcodeToMp4(buffer);
-        if (mp4 && mp4.length) { const up = await uploadMedia(mp4, "video/mp4", "mp4"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType }, videoMetadata: { fps: 5 } }); usedFileApi = true; }
-      }
+      if (recAudio) pushInline("audio/mp4", recAudio);
     }
 
     // ---- 给定音乐原曲(干净)+ 节拍(舞蹈类对齐用)----
@@ -100,13 +90,13 @@ export async function POST(req) {
       if (!pushInline(am, ab) && ab.length > BUDGET) { const up = await uploadMedia(ab, am, am.includes("mp3") ? "mp3" : "webm"); uploaded.push(up.name); parts.push({ fileData: { fileUri: up.fileUri, mimeType: up.mimeType } }); }
     }
 
-    // 兜底:既没内联到帧、也没走 File API(极少数:无 ffmpeg / 转码失败)
-    if (isVideo && framesSent === 0 && !usedFileApi && !parts.some((p) => p.fileData || p.inlineData)) {
+    // 兜底:没抽到任何帧(极少数:无 ffmpeg / 抽帧失败)
+    if (isVideo && framesSent === 0 && !parts.some((p) => p.inlineData)) {
       return Response.json({ error: "服务器暂时无法处理这段录像,请稍后重试或缩短时长后重录。" }, { status: 400 });
     }
 
     const howAnalyzed = isVideo
-      ? (framesSent ? `按每秒 5 帧、720P 截取的 ${framesSent} 张画面(每张前标了时间戳)` : "整段录像(保留 720P,由 AI 按每秒 5 帧采样,长视频也整段分析、不降帧率)") + (analyzeAudio === "music" ? " + 所给音乐原曲" : analyzeAudio === "both" ? " + 所给音乐原曲 + 录进去的声音" : " + 录进去的声音")
+      ? `从整段录像按每秒最多 5 帧、720P 截取的 ${framesSent} 张画面(每张前标了时间戳,覆盖全程;超过约 48 秒会均匀取帧)` + (analyzeAudio === "music" ? " + 所给音乐原曲" : analyzeAudio === "both" ? " + 所给音乐原曲 + 录进去的声音" : " + 录进去的声音")
       : "你的录音";
     const gradePrompt = `你是这门表演/技能类考试的评委。\n命题:${body.stem}\n评分维度:${rubric.join("、") || "综合表现"}\n${ans.notes ? "评分/示范要点:" + ans.notes + "\n" : ""}` +
       `【材料】${howAnalyzed}。${isVideo && framesSent ? "画面帧按时间先后排列、每张前标了【x秒】时间戳;" : ""}${isVideo ? "音乐与录制从同一时刻(0 秒)开始,请据此判断动作是否踩上音乐/节拍。" : ""}${beatInfo ? "（" + beatInfo + "）" : ""}\n` +
