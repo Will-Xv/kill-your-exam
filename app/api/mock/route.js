@@ -19,7 +19,7 @@ export async function POST(req) {
   if (!count) { const _bp = getBlueprint(exam.id); count = (_bp && _bp.totalQuestions) || 20; }
 
   if (realOnly) {
-    const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ${perfExam ? "AND qtype='perform'" : ""} AND is_real=1 ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
+    const pool = db.prepare(`SELECT * FROM questions WHERE exam_id=? AND flagged=0 ${perfExam ? "AND qtype='perform'" : ""} AND is_real=1 AND id NOT IN (SELECT question_id FROM attempts WHERE exam_id=${Number(exam.id)} AND question_id IS NOT NULL) ORDER BY RANDOM() LIMIT ?`).all(exam.id, count * 3);
     if (pool.length < 3) return Response.json({ error: "题库里还没有足够的真题。可以让 AI 联网找真题,或先做混合模拟。" }, { status: 400 });
     const byType = {}; for (const q of pool) (byType[q.qtype] ||= []).push(q);
     const picked = []; const types = Object.keys(byType); let i = 0;

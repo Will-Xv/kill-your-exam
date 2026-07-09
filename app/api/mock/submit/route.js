@@ -3,7 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, generate, langInstruction, attachParts } from "@/lib/gemini";
 import { mmOpts, materialParts } from "@/lib/rag";
 import { saveMockAtt } from "@/lib/files";
-import { leafKpList, recordCrossKp } from "@/lib/mastery";
+import { leafKpList, recordCrossKp, updateReviewQueue } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 300;
@@ -57,6 +57,7 @@ export async function POST(req) {
       const insA = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,mode) VALUES(?,?,?,?,?,?,'exam')")
         .run(qid, exam.id, q.kp_id, String(ua || ""), correct, scoreVal);
       const attemptId = insA.lastInsertRowid;
+      try { updateReviewQueue(qid, correct); } catch {}
       results.push({ id: qid, qtype: q.qtype, correct, score: scoreVal, marks: qMarks, earned: earnedMarks, chapter: ch, answer: ans.answer, explanation: ans.explanation || "", attemptId });
       if (gradeCross) { try { recordCrossKp(exam.id, qid, gradeCross, q.kp_id); } catch {} }
       const atts = Array.isArray(attachments[qid]) ? attachments[qid] : [];
