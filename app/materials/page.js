@@ -77,14 +77,14 @@ export default function Materials() {
           <div key={m.id} className="card py-3">
             <div className="flex items-center justify-between gap-3">
               <button className="min-w-0 flex-1 text-left" onClick={() => view(m)}>
-                <p className="font-medium text-sm truncate">{openId === m.id ? "▾ " : "▸ "}{m.filename}</p>
+                <p className="font-medium text-sm truncate">{openId === m.id ? "▾ " : "▸ "}{m.filename}{m.shared && <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-normal text-sky-700 align-middle">🔗 {t("共享自")} {m.fromExamName}</span>}</p>
                 <p className="text-xs text-stone-500">
                   {m.status === "ready" && `${m.chunk_count ? `${t("✓ 已入库")} (${m.chunk_count})` : t("✓ 已保存")} · ${t("点开查看")}`}
                   {m.status === "processing" && t("⏳ 处理中")}
                   {m.status === "failed" && <span className="text-red-600">✗ {m.error}</span>}
                 </p>
               </button>
-              <button className="shrink-0 text-stone-400 hover:text-red-600 text-sm" onClick={() => del(m.id)}>{t("删除")}</button>
+              {!m.shared && <button className="shrink-0 text-stone-400 hover:text-red-600 text-sm" onClick={() => del(m.id)}>{t("删除")}</button>}
             </div>
             {openId === m.id && (
               <div className="mt-2 border-t border-stone-200 pt-2">
