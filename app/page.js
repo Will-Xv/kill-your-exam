@@ -110,22 +110,27 @@ export default function Home() {
           <circle cx="49" cy="150" r="2.6" fill="#9e140c" opacity=".85" />
         </svg>
         <div className="relative z-10">
-          <Link href="/exams" className="text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{(topExam && topExam.name) || exam.name}</Link>
+          {topExam && exam.id !== topExam.id ? (
+            <button onClick={() => switchExam(topExam.id)} title={t("点标题回到最顶层考试")} className="block text-left text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>↰ {topExam.name}</button>
+          ) : (
+            <Link href="/exams" className="block text-2xl font-black tracking-tight hover:underline" style={{ color: "#2f2413" }}>{(topExam && topExam.name) || exam.name}</Link>
+          )}
           {subExams && subExams.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <div className="mt-2">
               <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试")}:</span>
-              {topExam && exam.id !== topExam.id && (
-                <button onClick={() => switchExam(topExam.id)} className="rounded-full bg-[#3d2b10]/[0.06] px-2.5 py-1 text-xs font-medium text-[#5b431f] ring-1 ring-[#dbc999] hover:brightness-95" title={t("回到最顶层考试")}>👑 {topExam.name}</button>
-              )}
-              {subExams.map((sx) => {
-                const on = sx.id === exam.id;
-                return (
-                  <button key={sx.id} onClick={() => switchExam(sx.id)} title={on ? t("当前考试") : t("切换到这个子考试")}
-                    className={"rounded-full px-2.5 py-1 text-xs font-medium transition " + (on ? "bg-[#2f2413] text-[#f6efdd] ring-1 ring-[#2f2413]" : "bg-[#3d2b10]/[0.06] text-[#5b431f] ring-1 ring-[#dbc999] hover:brightness-95")}>
-                    {sx.depth > 0 ? "› " : ""}{sx.name}
-                  </button>
-                );
-              })}
+              <div className="mt-1 flex flex-col gap-1">
+                {subExams.map((sx) => {
+                  const on = sx.id === exam.id;
+                  const direct = sx.depth === 0; // 顶层考试的直接子考试;depth>0 是“子考试的子考试”
+                  return (
+                    <button key={sx.id} onClick={() => switchExam(sx.id)} title={on ? t("当前考试") : (direct ? t("切换到这个子考试") : t("切换到这个下级子考试"))}
+                      style={{ marginLeft: sx.depth * 18 }}
+                      className={"inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 font-medium transition " + (direct ? "text-xs" : "text-[11px]") + " " + (on ? " bg-[#2f2413] text-[#f6efdd] ring-1 ring-[#2f2413]" : direct ? " bg-[#3d2b10]/[0.08] text-[#5b431f] ring-1 ring-[#dbc999] hover:brightness-95" : " bg-[#3d2b10]/[0.04] text-[#7a5a2a] ring-1 ring-[#e4d6ac] hover:brightness-95")}>
+                      {!direct && <span className="opacity-50">└</span>}{sx.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           <div className="mt-1">
