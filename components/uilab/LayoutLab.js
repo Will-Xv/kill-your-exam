@@ -37,6 +37,19 @@ export function LayoutLab({ enabled, children }) {
     c.style.minHeight = Math.ceil(maxB) + 48 + "px";
   });
 
+  // 进入编辑(或恢复默认)时,一次性测量所有还在自然流里的块,再统一转绝对定位 ——
+  // 避免逐个转绝对导致后面的块因前面的块脱离文档流而向上错位。
+  useLayoutEffect(() => {
+    if (!editing) return;
+    const c = canvasRef.current; if (!c) return;
+    const nodes = c.querySelectorAll("[data-lab-id]"); // 仅"尚未定位"的自然流块带此属性
+    if (!nodes.length) return;
+    const cr = c.getBoundingClientRect();
+    const seeds = {};
+    nodes.forEach((el) => { const id = el.getAttribute("data-lab-id"); const r = el.getBoundingClientRect(); seeds[id] = { x: Math.round(r.left - cr.left), y: Math.round(r.top - cr.top), w: Math.round(r.width), s: 1 }; });
+    lab.seedMany(seeds);
+  });
+
   return (
     <Canvas.Provider value={{ enabled, editing, layout, canvasRef }}>
       <div ref={canvasRef} className={editing ? "lab-canvas lab-on" : "lab-canvas"} style={{ position: "relative", width: "100%" }}>
@@ -59,14 +72,7 @@ export function Editable({ id, children }) {
   const { enabled, editing, layout, canvasRef } = ctx || {};
   const p = layout && layout[id];
 
-  useLayoutEffect(() => {
-    if (!editing || !canvasRef?.current || !ref.current || p) return;
-    const cr = canvasRef.current.getBoundingClientRect();
-    const r = ref.current.getBoundingClientRect();
-    lab.seed(id, { x: Math.round(r.left - cr.left), y: Math.round(r.top - cr.top), w: Math.round(r.width), s: 1 });
-  });
-
-  if (!ctx || !enabled || !p) return <div ref={ref} data-labw>{children}</div>;
+  if (!ctx || !enabled || !p) return <div ref={ref} data-labw {...(editing ? { "data-lab-id": id } : {})}>{children}</div>;
 
   const s = p.s || 1;
   const style = { position: "absolute", left: p.x, top: p.y, width: p.w, transform: `scale(${s})`, transformOrigin: "top left", zIndex: editing ? 2 : 1 };
