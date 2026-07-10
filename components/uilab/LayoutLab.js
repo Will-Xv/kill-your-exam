@@ -99,6 +99,8 @@ export function LayoutLab({ enabled, children }) {
         .lab-zone-edit{ outline:1px dashed rgba(158,20,12,.28); outline-offset:6px; border-radius:18px; min-height:60px; }
         .lab-empty{ display:grid; place-items:center; min-height:80px; color:#9a824f; font-size:12px; border:2px dashed #e4d5af; border-radius:16px; }
         .lab-drop{ height:3px; border-radius:3px; background:#2563eb; margin:2px 0; }
+        .lab-thumb{ width:7px; border-radius:9999px; cursor:grab; background:rgba(61,43,16,.45); transition:background .15s ease, width .12s ease; }
+        .lab-thumb:hover{ background:#efe3c4; width:9px; }
         .lab-hidebar{ scrollbar-width:none; -ms-overflow-style:none; }
         .lab-hidebar::-webkit-scrollbar{ display:none; width:0; height:0; }
         .lab-fancybar{ scrollbar-width:thin; scrollbar-color:rgba(61,43,16,.4) transparent; }
@@ -167,7 +169,7 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   return (
     <div data-zone={zoneId} style={{ gridArea: zoneId, minWidth: 0, minHeight: 0, position: "relative", paddingRight: 14 }} className={editing ? "lab-zone-edit" : ""}>
       <div ref={vpRef} onScroll={recompute} className="lab-hidebar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", borderRadius: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{content}</div>
-      {bar && <div onPointerDown={dragThumb} title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, width: 7, height: bar.h, borderRadius: 9999, background: "rgba(61,43,16,.6)", cursor: "grab" }} />}
+      {bar && <div onPointerDown={dragThumb} className="lab-thumb" title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, height: bar.h }} />}
     </div>
   );
 }
