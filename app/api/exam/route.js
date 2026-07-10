@@ -6,12 +6,12 @@ function topmostExam(exam) {
   const seen = new Set([exam.id]);
   let cur = exam, guard = 0;
   while (cur && cur.parent_exam_id && guard++ < 50) {
-    const p = db.prepare("SELECT id,name,parent_exam_id FROM exams WHERE id=? AND deleted_at IS NULL").get(cur.parent_exam_id);
+    const p = db.prepare("SELECT id,name,parent_exam_id,exam_date,status FROM exams WHERE id=? AND deleted_at IS NULL").get(cur.parent_exam_id);
     if (!p || seen.has(p.id)) break;
     seen.add(p.id);
     cur = p;
   }
-  return { id: cur.id, name: cur.name };
+  return { id: cur.id, name: cur.name, exam_date: cur.exam_date, status: cur.status };
 }
 
 // 收集某个根考试下的全部子孙(扁平,带层深),用于首页“子考试栏”

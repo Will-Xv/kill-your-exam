@@ -34,12 +34,14 @@ export default function Home() {
   async function saveDate(v) {
     setDateOpen(false);
     setData((d) => (d ? { ...d, exam: { ...d.exam, exam_date: v || null } } : d));
-    try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setDate", examId: data?.exam?.id, examDate: v || null }) }); } catch {}
+    try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setDate", examId: data?.topExam?.id || data?.exam?.id, examDate: v || null }) }); } catch {}
   }
 
   async function markComplete() {
+    if (!confirm(t("标记为已完成?记录会保留,之后仍可在追杀计划里切换回来。"))) return;
+    const eid = data?.topExam?.id || data?.exam?.id;
     try {
-      const r = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", examId: data?.exam?.id }) });
+      const r = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", examId: eid }) });
       if (!r.ok) { const tx = await r.text().catch(() => ""); alert(t("标记失败:") + " HTTP " + r.status + " " + tx); return; }
       const d = await r.json().catch(() => ({}));
       if (d && d.ok === false) { alert(t("标记失败:") + " " + (d.error || "")); return; }
@@ -71,7 +73,8 @@ export default function Home() {
   }
 
   const { exam, stats, topExam, subExams, aggregating, aggregateCount } = data;
-  const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date) - Date.now()) / 86400000) : null;
+  const topEx = topExam || exam; // 首页倒计时/完成状态对准“标题显示的那门课”(最顶层考试),而不是当前激活的子考试
+  const days = topEx.exam_date ? Math.ceil((new Date(topEx.exam_date) - Date.now()) / 86400000) : null;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
   const firstUndone = items.find((it) => !it.done);
@@ -147,8 +150,8 @@ export default function Home() {
           )}
           <div className="mt-1">
             {dateOpen ? (
-              <input type="date" autoFocus defaultValue={exam.exam_date || ""} className="rounded-lg border border-[#d9c89b] bg-white/80 px-2 py-1 text-sm text-[#2f2413]" onChange={(e) => saveDate(e.target.value)} onBlur={() => setDateOpen(false)} />
-            ) : exam.status === "completed" ? null : days != null && days < 0 ? (
+              <input type="date" autoFocus defaultValue={topEx.exam_date || ""} className="rounded-lg border border-[#d9c89b] bg-white/80 px-2 py-1 text-sm text-[#2f2413]" onChange={(e) => saveDate(e.target.value)} onBlur={() => setDateOpen(false)} />
+            ) : topEx.status === "completed" ? null : days != null && days < 0 ? (
               <span className="inline-flex items-center gap-2"><button className="text-left text-[#6b4a25] hover:opacity-80" onClick={() => setDateOpen(true)} title={t("点击修改考试日期")}>📅 {t("考试日期已过")} <span className="text-xs">✎</span></button><button className="rounded-full bg-[#2f2413] px-2.5 py-0.5 text-xs font-medium text-[#f6efdd] hover:opacity-90" onClick={markComplete}>✅ {t("标记为已完成")}</button></span>
             ) : days != null ? (
               <button className="text-left text-[#6b4a25] hover:opacity-80" onClick={() => setDateOpen(true)} title={t("点击修改考试日期")}>{t("距猎杀")} <span className="text-4xl font-black text-[#2f2413]">{days}</span> {t("天")} <span className="text-xs">✎</span>{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</button>
