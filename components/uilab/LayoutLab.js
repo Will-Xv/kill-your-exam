@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useRef, useEffect, useLayoutEffect, useState } from "react";
+import { createContext, useContext, useRef, useEffect, useLayoutEffect, useState, Children } from "react";
 import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
 import { collectRects, snapMove, snapEdgeX } from "@/lib/uilab/snap";
@@ -27,7 +27,7 @@ export function LayoutLab({ enabled, children }) {
     if (!c) { lab.enterEdit({}); return; }
     const cr = c.getBoundingClientRect();
     const seeds = {};
-    c.querySelectorAll("[data-lab-id]").forEach((el) => {
+    document.querySelectorAll("[data-lab-id]").forEach((el) => {
       const id = el.getAttribute("data-lab-id");
       const r = el.getBoundingClientRect();
       // x 用视口坐标(切到全宽后画布左缘≈视口 0),y 用相对画布 —— 于是进入编辑后各块停在原位、不跳动
@@ -57,7 +57,7 @@ export function LayoutLab({ enabled, children }) {
   useLayoutEffect(() => {
     if (!editing) return;
     const c = canvasRef.current; if (!c) return;
-    const nodes = c.querySelectorAll("[data-lab-id]"); // 仅"尚未定位"的自然流块带此属性
+    const nodes = document.querySelectorAll("[data-lab-id]"); // 仅"尚未定位"的自然流块带此属性(可能在画布外的溢出区)
     if (!nodes.length) return;
     const cr = c.getBoundingClientRect();
     const seeds = {};
@@ -65,11 +65,20 @@ export function LayoutLab({ enabled, children }) {
     lab.seedMany(seeds);
   });
 
+  // 布局里没有位置的块(例如某门考试才出现的提醒卡),不塞进绝对定位画布(会漂到顶上重叠),
+  // 而是排到画布下方的正常文档流里;编辑时它们会被测量并接着安置。
+  const positioning = !!layout;
+  const arr = Children.toArray(children);
+  const isOrphan = (ch) => positioning && ch && ch.props && ch.props.id && !(layout && layout[ch.props.id]);
+  const canvasKids = positioning ? arr.filter((ch) => !isOrphan(ch)) : arr;
+  const orphanKids = positioning ? arr.filter(isOrphan) : [];
+
   return (
     <Canvas.Provider value={{ enabled, editing, layout, canvasRef }}>
       <div ref={canvasRef} className={editing ? "lab-canvas lab-on" : "lab-canvas"} style={{ position: "relative", width: "100%" }}>
-        <div className={fullWidth ? "mx-auto max-w-3xl px-4" : ""}>{children}</div>
+        <div className={fullWidth ? "mx-auto max-w-3xl px-4" : ""}>{canvasKids}</div>
       </div>
+      {orphanKids.length > 0 && <div className="mx-auto max-w-3xl space-y-4 px-4 pb-10">{orphanKids}</div>}
       {enabled && S.isDesktop && typeof document !== "undefined" && createPortal(<Toolbar S={S} onEnter={enterEditMeasured} />, document.body)}
       {editing && typeof document !== "undefined" && createPortal(<Guides guides={S.guides} />, document.body)}
       <style>{`

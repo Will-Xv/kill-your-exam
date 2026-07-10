@@ -179,7 +179,7 @@ export default function Home() {
       </div>
       </Editable>
 
-      {days != null && days >= 0 && days < 7 && (
+      {!exam.completed_at && days != null && days >= 0 && days < 7 && (
         <Editable id="weekwarn">
         <div className="animate-in card mt-4 border border-red-300 bg-red-50/80">
           <p className="font-semibold text-red-700">⏰ {t("距猎杀不到一周了!")}</p>
