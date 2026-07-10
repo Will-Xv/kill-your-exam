@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 
-export default function Leaderboard() {
+export default function Leaderboard({ initial = null }) {
   const t = useT();
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(initial);
   const [tab, setTab] = useState("weekly");
   const [busyId, setBusyId] = useState(0);
   const [expanded, setExpanded] = useState(false);
