@@ -1,6 +1,7 @@
 "use client";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
+import MD from "@/components/MD";
 
 export default function Mistakes() {
   const t = useT();
@@ -25,9 +26,9 @@ export default function Mistakes() {
             <span>{m.kp_title || ""}</span>
             <span>{m.due_date ? t("下次重练:") + m.due_date : t("已完成重练周期")}</span>
           </div>
-          <p className="text-sm font-medium whitespace-pre-wrap">{m.body.stem}</p>
-          <p className="text-sm mt-2"><span className="text-red-600">{t("你的答案:")}{m.user_answer || t("(空)")}</span> · {t("正确:")}{m.answer.answer}</p>
-          <details className="text-sm text-stone-600 mt-1"><summary className="cursor-pointer text-stone-400">{t("解析")}</summary>{m.answer.explanation}</details>
+          <MD className="text-sm font-medium">{m.body.stem}</MD>
+          <p className="text-sm mt-2"><span className="text-red-600">{t("你的答案:")}<MD inline>{m.user_answer || t("(空)")}</MD></span> · {t("正确:")}<MD inline>{String(m.answer.answer ?? "")}</MD></p>
+          {m.answer.explanation && <details className="text-sm text-stone-600 mt-1"><summary className="cursor-pointer text-stone-400">{t("解析")}</summary><MD className="mt-1">{m.answer.explanation}</MD></details>}
           <button className="text-xs text-stone-400 underline mt-2" onClick={() => resolve(m.id)}>{t("我已理解,移出错题本")}</button>
         </div>
       ))}
