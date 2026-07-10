@@ -74,7 +74,7 @@ export function LayoutLab({ enabled, children }) {
         <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", ...(pageScroll ? {} : { height: "calc(100dvh - 7.5rem)" }) }}>
           <div style={{ display: "grid", gap: 16, ...(pageScroll ? {} : { height: "100%" }), gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
             {zoneIds.map((z, zi) => (
-              <Zone key={z} zoneId={z} pageScroll={pageScroll} showBar={!!rl.scrollbar} editing={editing} drop={S.drop} childById={childById}
+              <Zone key={z} zoneId={z} pageScroll={pageScroll} editing={editing} drop={S.drop} childById={childById}
                 ids={[...(rl.zones[z] || []), ...(zi === 0 ? orphans : [])].filter((id) => childById[id])} />
             ))}
           </div>
@@ -119,10 +119,10 @@ function KillerItem({ fill }) {
   );
 }
 
-function Zone({ zoneId, ids, childById, editing, drop, pageScroll, showBar }) {
+function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   const here = editing && drop && drop.zone === zoneId;
-  return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={(editing ? "lab-zone-edit " : "") + (!pageScroll ? "lab-fancybar" : "")}>
+  const content = (
+    <>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
@@ -131,6 +131,17 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll, showBar }) {
       ))}
       {here && drop.index >= ids.length && <div className="lab-drop" />}
       {editing && ids.length === 0 && <div className="lab-empty">拖到这里</div>}
+    </>
+  );
+  if (pageScroll) {
+    return (
+      <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }} className={editing ? "lab-zone-edit" : ""}>{content}</div>
+    );
+  }
+  // 圆角遮罩(外层 overflow:hidden 只负责圆角形状)+ 内层滚动器(滚动条被外层圆角干净裁切)
+  return (
+    <div data-zone={zoneId} style={{ gridArea: zoneId, minWidth: 0, minHeight: 0, borderRadius: 24, overflow: "hidden" }} className={editing ? "lab-zone-edit" : ""}>
+      <div className="lab-fancybar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{content}</div>
     </div>
   );
 }
