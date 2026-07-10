@@ -122,7 +122,7 @@ function KillerItem({ fill }) {
 function Zone({ zoneId, ids, childById, editing, drop, pageScroll, showBar }) {
   const here = editing && drop && drop.zone === zoneId;
   return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={(editing ? "lab-zone-edit " : "") + (!pageScroll ? (showBar ? "lab-fancybar" : "lab-hidebar") : "")}>
+    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={(editing ? "lab-zone-edit " : "") + (!pageScroll ? "lab-fancybar" : "")}>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
@@ -178,8 +178,6 @@ function Toolbar({ S }) {
           {TEMPLATE_ORDER.map((k) => (
             <button key={k} onClick={() => lab.setTemplate(k)} className={"rounded-lg px-2 py-1 text-[11px] " + (curTpl === k ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95")}>{TEMPLATES[k].label}</button>
           ))}
-          <span className="ml-1 pl-1 text-[11px] text-[#8a6a2c]">滚动条:</span>
-          <button onClick={() => lab.toggleScrollbar()} className={"rounded-lg px-2 py-1 text-[11px] " + ((S.working && S.working.scrollbar) ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]")}>{(S.working && S.working.scrollbar) ? "开" : "关"}</button>
         </div>
       )}
       {!editing ? (
