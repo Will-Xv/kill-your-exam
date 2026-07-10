@@ -93,7 +93,7 @@ export default function Nav() {
           </div>
         </div>
       )}
-      <nav className={`fixed bottom-0 left-0 right-0 z-50 md:top-0 md:bottom-auto ${dockLeft && !p ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-50 md:top-0 md:bottom-auto ${dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
         <div ref={navRef} data-snap style={navStyle} className="mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg">
           {primary.map((it) => (
             <Link key={it.href} href={it.href}

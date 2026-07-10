@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
 import { TEMPLATES, TEMPLATE_ORDER } from "@/lib/uilab/templates";
 import { useT } from "@/components/I18n";
+import KillerChat from "@/components/KillerChat";
 
 const Ctx = createContext(null);
 
@@ -25,6 +26,7 @@ export function LayoutLab({ enabled, children }) {
   const arr = Children.toArray(children).filter((c) => c && c.props && c.props.id);
   const orderedIds = arr.map((c) => c.props.id);
   const childById = {}; for (const c of arr) childById[c.props.id] = c;
+  childById["__killer"] = <Editable id="__killer"><KillerItem /></Editable>; // 杀手作为可拖动的"栏目"
 
   const editing = S.editing && enabled && S.isDesktop;
   const rl = lab.contentToRender();
@@ -78,8 +80,8 @@ export function LayoutLab({ enabled, children }) {
         </div>
       );
     } else {
-      const flat = []; for (const z of zoneIds) for (const id of (rl.zones[z] || [])) if (childById[id]) flat.push(id);
-      for (const id of orphans) if (childById[id]) flat.push(id);
+      const flat = []; for (const z of zoneIds) for (const id of (rl.zones[z] || [])) if (childById[id] && id !== "__killer") flat.push(id);
+      for (const id of orphans) if (childById[id] && id !== "__killer") flat.push(id);
       body = <div className="flex flex-col gap-4">{flat.map((id) => <Fragment key={id}>{childById[id]}</Fragment>)}</div>;
     }
   }
@@ -98,6 +100,14 @@ export function LayoutLab({ enabled, children }) {
         .lab-drop{ height:3px; border-radius:3px; background:#2563eb; margin:2px 0; }
       `}</style>
     </Ctx.Provider>
+  );
+}
+
+function KillerItem() {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={{ height: "74vh", minHeight: 460 }}>
+      <KillerChat />
+    </div>
   );
 }
 
@@ -188,5 +198,7 @@ function Toolbar({ S }) {
 // 进入编辑时,把当前 DOM 里出现的内容块 id(按出现顺序)交给 store 初始化布局
 function labIds() {
   if (typeof document === "undefined") return [];
-  return Array.from(document.querySelectorAll("[data-item]")).map((el) => el.getAttribute("data-id")).filter(Boolean);
+  const ids = Array.from(document.querySelectorAll("[data-item]")).map((el) => el.getAttribute("data-id")).filter(Boolean);
+  if (!ids.includes("__killer")) ids.push("__killer");
+  return ids;
 }
