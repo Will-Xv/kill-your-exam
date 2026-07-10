@@ -21,6 +21,20 @@ export function LayoutLab({ enabled, children }) {
   }, []);
   useEffect(() => () => lab.exitEdit(), []); // 离开首页时退出编辑
 
+  function enterEditMeasured() {
+    const c = canvasRef.current;
+    if (!c) { lab.enterEdit({}); return; }
+    const cr = c.getBoundingClientRect();
+    const seeds = {};
+    c.querySelectorAll("[data-lab-id]").forEach((el) => {
+      const id = el.getAttribute("data-lab-id");
+      const r = el.getBoundingClientRect();
+      // x 用视口坐标(切到全宽后画布左缘≈视口 0),y 用相对画布 —— 于是进入编辑后各块停在原位、不跳动
+      seeds[id] = { x: Math.round(r.left), y: Math.round(r.top - cr.top), w: Math.round(r.width), s: 1 };
+    });
+    lab.enterEdit(seeds);
+  }
+
   const layout = lab.layoutNow();
   const editing = S.editing && enabled && S.isDesktop;
   const flow = !layout;
@@ -55,7 +69,7 @@ export function LayoutLab({ enabled, children }) {
       <div ref={canvasRef} className={editing ? "lab-canvas lab-on" : "lab-canvas"} style={{ position: "relative", width: "100%" }}>
         <div className={fullWidth ? "mx-auto max-w-3xl px-4" : ""}>{children}</div>
       </div>
-      {enabled && S.isDesktop && typeof document !== "undefined" && createPortal(<Toolbar S={S} />, document.body)}
+      {enabled && S.isDesktop && typeof document !== "undefined" && createPortal(<Toolbar S={S} onEnter={enterEditMeasured} />, document.body)}
       <style>{`
         .lab-on [data-lab]{ outline:1.5px dashed rgba(158,20,12,.55); outline-offset:2px; border-radius:14px; }
         .lab-grip{ position:absolute; background:#9e140c; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35); z-index:20; }
@@ -72,7 +86,7 @@ export function Editable({ id, children }) {
   const { enabled, editing, layout, canvasRef } = ctx || {};
   const p = layout && layout[id];
 
-  if (!ctx || !enabled || !p) return <div ref={ref} data-labw {...(editing ? { "data-lab-id": id } : {})}>{children}</div>;
+  if (!ctx || !enabled || !p) return <div ref={ref} data-labw data-lab-id={id}>{children}</div>;
 
   const s = p.s || 1;
   const style = { position: "absolute", left: p.x, top: p.y, width: p.w, transform: `scale(${s})`, transformOrigin: "top left", zIndex: editing ? 2 : 1 };
@@ -104,7 +118,7 @@ export function Editable({ id, children }) {
   );
 }
 
-function Toolbar({ S }) {
+function Toolbar({ S, onEnter }) {
   const t = useT();
   const active = lab.activePreset();
   const editing = S.editing;
@@ -129,7 +143,7 @@ function Toolbar({ S }) {
       )}
       {!editing ? (
         <div className="flex items-center gap-2">
-          <button className={btn + " bg-[#2f2413] text-[#f6efdd] shadow-lg hover:opacity-90"} onClick={() => lab.enterEdit()}>🎨 {t("编辑布局")}</button>
+          <button className={btn + " bg-[#2f2413] text-[#f6efdd] shadow-lg hover:opacity-90"} onClick={onEnter}>🎨 {t("编辑布局")}</button>
           <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => setLibOpen((v) => !v)}>📚 {t("布局库")}</button>
           {active && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.revertActive()} title={t("回到原始首页")}>↩ {t("撤回")}</button>}
         </div>
