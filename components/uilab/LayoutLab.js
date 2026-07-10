@@ -26,10 +26,11 @@ export function LayoutLab({ enabled, children }) {
   const arr = Children.toArray(children).filter((c) => c && c.props && c.props.id);
   const orderedIds = arr.map((c) => c.props.id);
   const childById = {}; for (const c of arr) childById[c.props.id] = c;
-  childById["__killer"] = <Editable id="__killer"><KillerItem /></Editable>; // 杀手作为可拖动的"栏目"
 
   const editing = S.editing && enabled && S.isDesktop;
   const rl = lab.contentToRender();
+  const pageScroll = !!(rl && rl.template === "single"); // 整列=整页滚;其余=分区固定、内部滚
+  childById["__killer"] = <Editable id="__killer" fill={!pageScroll}><KillerItem fill={!pageScroll} /></Editable>; // 杀手作为可拖动的"栏目"
 
   // 拖动控制:命中测试分区 + 插入位置
   const startDrag = (id, e) => {
@@ -69,7 +70,6 @@ export function LayoutLab({ enabled, children }) {
     const orphans = orderedIds.filter((id) => !placed.has(id)); // 某考试才出现的块 → 归第一个分区
     if (S.isDesktop) {
       const narrow = rl.template === "single" || rl.template === "tb";
-      const pageScroll = rl.template === "single"; // 整列=整页滚动;其余=分区各自滚动、主页面(背景板)不动
       body = (
         <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", ...(pageScroll ? {} : { height: "calc(100dvh - 7.5rem)" }) }}>
           <div style={{ display: "grid", gap: 16, ...(pageScroll ? {} : { height: "100%" }), gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
@@ -104,9 +104,9 @@ export function LayoutLab({ enabled, children }) {
   );
 }
 
-function KillerItem() {
+function KillerItem({ fill }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={{ flex: "1 1 auto", minHeight: 360 }}>
+    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={fill ? { flex: "1 1 0", minHeight: 0 } : { height: "72vh" }}>
       <KillerChat />
     </div>
   );
@@ -128,13 +128,15 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   );
 }
 
-export function Editable({ id, children }) {
+export function Editable({ id, children, fill }) {
   const ctx = useContext(Ctx);
-  if (!ctx || !ctx.editing) return <div data-item data-id={id} className="lab-item">{children}</div>;
+  const wrap = fill ? { flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" } : undefined;
+  const inner = fill ? { pointerEvents: "none", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" } : { pointerEvents: "none" };
+  if (!ctx || !ctx.editing) return <div data-item data-id={id} className="lab-item" style={wrap}>{children}</div>;
   return (
-    <div data-item data-id={id} className="lab-item edit">
+    <div data-item data-id={id} className="lab-item edit" style={wrap}>
       <div className="lab-grip" onPointerDown={(e) => ctx.startDrag(id, e)} title="拖动:排序 / 移到其它分区">⠿ 拖动</div>
-      <div style={{ pointerEvents: "none" }}>{children}</div>
+      <div style={inner}>{children}</div>
     </div>
   );
 }
