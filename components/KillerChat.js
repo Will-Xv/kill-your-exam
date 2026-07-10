@@ -120,7 +120,7 @@ export default function KillerChat() {
         <h1 className="text-2xl font-black">{t("问问杀手")}</h1>
         {messages.length > 0 && me?.isDeveloper && <button className="btn-ghost shrink-0 text-xs text-rose-500" onClick={clearChat}>🗑️ {t("清空对话")}</button>}
       </div>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-3 pb-3 min-w-0">
+      <div className="nice-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-3 pb-3 min-w-0">
         {!messages.length && !pending && (
           <div className="text-center text-[#cdbfa0] text-sm mt-10 space-y-2">
             <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用,或让我去某个已登录的学习网站采集资料。")}</p>

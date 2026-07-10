@@ -130,3 +130,10 @@ html[lang="zh-HK"] .font-hero {
   font-weight: 800;
   font-style: normal;
 }
+
+/* 圆角细滚动条(用于杀手聊天等卡片内部滚动区) */
+.nice-scroll{ scrollbar-width:thin; scrollbar-color:rgba(61,43,16,.5) transparent; }
+.nice-scroll::-webkit-scrollbar{ width:8px; }
+.nice-scroll::-webkit-scrollbar-track{ background:transparent; }
+.nice-scroll::-webkit-scrollbar-thumb{ background:rgba(61,43,16,.45); border-radius:9999px; border:2px solid transparent; background-clip:content-box; }
+.nice-scroll::-webkit-scrollbar-thumb:hover{ background:rgba(61,43,16,.68); border:2px solid transparent; background-clip:content-box; }
