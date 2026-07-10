@@ -4,6 +4,7 @@ import Leaderboard from "@/components/Leaderboard";
 import Link from "next/link";
 import { useT } from "@/components/I18n";
 import Tour from "@/components/Tour";
+import { LayoutLab, Editable } from "@/components/uilab/LayoutLab";
 
 export default function Home() {
   const t = useT();
@@ -14,7 +15,9 @@ export default function Home() {
   const [weakCount, setWeakCount] = useState(0);
   const [dateOpen, setDateOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [isDev, setIsDev] = useState(false);
   useEffect(() => { fetch("/api/inbox").then((r) => r.json()).then((d) => setUnread(d.unread || 0)).catch(() => {}); }, []);
+  useEffect(() => { fetch("/api/me").then((r) => r.json()).then((d) => setIsDev(!!(d.user && d.user.isDeveloper))).catch(() => {}); }, []);
   useEffect(() => {
     fetch("/api/exam").then((r) => r.json()).then(setData);
     fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
@@ -103,8 +106,10 @@ export default function Home() {
   return (
     <>
       <Tour />
-      <Leaderboard />
+      <LayoutLab enabled={isDev}>
+      <Editable id="leaderboard"><Leaderboard /></Editable>
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
+      <Editable id="hero">
       <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
         {/* 手机端:手绘血刃(内联 SVG);pad/桌面(md+,含 iPad 竖屏):原来的刺客贴画 */}
         <img src="/illustrations/sticker.png" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute -right-2 -top-[58px] hidden w-[50%] max-w-[350px] select-none md:block" style={{ filter: "drop-shadow(0 4px 6px rgba(60,40,15,.18))" }} />
@@ -172,8 +177,10 @@ export default function Home() {
           <Link href="/materials" className="block rounded-2xl py-2 ring-1 ring-black/10 transition hover:brightness-110" style={{ background: "rgba(47,36,19,.78)" }}><div className="text-xl font-bold text-[#f6efdd]" style={{ textShadow: "0 1px 3px rgba(0,0,0,.65)" }}>{stats.matCount}</div><div className="text-[11px] text-[#ecdcb6]" style={{ textShadow: "0 1px 2px rgba(0,0,0,.6)" }}>{t("资料数")}</div></Link>
         </div>
       </div>
+      </Editable>
 
       {days != null && days >= 0 && days < 7 && (
+        <Editable id="weekwarn">
         <div className="animate-in card mt-4 border border-red-300 bg-red-50/80">
           <p className="font-semibold text-red-700">⏰ {t("距猎杀不到一周了!")}</p>
           <p className="mt-1 text-sm text-slate-600">{t("建议现在:到「学习」页自查还欠缺/薄弱的知识点,并做一次全真模拟考,查漏补缺。")}{weakCount > 0 ? `(${t("目前还有")} ${weakCount} ${t("个薄弱/未学的知识点")})` : ""}</p>
@@ -182,9 +189,11 @@ export default function Home() {
             <Link href="/mock" className="btn-ghost py-2 text-sm">📝 {t("去模拟考")}</Link>
           </div>
         </div>
+        </Editable>
       )}
 
       {/* today's plan */}
+      <Editable id="today">
       <div id="tour-today" className="card animate-in d1 mt-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-bold">📋 {t("今日任务")}</h2>
@@ -202,8 +211,10 @@ export default function Home() {
         )}
         {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
       </div>
+      </Editable>
 
       {/* feature grid */}
+      <Editable id="more"><>
       <h2 className="mt-6 mb-2 text-sm font-semibold text-[#e8c987]">{t("更多功能")}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {features.map((f, i) => (
@@ -217,8 +228,10 @@ export default function Home() {
           </Link>
         ))}
       </div>
+      </></Editable>
 
       {/* AI strategy */}
+      <Editable id="strategy">
       <div className="card animate-in mt-5">
         <div className="flex items-center justify-between">
           <div>
@@ -236,12 +249,16 @@ export default function Home() {
           </div>
         )}
       </div>
+      </Editable>
 
       {stats.matCount === 0 && (
+        <Editable id="matwarn">
         <Link href="/materials" className="card animate-in mt-4 block border-amber-300 bg-amber-50">
           <p className="text-sm text-amber-800">⚠️ {t("⚠️ 资料库还是空的,AI 只能凭记忆讲课,准确性没保障。")}<b>{t("强烈建议先上传资料")}</b></p>
         </Link>
+        </Editable>
       )}
+      </LayoutLab>
     </>
   );
 }
