@@ -167,7 +167,7 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   return (
     <div data-zone={zoneId} style={{ gridArea: zoneId, minWidth: 0, minHeight: 0, position: "relative", paddingRight: 14 }} className={editing ? "lab-zone-edit" : ""}>
       <div ref={vpRef} onScroll={recompute} className="lab-hidebar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", borderRadius: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{content}</div>
-      {bar && <div onPointerDown={dragThumb} title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, width: 7, height: bar.h, borderRadius: 9999, background: "rgba(61,43,16,.4)", cursor: "grab" }} />}
+      {bar && <div onPointerDown={dragThumb} title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, width: 7, height: bar.h, borderRadius: 9999, background: "rgba(61,43,16,.6)", cursor: "grab" }} />}
     </div>
   );
 }
