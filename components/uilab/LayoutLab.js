@@ -74,7 +74,7 @@ export function LayoutLab({ enabled, children }) {
         <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", ...(pageScroll ? {} : { height: "calc(100dvh - 7.5rem)" }) }}>
           <div style={{ display: "grid", gap: 16, ...(pageScroll ? {} : { height: "100%" }), gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
             {zoneIds.map((z, zi) => (
-              <Zone key={z} zoneId={z} pageScroll={pageScroll} editing={editing} drop={S.drop} childById={childById}
+              <Zone key={z} zoneId={z} pageScroll={pageScroll} showBar={!!rl.scrollbar} editing={editing} drop={S.drop} childById={childById}
                 ids={[...(rl.zones[z] || []), ...(zi === 0 ? orphans : [])].filter((id) => childById[id])} />
             ))}
           </div>
@@ -99,6 +99,8 @@ export function LayoutLab({ enabled, children }) {
         .lab-zone-edit{ outline:1px dashed rgba(158,20,12,.28); outline-offset:6px; border-radius:18px; min-height:60px; }
         .lab-empty{ display:grid; place-items:center; min-height:80px; color:#9a824f; font-size:12px; border:2px dashed #e4d5af; border-radius:16px; }
         .lab-drop{ height:3px; border-radius:3px; background:#2563eb; margin:2px 0; }
+        .lab-hidebar{ scrollbar-width:none; -ms-overflow-style:none; }
+        .lab-hidebar::-webkit-scrollbar{ display:none; width:0; height:0; }
       `}</style>
     </Ctx.Provider>
   );
@@ -112,10 +114,10 @@ function KillerItem({ fill }) {
   );
 }
 
-function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
+function Zone({ zoneId, ids, childById, editing, drop, pageScroll, showBar }) {
   const here = editing && drop && drop.zone === zoneId;
   return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={editing ? "lab-zone-edit" : ""}>
+    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={(editing ? "lab-zone-edit " : "") + (!pageScroll && !showBar ? "lab-hidebar" : "")}>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
@@ -171,6 +173,8 @@ function Toolbar({ S }) {
           {TEMPLATE_ORDER.map((k) => (
             <button key={k} onClick={() => lab.setTemplate(k)} className={"rounded-lg px-2 py-1 text-[11px] " + (curTpl === k ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95")}>{TEMPLATES[k].label}</button>
           ))}
+          <span className="ml-1 pl-1 text-[11px] text-[#8a6a2c]">滚动条:</span>
+          <button onClick={() => lab.toggleScrollbar()} className={"rounded-lg px-2 py-1 text-[11px] " + ((S.working && S.working.scrollbar) ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]")}>{(S.working && S.working.scrollbar) ? "开" : "关"}</button>
         </div>
       )}
       {!editing ? (
