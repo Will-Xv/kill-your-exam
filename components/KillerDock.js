@@ -3,6 +3,7 @@ import KillerChat from "@/components/KillerChat";
 import { useRef, useEffect, useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 import * as lab from "@/lib/uilab/store";
+import { collectRects, snapMove, snapEdgeX, snapEdgeY } from "@/lib/uilab/snap";
 import { useT } from "@/components/I18n";
 
 // 电脑端右侧悬浮聊天卡片。开发者在首页「编辑布局」时,这张卡片也能拖动/缩放(与首页共用一套布局)。
@@ -35,24 +36,25 @@ export default function KillerDock() {
   const posClass = p ? "fixed" : "fixed right-5 top-20 bottom-4 w-[440px] lg:w-[480px] z-30";
   const style = p ? { left: p.x, top: p.y, width: p.w, height: p.h, zIndex: editing ? 40 : 30 } : undefined;
 
-  const drag = (fn) => (e) => {
+  const gestureBase = () => { const start = ref.current.getBoundingClientRect(); const others = collectRects(ref.current); lab.pushHistory(); return { start, others }; };
+  const begin = (e, handler) => {
     e.preventDefault(); e.stopPropagation();
-    const sx = e.clientX, sy = e.clientY, p0 = { ...p }; lab.pushHistory();
-    const mv = (ev) => fn(ev.clientX - sx, ev.clientY - sy, p0);
-    const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
-    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+    const sx = e.clientX, sy = e.clientY, p0 = { ...p }; const { start, others } = gestureBase();
+    const m = (ev) => handler(ev.clientX - sx, ev.clientY - sy, p0, start, others);
+    const up = () => { lab.setGuides([]); window.removeEventListener("pointermove", m); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", m); window.addEventListener("pointerup", up);
   };
-  const mv = drag((dx, dy, p0) => lab.setPos("__killer", { x: Math.round(p0.x + dx), y: Math.round(p0.y + dy) }));
-  const eR = drag((dx, _d, p0) => lab.setPos("__killer", { w: Math.max(240, Math.round(p0.w + dx)) }));
-  const eB = drag((_d, dy, p0) => lab.setPos("__killer", { h: Math.max(220, Math.round(p0.h + dy)) }));
-  const eL = drag((dx, _d, p0) => { const w = Math.max(240, Math.round(p0.w - dx)); lab.setPos("__killer", { x: Math.round(p0.x + (p0.w - w)), w }); });
-  const eT = drag((_d, dy, p0) => { const h = Math.max(220, Math.round(p0.h - dy)); lab.setPos("__killer", { y: Math.round(p0.y + (p0.h - h)), h }); });
-  const cBR = drag((dx, dy, p0) => lab.setPos("__killer", { w: Math.max(240, Math.round(p0.w + dx)), h: Math.max(220, Math.round(p0.h + dy)) }));
+  const mv = (e) => begin(e, (dx, dy, p0, start, others) => { const r = snapMove(start, dx, dy, others); lab.setPos("__killer", { x: Math.round(p0.x + r.dx), y: Math.round(p0.y + r.dy) }); lab.setGuides(r.guides); });
+  const eR = (e) => begin(e, (dx, _d, p0, start, others) => { const { value, guide } = snapEdgeX(start.right + dx, others); lab.setPos("__killer", { w: Math.max(240, Math.round(value - start.left)) }); lab.setGuides(guide ? [guide] : []); });
+  const eL = (e) => begin(e, (dx, _d, p0, start, others) => { const { value, guide } = snapEdgeX(start.left + dx, others); lab.setPos("__killer", { x: Math.round(value), w: Math.max(240, Math.round(start.right - value)) }); lab.setGuides(guide ? [guide] : []); });
+  const eB = (e) => begin(e, (_d, dy, p0, start, others) => { const { value, guide } = snapEdgeY(start.bottom + dy, others); lab.setPos("__killer", { h: Math.max(220, Math.round(value - start.top)) }); lab.setGuides(guide ? [guide] : []); });
+  const eT = (e) => begin(e, (_d, dy, p0, start, others) => { const { value, guide } = snapEdgeY(start.top + dy, others); lab.setPos("__killer", { y: Math.round(value), h: Math.max(220, Math.round(start.bottom - value)) }); lab.setGuides(guide ? [guide] : []); });
+  const cBR = (e) => begin(e, (dx, dy, p0, start, others) => { const gx = snapEdgeX(start.right + dx, others); const gy = snapEdgeY(start.bottom + dy, others); lab.setPos("__killer", { w: Math.max(240, Math.round(gx.value - start.left)), h: Math.max(220, Math.round(gy.value - start.top)) }); lab.setGuides([gx.guide, gy.guide].filter(Boolean)); });
 
   const grip = { position: "absolute", background: "#9e140c", border: "2px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,.35)", zIndex: 30 };
 
   return (
-    <aside ref={ref} className={base + " " + posClass + (editing ? " outline outline-2 outline-dashed outline-[#9e140c]/70" : "")} style={style}>
+    <aside ref={ref} data-snap className={base + " " + posClass + (editing ? " outline outline-2 outline-dashed outline-[#9e140c]/70" : "")} style={style}>
       <div style={{ pointerEvents: editing ? "none" : "auto" }} className="flex min-h-0 flex-1 flex-col overflow-hidden"><KillerChat /></div>
       {editing && (
         <>

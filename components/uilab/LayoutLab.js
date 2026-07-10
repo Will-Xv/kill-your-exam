@@ -2,6 +2,7 @@
 import { createContext, useContext, useRef, useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
+import { collectRects, snapMove, snapEdgeX } from "@/lib/uilab/snap";
 import { useT } from "@/components/I18n";
 
 const Canvas = createContext(null);
@@ -70,6 +71,7 @@ export function LayoutLab({ enabled, children }) {
         <div className={fullWidth ? "mx-auto max-w-3xl px-4" : ""}>{children}</div>
       </div>
       {enabled && S.isDesktop && typeof document !== "undefined" && createPortal(<Toolbar S={S} onEnter={enterEditMeasured} />, document.body)}
+      {editing && typeof document !== "undefined" && createPortal(<Guides guides={S.guides} />, document.body)}
       <style>{`
         .lab-on [data-lab]{ outline:1.5px dashed rgba(158,20,12,.55); outline-offset:2px; border-radius:14px; }
         .lab-grip{ position:absolute; background:#9e140c; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35); z-index:20; }
@@ -91,20 +93,38 @@ export function Editable({ id, children }) {
   const s = p.s || 1;
   const style = { position: "absolute", left: p.x, top: p.y, width: p.w, transform: `scale(${s})`, transformOrigin: "top left", zIndex: editing ? 2 : 1 };
 
-  const drag = (onMove) => (e) => {
+  const gestureBase = () => { const start = ref.current.getBoundingClientRect(); const others = collectRects(ref.current); lab.pushHistory(); return { start, others }; };
+  function onMove(e) {
     e.preventDefault(); e.stopPropagation();
-    const sx = e.clientX, sy = e.clientY, p0 = { ...p }; lab.pushHistory();
-    const mv = (ev) => onMove(ev.clientX - sx, ev.clientY - sy, p0);
+    const sx = e.clientX, sy = e.clientY, p0 = { ...p }; const { start, others } = gestureBase();
+    const mv = (ev) => { const { dx, dy, guides } = snapMove(start, ev.clientX - sx, ev.clientY - sy, others); lab.setPos(id, { x: Math.round(p0.x + dx), y: Math.round(p0.y + dy) }); lab.setGuides(guides); };
+    const up = () => { lab.setGuides([]); window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  }
+  function onRight(e) {
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, s = p.s || 1; const { start, others } = gestureBase();
+    const mv = (ev) => { const { value, guide } = snapEdgeX(start.right + (ev.clientX - sx), others); const w = Math.max(120, Math.round((value - start.left) / s)); lab.setPos(id, { w }); lab.setGuides(guide ? [guide] : []); };
+    const up = () => { lab.setGuides([]); window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  }
+  function onLeft(e) {
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, s = p.s || 1, p0 = { ...p }; const { start, others } = gestureBase();
+    const mv = (ev) => { const { value, guide } = snapEdgeX(start.left + (ev.clientX - sx), others); const w = Math.max(120, Math.round((start.right - value) / s)); lab.setPos(id, { x: Math.round(p0.x + (value - start.left)), w }); lab.setGuides(guide ? [guide] : []); };
+    const up = () => { lab.setGuides([]); window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
+  }
+  function onScale(e) {
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, p0 = { ...p }; lab.pushHistory();
+    const mv = (ev) => lab.setPos(id, { s: Math.max(0.35, Math.min(2.5, +((p0.s || 1) + (ev.clientX - sx) / (p0.w || 300)).toFixed(3))) });
     const up = () => { window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
     window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up);
-  };
-  const onMove = drag((dx, dy, p0) => lab.setPos(id, { x: Math.round(p0.x + dx), y: Math.round(p0.y + dy) }));
-  const onRight = drag((dx, _dy, p0) => lab.setPos(id, { w: Math.max(120, Math.round(p0.w + dx / (p0.s || 1))) }));
-  const onLeft = drag((dx, _dy, p0) => { const w = Math.max(120, Math.round(p0.w - dx / (p0.s || 1))); lab.setPos(id, { x: Math.round(p0.x + (p0.w - w)), w }); });
-  const onScale = drag((dx, _dy, p0) => lab.setPos(id, { s: Math.max(0.35, Math.min(2.5, +((p0.s || 1) + dx / (p0.w || 300)).toFixed(3))) }));
+  }
 
   return (
-    <div ref={ref} data-lab={id} style={style}>
+    <div ref={ref} data-lab={id} data-snap style={style}>
       <div style={editing ? { pointerEvents: "none" } : undefined}>{children}</div>
       {editing && (
         <>
@@ -114,6 +134,16 @@ export function Editable({ id, children }) {
           <div className="lab-grip" onPointerDown={onScale} title={t("拖动缩放整体大小")} style={{ bottom: -7, right: -7, width: 16, height: 16, borderRadius: 4, cursor: "nwse-resize" }} />
         </>
       )}
+    </div>
+  );
+}
+
+function Guides({ guides }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, pointerEvents: "none" }}>
+      {guides.map((g, i) => g.x != null
+        ? <div key={i} style={{ position: "absolute", left: g.x, top: 0, bottom: 0, width: 1, background: "#2563eb", boxShadow: "0 0 0 0.5px rgba(37,99,235,.5)" }} />
+        : <div key={i} style={{ position: "absolute", top: g.y, left: 0, right: 0, height: 1, background: "#2563eb", boxShadow: "0 0 0 0.5px rgba(37,99,235,.5)" }} />)}
     </div>
   );
 }
