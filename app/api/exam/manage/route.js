@@ -9,12 +9,12 @@ export async function POST(req) {
   if (!e || e.user_id !== u.id) return forbidden();
 
   if (action === "complete") {
-    db.prepare("UPDATE exams SET status='completed' WHERE id=?").run(examId);
-    // 若删的是当前考试,自动切到另一门未删除的
-    if (e.status === "active") {
-      const next = db.prepare("SELECT id FROM exams WHERE user_id=? AND deleted_at IS NULL AND id!=? ORDER BY id DESC LIMIT 1").get(u.id, examId);
-      if (next) db.prepare("UPDATE exams SET status='active' WHERE id=?").run(next.id);
-    }
+    // 只打“已完成”标记,不改 status、不自动切走——考试仍可选中/练习,只是不显示倒计时。
+    db.prepare("UPDATE exams SET completed_at=datetime('now') WHERE id=?").run(examId);
+    return Response.json({ ok: true });
+  }
+  if (action === "uncomplete") {
+    db.prepare("UPDATE exams SET completed_at=NULL WHERE id=?").run(examId);
     return Response.json({ ok: true });
   }
   if (action === "delete") {

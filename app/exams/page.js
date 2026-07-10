@@ -39,15 +39,16 @@ export default function Exams() {
         <div key={e.id} className={`card ${e.status === "active" ? "border-amber-500" : setup ? "border-dashed border-stone-300" : ""}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold">{e.name} {e.status === "completed" && <span className="badge-material">{t("已完成")}</span>}</p>
-              <p className="text-xs text-stone-400">{e.status !== "completed" && (e.exam_date || t("未设日期")) + " · "}{generating ? "⏳ " + (e.setup_progress ? t(e.setup_progress) : t("生成中…")) : setup ? "🚧 " + t("正在设置") : (STATUS[e.status] || e.status)}</p>
+              <p className="font-bold">{e.name} {e.completed_at && <span className="badge-material">✅ {t("已完成")}</span>}</p>
+              <p className="text-xs text-stone-400">{generating ? "⏳ " + (e.setup_progress ? t(e.setup_progress) : t("生成中…")) : setup ? "🚧 " + t("正在设置") : e.completed_at ? "✅ " + t("已完成") : (e.exam_date || t("未设日期")) + " · " + (STATUS[e.status] || e.status)}</p>
             </div>
             {generating ? <span className="text-xs text-amber-600 animate-pulse">{t("AI 后台生成中")}</span>
               : setup ? <button className="btn py-2 text-sm" onClick={() => (location.href = `/onboarding?resume=${e.id}`)}>{t("继续设置")}</button>
               : e.status !== "active" ? <button className="btn-ghost py-2 text-sm" onClick={() => switchTo(e.id)}>{t("切换到这个")}</button> : null}
           </div>
           <div className="mt-2 flex gap-3 text-xs">
-            {!setup && e.status !== "completed" && <button className="text-stone-500 underline" onClick={() => manage("complete", e.id, t("标记为已完成?记录会保留,之后仍可切换回来或迁移资料。"))}>{t("标记为已完成")}</button>}
+            {!setup && !e.completed_at && <button className="text-stone-500 underline" onClick={() => manage("complete", e.id, t("标记为已完成?记录会保留,这门考试仍可正常练习/切换,只是不再显示倒计时。"))}>{t("标记为已完成")}</button>}
+            {e.completed_at && <button className="text-stone-500 underline" onClick={() => manage("uncomplete", e.id)}>{t("取消完成")}</button>}
             <button className="text-red-500 underline" onClick={() => manage("delete", e.id, setup ? t("删除这个未完成的设置?") : t("删除这门考试?60 天内可恢复,之后永久删除全部记录。"))}>{t("删除")}</button>
           </div>
         </div>
