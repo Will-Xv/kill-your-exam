@@ -94,7 +94,7 @@ export function LayoutLab({ enabled, children }) {
       <style>{`
         .lab-item{ position:relative; }
         .lab-item.edit{ outline:1.5px dashed rgba(158,20,12,.5); outline-offset:3px; border-radius:16px; }
-        .lab-grip{ position:absolute; top:-10px; left:10px; z-index:20; display:flex; align-items:center; gap:4px; cursor:grab; user-select:none;
+        .lab-grip{ position:absolute; top:6px; left:8px; z-index:20; display:flex; align-items:center; gap:4px; cursor:grab; user-select:none;
           background:#9e140c; color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:9999px; box-shadow:0 1px 4px rgba(0,0,0,.35); }
         .lab-zone-edit{ outline:1px dashed rgba(158,20,12,.28); outline-offset:6px; border-radius:18px; min-height:60px; }
         .lab-empty{ display:grid; place-items:center; min-height:80px; color:#9a824f; font-size:12px; border:2px dashed #e4d5af; border-radius:16px; }
@@ -115,7 +115,7 @@ function KillerItem({ fill }) {
 function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   const here = editing && drop && drop.zone === zoneId;
   return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4 }) }} className={editing ? "lab-zone-edit" : ""}>
+    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={editing ? "lab-zone-edit" : ""}>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
