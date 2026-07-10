@@ -69,11 +69,12 @@ export function LayoutLab({ enabled, children }) {
     const orphans = orderedIds.filter((id) => !placed.has(id)); // 某考试才出现的块 → 归第一个分区
     if (S.isDesktop) {
       const narrow = rl.template === "single" || rl.template === "tb";
+      const pageScroll = rl.template === "single"; // 整列=整页滚动;其余=分区各自滚动、主页面(背景板)不动
       body = (
-        <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", height: "calc(100dvh - 6.5rem)" }}>
-          <div style={{ display: "grid", gap: 16, height: "100%", gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
+        <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", ...(pageScroll ? {} : { height: "calc(100dvh - 7.5rem)" }) }}>
+          <div style={{ display: "grid", gap: 16, ...(pageScroll ? {} : { height: "100%" }), gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
             {zoneIds.map((z, zi) => (
-              <Zone key={z} zoneId={z} editing={editing} drop={S.drop} childById={childById}
+              <Zone key={z} zoneId={z} pageScroll={pageScroll} editing={editing} drop={S.drop} childById={childById}
                 ids={[...(rl.zones[z] || []), ...(zi === 0 ? orphans : [])].filter((id) => childById[id])} />
             ))}
           </div>
@@ -111,10 +112,10 @@ function KillerItem() {
   );
 }
 
-function Zone({ zoneId, ids, childById, editing, drop }) {
+function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   const here = editing && drop && drop.zone === zoneId;
   return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4 }} className={editing ? "lab-zone-edit" : ""}>
+    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4 }) }} className={editing ? "lab-zone-edit" : ""}>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
