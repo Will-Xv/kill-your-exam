@@ -19,7 +19,9 @@ export default function AppShell({ children }) {
   return (
     <>
       <div className="app-bg" />
-      <div className={`relative z-10 mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20 ${showKiller ? "md:mx-0 md:ml-8 md:mr-[400px]" : ""}`}>{children}</div>
+      <div className={`relative z-10 ${showKiller ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
+        <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20">{children}</div>
+      </div>
       <Nav />
       {showKiller && <KillerDock />}
       {showKiller && <KillerBubble />}
