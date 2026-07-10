@@ -8,7 +8,7 @@ const primary = [
   { href: "/exams", label: "追杀计划", icon: "🗂️" },
   { href: "/", label: "首页", icon: "🏠" },
   { href: "/materials", label: "补充资料", icon: "📎" },
-  { href: "/chat", label: "问问杀手", icon: "💬" }
+  { href: "/study", label: "学习", icon: "📖" }
 ];
 const more = [
   { href: "/mock", label: "模拟考", icon: "📝", desc: "限时全真模拟" },
@@ -17,7 +17,8 @@ const more = [
   { href: "/notes", label: "笔记本", icon: "📓", desc: "收藏的题+随手笔记" },
   { href: "/profile", label: "你的全部杀技", icon: "🧭", desc: "跨考试综合评估" },
   { href: "/checkpoints", label: "回档", icon: "↩️", desc: "撤销结构类大改" },
-  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" }
+  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" },
+  { href: "/feedback", label: "意见反馈", icon: "✉️", desc: "给开发者反馈" }
 ];
 
 export default function Nav() {
