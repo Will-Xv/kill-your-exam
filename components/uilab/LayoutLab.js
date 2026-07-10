@@ -97,7 +97,7 @@ export function Editable({ id, children }) {
   const { enabled, editing, layout, canvasRef } = ctx || {};
   const p = layout && layout[id];
 
-  if (!ctx || !enabled || !p) return <div ref={ref} data-labw data-lab-id={id}>{children}</div>;
+  if (!ctx || !p) return <div ref={ref} data-labw data-lab-id={id}>{children}</div>;
 
   const s = p.s || 1;
   const style = { position: "absolute", left: p.x, top: p.y, width: p.w, transform: `scale(${s})`, transformOrigin: "top left", zIndex: editing ? 2 : 1 };
@@ -186,6 +186,8 @@ function Toolbar({ S, onEnter }) {
           <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => setLibOpen((v) => !v)}>📚 {t("布局库")}</button>
           {active && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.revertActive()} title={t("回到原始首页")}>↩ {t("撤回")}</button>}
           {!active && S.lastReverted && S.presets.some((p) => p.id === S.lastReverted) && <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.reapplyReverted()} title={t("重新套用刚撤回的布局")}>↪ {t("恢复布局")}</button>}
+          {active && <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>}
+          {S.publishedDefault && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => { if (window.confirm(t("取消发布默认布局?所有用户会恢复原始首页。"))) lab.unpublishDefault(); }}>{t("取消发布")}</button>}
         </div>
       ) : (
         <div className="flex max-w-[92vw] flex-wrap items-center gap-1.5 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-2 shadow-xl">
@@ -196,6 +198,7 @@ function Toolbar({ S, onEnter }) {
           <button className={btn + " bg-[#2f2413] text-[#f6efdd]"} onClick={() => { const n = window.prompt(t("给这套布局起个名字:"), active ? active.name : t("我的布局")); if (n && n.trim()) lab.savePreset(n.trim()); }}>💾 {t("另存为")}</button>
           {active && <button className={btn + " bg-[#3d2b10] text-[#f6efdd]"} onClick={() => lab.overwriteActive()} title={t("覆盖保存到:") + active.name}>💾 {t("覆盖")}「{active.name}」</button>}
           <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af]"} onClick={() => lab.exitEdit()}>✓ {t("完成")}</button>
+          <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>
         </div>
       )}
     </div>
