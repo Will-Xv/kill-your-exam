@@ -15,7 +15,10 @@ export default function Exams() {
   }
   async function manage(action, examId, msg) {
     if (msg && !confirm(msg)) return;
-    await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, examId }) });
+    try {
+      const r = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, examId }) });
+      if (!r.ok) { const tx = await r.text().catch(() => ""); alert("HTTP " + r.status + " " + tx); }
+    } catch (e) { alert(String((e && e.message) || e)); }
     load();
   }
   if (!exams) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;

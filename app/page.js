@@ -38,9 +38,13 @@ export default function Home() {
   }
 
   async function markComplete() {
-    if (!confirm(t("标记为已完成?记录会保留,之后仍可在追杀计划里切换回来。"))) return;
-    try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", examId: data?.exam?.id }) }); } catch {}
-    location.reload();
+    try {
+      const r = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", examId: data?.exam?.id }) });
+      if (!r.ok) { const tx = await r.text().catch(() => ""); alert(t("标记失败:") + " HTTP " + r.status + " " + tx); return; }
+      const d = await r.json().catch(() => ({}));
+      if (d && d.ok === false) { alert(t("标记失败:") + " " + (d.error || "")); return; }
+      location.reload();
+    } catch (e) { alert(t("标记失败:") + " " + ((e && e.message) || e)); }
   }
   async function switchExam(id) {
     if (!id || id === data?.exam?.id) return;
