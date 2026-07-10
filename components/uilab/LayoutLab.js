@@ -131,15 +131,15 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
     if (sh <= el.clientHeight + 2) { setBar((b) => (b ? null : b)); return; }
     const h = Math.max(28, Math.round(track * el.clientHeight / sh));
     const top = Math.round((el.scrollTop / (sh - el.clientHeight)) * (track - h));
-    setBar({ top, h });
+    setBar((b) => (b && b.top === top && b.h === h ? b : { top, h }));
   }, []);
   useEffect(() => {
     const el = vpRef.current; if (!el || typeof ResizeObserver === "undefined") { recompute(); return; }
     recompute();
-    const ro = new ResizeObserver(recompute); ro.observe(el);
+    const ro = new ResizeObserver(() => recompute()); ro.observe(el);
     Array.from(el.children).forEach((c) => ro.observe(c));
     return () => ro.disconnect();
-  }); // 每次渲染重挂:内容/子项变化时重算
+  }, [recompute, ids.length]); // 只在挂载 / 项数变化时重挂,避免死循环
   const dragThumb = (e) => {
     e.preventDefault(); e.stopPropagation();
     const el = vpRef.current; const sy = e.clientY, s0 = el.scrollTop;
