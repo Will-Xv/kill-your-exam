@@ -31,6 +31,7 @@ export default function Nav() {
   useEffect(() => { setOpen(false); }, [path]);
   if (path === "/login" || path.startsWith("/onboarding")) return null;
   const active = (h) => (h === "/" ? path === "/" : path.startsWith(h));
+  const dockLeft = !(path.startsWith("/practice") || path.startsWith("/mock") || path === "/chat" || path.startsWith("/onboarding"));
 
   const extra = [];
   if (me?.isAdmin) extra.push({ href: "/admin", label: "管理面板", icon: "📈", desc: "使用情况/子账号" });
@@ -54,7 +55,7 @@ export default function Nav() {
         </div>
       )}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:top-0 md:bottom-auto">
-        <div className="mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg">
+        <div className={`mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg ${dockLeft ? "md:w-fit md:ml-8 md:mr-auto" : ""}`}>
           {primary.map((it) => (
             <Link key={it.href} href={it.href}
               className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>

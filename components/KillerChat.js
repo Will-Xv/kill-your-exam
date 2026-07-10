@@ -11,7 +11,7 @@ const ChatMsg = memo(function ChatMsg({ role, content }) {
   if (role === "tool_note") return <p className="text-center text-xs text-amber-700">⚙️ {content}</p>;
   return (
     <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${role === "user" ? "ml-auto bg-amber-600 text-white" : "bg-[#f5eed6] border border-[#e4d5af] text-[#2f2413]"}`}>
-      {role === "user" ? <p className="whitespace-pre-wrap">{content}</p> : <MD className="prose-zh">{content}</MD>}
+      {role === "user" ? <p className="whitespace-pre-wrap break-words">{content}</p> : <MD className="prose-zh break-words">{content}</MD>}
     </div>
   );
 });
@@ -115,12 +115,12 @@ export default function KillerChat() {
 
   const suggestions = [t("我要准备一门新考试,帮我从零建起来"), t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h1 className="text-2xl font-black">{t("问问杀手")}</h1>
         {messages.length > 0 && me?.isDeveloper && <button className="btn-ghost shrink-0 text-xs text-rose-500" onClick={clearChat}>🗑️ {t("清空对话")}</button>}
       </div>
-      <div className="flex-1 overflow-y-auto space-y-3 pb-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-3 pb-3 min-w-0">
         {!messages.length && !pending && (
           <div className="text-center text-[#cdbfa0] text-sm mt-10 space-y-2">
             <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用,或让我去某个已登录的学习网站采集资料。")}</p>
