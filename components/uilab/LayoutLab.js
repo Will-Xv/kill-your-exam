@@ -70,8 +70,8 @@ export function LayoutLab({ enabled, children }) {
     if (S.isDesktop) {
       const narrow = rl.template === "single" || rl.template === "tb";
       body = (
-        <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto" }}>
-          <div style={{ display: "grid", gap: 16, alignItems: "start", gridTemplateColumns: t.gridTemplateColumns, gridTemplateAreas: t.gridTemplateAreas }}>
+        <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", height: "calc(100dvh - 6.5rem)" }}>
+          <div style={{ display: "grid", gap: 16, height: "100%", gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
             {zoneIds.map((z, zi) => (
               <Zone key={z} zoneId={z} editing={editing} drop={S.drop} childById={childById}
                 ids={[...(rl.zones[z] || []), ...(zi === 0 ? orphans : [])].filter((id) => childById[id])} />
@@ -105,7 +105,7 @@ export function LayoutLab({ enabled, children }) {
 
 function KillerItem() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={{ height: "74vh", minHeight: 460 }}>
+    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={{ flex: "1 1 auto", minHeight: 360 }}>
       <KillerChat />
     </div>
   );
@@ -114,7 +114,7 @@ function KillerItem() {
 function Zone({ zoneId, ids, childById, editing, drop }) {
   const here = editing && drop && drop.zone === zoneId;
   return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }} className={editing ? "lab-zone-edit" : ""}>
+    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4 }} className={editing ? "lab-zone-edit" : ""}>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
