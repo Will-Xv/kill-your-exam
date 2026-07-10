@@ -134,12 +134,12 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
     setBar((b) => (b && b.top === top && b.h === h ? b : { top, h }));
   }, []);
   useEffect(() => {
-    const el = vpRef.current; if (!el || typeof ResizeObserver === "undefined") { recompute(); return; }
+    // 不用 ResizeObserver(它在动画/流式内容上会反复触发导致卡死)。改为:挂载后几次定时测量 + 窗口缩放。滚动时由 onScroll 更新。
     recompute();
-    const ro = new ResizeObserver(() => recompute()); ro.observe(el);
-    Array.from(el.children).forEach((c) => ro.observe(c));
-    return () => ro.disconnect();
-  }, [recompute, ids.length]); // 只在挂载 / 项数变化时重挂,避免死循环
+    const timers = [setTimeout(recompute, 200), setTimeout(recompute, 800), setTimeout(recompute, 2000)];
+    window.addEventListener("resize", recompute);
+    return () => { timers.forEach(clearTimeout); window.removeEventListener("resize", recompute); };
+  }, [recompute, ids.length]);
   const dragThumb = (e) => {
     e.preventDefault(); e.stopPropagation();
     const el = vpRef.current; const sy = e.clientY, s0 = el.scrollTop;
