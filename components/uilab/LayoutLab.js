@@ -66,12 +66,15 @@ export function LayoutLab({ enabled, children }) {
     const placed = new Set(); for (const z of zoneIds) for (const id of (rl.zones[z] || [])) placed.add(id);
     const orphans = orderedIds.filter((id) => !placed.has(id)); // 某考试才出现的块 → 归第一个分区
     if (S.isDesktop) {
+      const narrow = rl.template === "single" || rl.template === "tb";
       body = (
-        <div style={{ display: "grid", gap: 16, alignItems: "start", gridTemplateColumns: t.gridTemplateColumns, gridTemplateAreas: t.gridTemplateAreas }}>
-          {zoneIds.map((z, zi) => (
-            <Zone key={z} zoneId={z} editing={editing} drop={S.drop} childById={childById}
-              ids={[...(rl.zones[z] || []), ...(zi === 0 ? orphans : [])].filter((id) => childById[id])} />
-          ))}
+        <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto" }}>
+          <div style={{ display: "grid", gap: 16, alignItems: "start", gridTemplateColumns: t.gridTemplateColumns, gridTemplateAreas: t.gridTemplateAreas }}>
+            {zoneIds.map((z, zi) => (
+              <Zone key={z} zoneId={z} editing={editing} drop={S.drop} childById={childById}
+                ids={[...(rl.zones[z] || []), ...(zi === 0 ? orphans : [])].filter((id) => childById[id])} />
+            ))}
+          </div>
         </div>
       );
     } else {

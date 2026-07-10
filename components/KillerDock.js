@@ -22,9 +22,8 @@ export default function KillerDock() {
     return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } };
   }, []);
 
-  const layout = lab.layoutNow();
-  const editing = S.editing && S.enabled && S.isDesktop && onHome;
-  const p = (S.isDesktop && layout) ? layout["__killer"] : null; // 位置全站生效(仅桌面)
+  const editing = false; // 第①阶段:杀手暂不参与新编辑器(第②阶段作为"栏目")
+  const p = null;
 
   useLayoutEffect(() => {
     if (!editing || !ref.current || p) return;
