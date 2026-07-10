@@ -50,12 +50,12 @@ export default function Checkpoints() {
               {list.map((c) => (
                 <div key={c.id} className={`card flex items-center justify-between gap-3 py-3 ${c.undone ? "opacity-60" : ""}`}>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#2f2413]">{c.label || t(OP_LABEL[c.op] || c.op)}</p>
-                    <p className="mt-0.5 text-xs text-[#8a7a54]">{t(OP_LABEL[c.op] || c.op)} · {fmt(c.created_at)}{c.undone ? " · " + t("已撤销") : ""}</p>
+                    <p className="truncate text-sm font-semibold text-[#2f2413]">{t(OP_LABEL[c.op] || c.op)}{c.names && c.names.length ? " · " + c.names.join(", ") : ""}</p>
+                    <p className="mt-0.5 text-xs text-[#8a7a54]">{fmt(c.created_at)}{c.undone ? " · " + t("已撤销") : ""}</p>
                   </div>
                   {c.undone
                     ? <span className="shrink-0 text-xs text-slate-400">{t("已撤销")}</span>
-                    : <button className="btn-ghost shrink-0 text-sm" disabled={busy === c.id} onClick={() => rollback(c.id, c.label || (OP_LABEL[c.op] || c.op))}>{busy === c.id ? t("回档中…") : "↩️ " + t("撤销")}</button>}
+                    : <button className="btn-ghost shrink-0 text-sm" disabled={busy === c.id} onClick={() => rollback(c.id, t(OP_LABEL[c.op] || c.op) + (c.names && c.names.length ? " · " + c.names.join(", ") : ""))}>{busy === c.id ? t("回档中…") : "↩️ " + t("撤销")}</button>}
                 </div>
               ))}
             </div>
