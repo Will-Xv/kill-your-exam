@@ -25,9 +25,7 @@ export default function AppShell({ children }) {
     <>
       <div className="app-bg" />
       <div className={`relative z-10 ${showKiller && !labHome ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
-        {labHome
-          ? <div className="w-full pb-28 pt-4 md:pb-10 md:pt-20">{children}</div>
-          : <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20">{children}</div>}
+        <div className={labHome ? "w-full pb-28 pt-4 md:pb-10 md:pt-20" : "mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20"}>{children}</div>
       </div>
       <Nav />
       {showKiller && <KillerDock />}

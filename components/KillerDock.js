@@ -53,7 +53,7 @@ export default function KillerDock() {
 
   return (
     <aside ref={ref} className={base + " " + posClass + (editing ? " outline outline-2 outline-dashed outline-[#9e140c]/70" : "")} style={style}>
-      {editing ? <div style={{ pointerEvents: "none" }} className="flex min-h-0 flex-1 flex-col overflow-hidden"><KillerChat /></div> : <KillerChat />}
+      <div style={{ pointerEvents: editing ? "none" : "auto" }} className="flex min-h-0 flex-1 flex-col overflow-hidden"><KillerChat /></div>
       {editing && (
         <>
           <div onPointerDown={mv} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 40, cursor: "move", zIndex: 25 }} title={t("拖动移动杀手卡片")} />

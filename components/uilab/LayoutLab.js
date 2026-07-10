@@ -53,7 +53,7 @@ export function LayoutLab({ enabled, children }) {
   return (
     <Canvas.Provider value={{ enabled, editing, layout, canvasRef }}>
       <div ref={canvasRef} className={editing ? "lab-canvas lab-on" : "lab-canvas"} style={{ position: "relative", width: "100%" }}>
-        {fullWidth ? <div className="mx-auto max-w-3xl px-4">{children}</div> : children}
+        <div className={fullWidth ? "mx-auto max-w-3xl px-4" : ""}>{children}</div>
       </div>
       {enabled && S.isDesktop && typeof document !== "undefined" && createPortal(<Toolbar S={S} />, document.body)}
       <style>{`
