@@ -139,8 +139,8 @@ export default function Home() {
           <div className="mt-1">
             {dateOpen ? (
               <input type="date" autoFocus defaultValue={exam.exam_date || ""} className="rounded-lg border border-[#d9c89b] bg-white/80 px-2 py-1 text-sm text-[#2f2413]" onChange={(e) => saveDate(e.target.value)} onBlur={() => setDateOpen(false)} />
-            ) : days != null && days < 0 ? (
-              <button className="text-left text-[#6b4a25] hover:opacity-80" onClick={() => setDateOpen(true)} title={t("点击修改考试日期")}>📅 {t("考试日期已过")} <span className="text-xs">✎</span>{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</button>
+            ) : exam.status === "completed" ? null : days != null && days < 0 ? (
+              <button className="text-left text-[#6b4a25] hover:opacity-80" onClick={() => setDateOpen(true)} title={t("点击修改考试日期")}>📅 {t("考试日期已过")} <span className="text-xs">✎</span></button>
             ) : days != null ? (
               <button className="text-left text-[#6b4a25] hover:opacity-80" onClick={() => setDateOpen(true)} title={t("点击修改考试日期")}>{t("距猎杀")} <span className="text-4xl font-black text-[#2f2413]">{days}</span> {t("天")} <span className="text-xs">✎</span>{daily && <span className="ml-2 text-sm text-[#8a6a2c]">· 🔥 {daily.activeDays} {t("天")}</span>}</button>
             ) : (
