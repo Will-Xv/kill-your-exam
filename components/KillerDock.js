@@ -24,7 +24,7 @@ export default function KillerDock() {
 
   const layout = lab.layoutNow();
   const editing = S.editing && S.enabled && S.isDesktop && onHome;
-  const p = layout && layout["__killer"]; // 位置全站生效(其它页也跟随主页设的杀手位置)
+  const p = (S.isDesktop && layout) ? layout["__killer"] : null; // 位置全站生效(仅桌面)
 
   useLayoutEffect(() => {
     if (!editing || !ref.current || p) return;

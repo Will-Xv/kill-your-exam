@@ -45,7 +45,7 @@ export default function Nav() {
 
   const layout = lab.layoutNow();
   const editing = S.editing && S.enabled && S.isDesktop && onHome;
-  const p = layout && layout["__nav"]; // 位置全站生效(其它页也跟随主页设的导航栏位置)
+  const p = (S.isDesktop && layout) ? layout["__nav"] : null; // 位置全站生效(仅桌面)
 
   useLayoutEffect(() => {
     if (!editing || !navRef.current || p) return;
