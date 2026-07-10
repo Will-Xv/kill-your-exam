@@ -101,6 +101,11 @@ export function LayoutLab({ enabled, children }) {
         .lab-drop{ height:3px; border-radius:3px; background:#2563eb; margin:2px 0; }
         .lab-hidebar{ scrollbar-width:none; -ms-overflow-style:none; }
         .lab-hidebar::-webkit-scrollbar{ display:none; width:0; height:0; }
+        .lab-fancybar{ scrollbar-width:thin; scrollbar-color:rgba(61,43,16,.4) transparent; }
+        .lab-fancybar::-webkit-scrollbar{ width:8px; height:8px; }
+        .lab-fancybar::-webkit-scrollbar-track{ background:transparent; margin:6px; }
+        .lab-fancybar::-webkit-scrollbar-thumb{ background:rgba(61,43,16,.35); border-radius:9999px; border:2px solid transparent; background-clip:content-box; }
+        .lab-fancybar::-webkit-scrollbar-thumb:hover{ background:rgba(61,43,16,.55); border:2px solid transparent; background-clip:content-box; }
       `}</style>
     </Ctx.Provider>
   );
@@ -117,7 +122,7 @@ function KillerItem({ fill }) {
 function Zone({ zoneId, ids, childById, editing, drop, pageScroll, showBar }) {
   const here = editing && drop && drop.zone === zoneId;
   return (
-    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={(editing ? "lab-zone-edit " : "") + (!pageScroll && !showBar ? "lab-hidebar" : "")}>
+    <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0, ...(pageScroll ? {} : { minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", paddingRight: 4, borderRadius: 24 }) }} className={(editing ? "lab-zone-edit " : "") + (!pageScroll ? (showBar ? "lab-fancybar" : "lab-hidebar") : "")}>
       {ids.map((id, i) => (
         <Fragment key={id}>
           {here && drop.index === i && <div className="lab-drop" />}
