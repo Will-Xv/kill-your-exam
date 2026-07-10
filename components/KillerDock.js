@@ -1,12 +1,16 @@
 "use client";
 import KillerChat from "@/components/KillerChat";
 import { useRef, useEffect, useLayoutEffect } from "react";
+import { usePathname } from "next/navigation";
 import * as lab from "@/lib/uilab/store";
+import { useT } from "@/components/I18n";
 
 // 电脑端右侧悬浮聊天卡片。开发者在首页「编辑布局」时,这张卡片也能拖动/缩放(与首页共用一套布局)。
 export default function KillerDock() {
+  const t = useT();
   const S = lab.useUiLab();
   const ref = useRef(null);
+  const onHome = usePathname() === "/"; // 自定义位置只在首页生效,其它页面杀手保持默认位置
 
   useEffect(() => {
     lab.initClient();
@@ -18,8 +22,8 @@ export default function KillerDock() {
   }, []);
 
   const layout = lab.layoutNow();
-  const editing = S.editing && S.enabled && S.isDesktop;
-  const p = layout && layout["__killer"];
+  const editing = S.editing && S.enabled && S.isDesktop && onHome;
+  const p = onHome ? (layout && layout["__killer"]) : null;
 
   useLayoutEffect(() => {
     if (!editing || !ref.current || p) return;
@@ -52,13 +56,13 @@ export default function KillerDock() {
       {editing ? <div style={{ pointerEvents: "none" }} className="flex min-h-0 flex-1 flex-col overflow-hidden"><KillerChat /></div> : <KillerChat />}
       {editing && (
         <>
-          <div onPointerDown={mv} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 40, cursor: "move", zIndex: 25 }} title="拖动移动杀手卡片" />
-          <div onPointerDown={eL} style={{ ...grip, top: "50%", left: -7, width: 12, height: 40, marginTop: -20, borderRadius: 6, cursor: "ew-resize" }} title="改宽(左)" />
-          <div onPointerDown={eR} style={{ ...grip, top: "50%", right: -7, width: 12, height: 40, marginTop: -20, borderRadius: 6, cursor: "ew-resize" }} title="改宽(右)" />
-          <div onPointerDown={eT} style={{ ...grip, left: "50%", top: -7, width: 40, height: 12, marginLeft: -20, borderRadius: 6, cursor: "ns-resize" }} title="改高(上)" />
-          <div onPointerDown={eB} style={{ ...grip, left: "50%", bottom: -7, width: 40, height: 12, marginLeft: -20, borderRadius: 6, cursor: "ns-resize" }} title="改高(下)" />
-          <div onPointerDown={cBR} style={{ ...grip, right: -8, bottom: -8, width: 18, height: 18, borderRadius: 4, cursor: "nwse-resize" }} title="缩放" />
-          <div style={{ position: "absolute", top: 6, left: 10, zIndex: 26, pointerEvents: "none" }} className="rounded-full bg-[#9e140c] px-2 py-0.5 text-[10px] font-bold text-white">杀手 · 可拖动</div>
+          <div onPointerDown={mv} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 40, cursor: "move", zIndex: 25 }} title={t("拖动移动杀手卡片")} />
+          <div onPointerDown={eL} style={{ ...grip, top: "50%", left: -7, width: 12, height: 40, marginTop: -20, borderRadius: 6, cursor: "ew-resize" }} title={t("改宽(左)")} />
+          <div onPointerDown={eR} style={{ ...grip, top: "50%", right: -7, width: 12, height: 40, marginTop: -20, borderRadius: 6, cursor: "ew-resize" }} title={t("改宽(右)")} />
+          <div onPointerDown={eT} style={{ ...grip, left: "50%", top: -7, width: 40, height: 12, marginLeft: -20, borderRadius: 6, cursor: "ns-resize" }} title={t("改高(上)")} />
+          <div onPointerDown={eB} style={{ ...grip, left: "50%", bottom: -7, width: 40, height: 12, marginLeft: -20, borderRadius: 6, cursor: "ns-resize" }} title={t("改高(下)")} />
+          <div onPointerDown={cBR} style={{ ...grip, right: -8, bottom: -8, width: 18, height: 18, borderRadius: 4, cursor: "nwse-resize" }} title={t("缩放")} />
+          <div style={{ position: "absolute", top: 6, left: 10, zIndex: 26, pointerEvents: "none" }} className="rounded-full bg-[#9e140c] px-2 py-0.5 text-[10px] font-bold text-white">{t("杀手 · 可拖动")}</div>
         </>
       )}
     </aside>
