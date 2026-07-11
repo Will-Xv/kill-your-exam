@@ -23,8 +23,8 @@ export default function AppShell({ children }) {
   const showKiller = !hideKiller;
   const onHome = path === "/";
   const v2 = S.isDesktop && !!lab.contentToRender(); // 已套用/编辑中的 v2 分区布局(桌面)
-  const labHome = onHome && v2 && lab.hasHomeLayout(); // 首页:由页面里的 LayoutLab 渲染网格
-  const routeShell = v2 && !onHome && showKiller;     // 其它非做题页:统一外壳(杀手固定在它那一格)
+  const labHome = onHome && S.isDesktop && S.editing; // 首页【编辑中】才用 LayoutLab 编辑器(全宽网格)
+  const routeShell = v2 && showKiller && !labHome;    // 其余(含首页已套用)都走统一外壳,杀手共用同一实例、不重载
   const reserve = showKiller && S.isDesktop && !labHome && !routeShell; // 浮动杀手才留右边一条
   const cl = lab.contentToRender();
   return (

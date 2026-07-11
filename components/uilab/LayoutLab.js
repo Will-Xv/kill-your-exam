@@ -28,7 +28,7 @@ export function LayoutLab({ enabled, children }) {
   const childById = {}; for (const c of arr) childById[c.props.id] = c;
 
   const editing = S.editing && enabled && S.isDesktop;
-  const rl = lab.contentToRender();
+  const rl = editing ? S.working : null; // 只有编辑时画分区网格;套用时透传(由 AppShell 的 RouteShell 统一渲染)
   const pageScroll = !!(rl && rl.template === "single"); // 整列=整页滚;其余=分区固定、内部滚
   childById["__killer"] = <Editable id="__killer" fill={!pageScroll}><KillerItem fill={!pageScroll} /></Editable>; // 杀手作为可拖动的"栏目"
 
