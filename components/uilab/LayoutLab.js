@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
 import { TEMPLATES, TEMPLATE_ORDER } from "@/lib/uilab/templates";
 import { useT } from "@/components/I18n";
-import KillerChat from "@/components/KillerChat";
+import { KillerSlot } from "@/lib/uilab/killerSlot";
 
 const Ctx = createContext(null);
 
@@ -116,7 +116,7 @@ export function LayoutLab({ enabled, children }) {
 function KillerItem({ fill }) {
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#e9dcb6]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={fill ? { flex: "1 1 0", minHeight: 0 } : { height: "72vh" }}>
-      <KillerChat />
+      <KillerSlot />
     </div>
   );
 }

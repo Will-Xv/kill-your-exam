@@ -1,6 +1,6 @@
 "use client";
 import { TEMPLATES } from "@/lib/uilab/templates";
-import KillerChat from "@/components/KillerChat";
+import { KillerSlot } from "@/lib/uilab/killerSlot";
 
 // 非首页的"外壳":杀手固定在它在布局里的那一格(和首页同位置/大小),其余格子合并成一个内容区渲染当前页面。
 export default function RouteShell({ layout, children }) {
@@ -21,7 +21,7 @@ export default function RouteShell({ layout, children }) {
           </div>
         </div>
         <div style={{ gridArea: "kilr", minWidth: 0, minHeight: 0 }}>
-          <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#e9dcb6]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10"><KillerChat /></div>
+          <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#e9dcb6]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10"><KillerSlot /></div>
         </div>
       </div>
     </div>
