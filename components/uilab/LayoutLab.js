@@ -115,7 +115,7 @@ export function LayoutLab({ enabled, children }) {
 
 function KillerItem({ fill }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={fill ? { flex: "1 1 0", minHeight: 0 } : { height: "72vh" }}>
+    <div className="flex flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#e9dcb6]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10" style={fill ? { flex: "1 1 0", minHeight: 0 } : { height: "72vh" }}>
       <KillerChat />
     </div>
   );

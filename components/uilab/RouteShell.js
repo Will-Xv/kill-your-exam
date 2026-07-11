@@ -21,7 +21,7 @@ export default function RouteShell({ layout, children }) {
           </div>
         </div>
         <div style={{ gridArea: "kilr", minWidth: 0, minHeight: 0 }}>
-          <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10"><KillerChat /></div>
+          <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#e9dcb6]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10"><KillerChat /></div>
         </div>
       </div>
     </div>

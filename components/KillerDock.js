@@ -18,7 +18,7 @@ export default function KillerDock() {
   }, []);
   if (onHome && lab.contentToRender()) return null; // 首页由分区渲染杀手;其它非做题页仍侧边常驻
   return (
-    <aside className="hidden md:flex fixed right-5 top-20 bottom-4 w-[440px] lg:w-[480px] z-30 flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f6efdc]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10 backdrop-blur-xl">
+    <aside className="hidden md:flex fixed right-5 top-20 bottom-4 w-[440px] lg:w-[480px] z-30 flex-col overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#e9dcb6]/95 px-3 pb-3 pt-3 shadow-xl shadow-[#3d2b10]/10 backdrop-blur-xl">
       <KillerChat />
     </aside>
   );
