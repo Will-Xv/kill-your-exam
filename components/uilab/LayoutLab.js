@@ -21,7 +21,6 @@ export function LayoutLab({ enabled, children }) {
     try { mq.addEventListener("change", on); } catch { mq.addListener(on); }
     return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } };
   }, []);
-  useEffect(() => () => lab.exitEdit(), []);
 
   const arr = Children.toArray(children).filter((c) => c && c.props && c.props.id);
   const orderedIds = arr.map((c) => c.props.id);

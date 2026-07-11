@@ -6,7 +6,7 @@ import { useT } from "@/components/I18n";
 import Tour from "@/components/Tour";
 import { LayoutLab, Editable } from "@/components/uilab/LayoutLab";
 
-export default function HomeClient({ initialLeaderboard = null }) {
+export default function HomeClient({ initialLeaderboard = null, initialIsDev = false }) {
   const t = useT();
   const [data, setData] = useState(null);
   const [daily, setDaily] = useState(null);
@@ -15,7 +15,7 @@ export default function HomeClient({ initialLeaderboard = null }) {
   const [weakCount, setWeakCount] = useState(0);
   const [dateOpen, setDateOpen] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [isDev, setIsDev] = useState(false);
+  const [isDev, setIsDev] = useState(initialIsDev);
   useEffect(() => { fetch("/api/inbox").then((r) => r.json()).then((d) => setUnread(d.unread || 0)).catch(() => {}); }, []);
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then((d) => setIsDev(!!(d.user && d.user.isDeveloper))).catch(() => {}); }, []);
   useEffect(() => {

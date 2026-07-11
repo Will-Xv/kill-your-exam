@@ -1,5 +1,6 @@
 "use client";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import Nav from "@/components/Nav";
 import KillerDock from "@/components/KillerDock";
 import KillerBubble from "@/components/KillerBubble";
@@ -15,6 +16,7 @@ const BARE = ["/login", "/welcome", "/privacy"];
 export default function AppShell({ children }) {
   const path = usePathname();
   const S = lab.useUiLab();
+  useEffect(() => { if (path !== "/" && lab.snap().editing) lab.exitEdit(); }, [path]); // 离开首页即退出编辑,避免编辑态泄漏到其它页
   if (BARE.includes(path)) return children;
   // 开发者在首页开启布局(编辑中或已套用某套布局)时,主内容改为全宽画布 —— 不再被「给杀手让出右边一条」限制,
   // 内容与杀手可自由摆放(上下、任意位置)。内容本身不自动放宽,仍保持原来的宽度,只是可被拖到任何地方。
