@@ -42,9 +42,7 @@ export default function RouteShell({ layout, children }) {
     <div className="w-full" style={{ height: "100dvh", paddingTop: "5rem", paddingBottom: "2.5rem", boxSizing: "border-box" }}>
       <div style={{ display: "grid", gap: 16, height: "100%", maxWidth: 1360, margin: "0 auto", boxSizing: "border-box", gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: areas }}>
         <div style={{ gridArea: "cont", minWidth: 0, minHeight: 0, position: "relative", paddingRight: 14 }}>
-          <div ref={vpRef} onScroll={recompute} className="rs-hidebar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", borderRadius: 24 }}>
-            <div className="mx-auto max-w-3xl px-4 pb-10 pt-2">{children}</div>
-          </div>
+          <div ref={vpRef} onScroll={recompute} className="rs-hidebar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", borderRadius: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{children}</div>
           {bar && <div onPointerDown={dragThumb} className="rs-thumb" title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, height: bar.h }} />}
         </div>
         <div style={{ gridArea: "kilr", minWidth: 0, minHeight: 0 }}>
