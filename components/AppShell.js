@@ -27,9 +27,8 @@ export default function AppShell({ children, initialLayout = null }) {
   const showKiller = !hideKiller;
   const onHome = path === "/";
   const applied = lab.contentToRender() || (!S.editing && initialLayout && initialLayout.v === 2 ? initialLayout : null); // 优先用 store;首帧(fetch 未回)用 SSR 传入的已发布布局
-  const v2 = S.isDesktop && !!applied; // 已套用/编辑中的 v2 分区布局(桌面)
   const labHome = onHome && S.isDesktop && S.editing; // 首页【编辑中】才用 LayoutLab 编辑器(全宽网格)
-  const routeShell = v2 && showKiller && !labHome;    // 其余(含首页已套用)都走统一外壳,杀手共用同一实例、不重载
+  const routeShell = !!applied && showKiller && !labHome; // 有已套用布局就走统一外壳(服务端首帧即渲染,手机端由外壳内 CSS 收成单列)——不再依赖客户端 isDesktop,避免刷新闪一下
   const reserve = showKiller && S.isDesktop && !labHome && !routeShell; // 浮动杀手才留右边一条
   const cl = applied;
   return (

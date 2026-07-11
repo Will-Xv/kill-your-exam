@@ -13,6 +13,7 @@ export const metadata = {
 };
 
 export const viewport = { themeColor: "#33241a" };
+export const dynamic = "force-dynamic"; // 每次请求都读【已发布布局】,首帧就能出正确外壳
 
 export default function RootLayout({ children }) {
   let initialLayout = null; // 服务端预读【已发布的全站默认布局】,首帧就知道该不该套外壳,避免刷新时闪一下
