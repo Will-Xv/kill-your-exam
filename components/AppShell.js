@@ -7,6 +7,7 @@ import TauntWatcher from "@/components/TauntWatcher";
 import NotifPrompt from "@/components/NotifPrompt";
 import PendingBanner from "@/components/PendingBanner";
 import * as lab from "@/lib/uilab/store";
+import RouteShell from "@/components/uilab/RouteShell";
 
 // 营销/登录类公开页不套应用外壳
 const BARE = ["/login", "/welcome", "/privacy"];
@@ -20,16 +21,24 @@ export default function AppShell({ children }) {
   // 杀手在做题/模拟/聊天页与公开页不出现;其余页面:电脑端右侧常驻面板,手机端浮动小圆按钮
   const hideKiller = path.startsWith("/practice") || path.startsWith("/mock") || path === "/chat" || path.startsWith("/onboarding");
   const showKiller = !hideKiller;
-  const labHome = path === "/" && S.isDesktop && lab.hasHomeLayout();
-  const reserve = showKiller && S.isDesktop && !labHome; // 浮动杀手常驻时留右边一条(首页 v2 网格除外)
+  const onHome = path === "/";
+  const v2 = S.isDesktop && !!lab.contentToRender(); // 已套用/编辑中的 v2 分区布局(桌面)
+  const labHome = onHome && v2 && lab.hasHomeLayout(); // 首页:由页面里的 LayoutLab 渲染网格
+  const routeShell = v2 && !onHome && showKiller;     // 其它非做题页:统一外壳(杀手固定在它那一格)
+  const reserve = showKiller && S.isDesktop && !labHome && !routeShell; // 浮动杀手才留右边一条
+  const cl = lab.contentToRender();
   return (
     <>
       <div className="app-bg" />
-      <div className={`relative z-10 ${reserve ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
-        <div className={labHome ? "w-full pb-28 pt-4 md:pb-10 md:pt-20" : "mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20"}>{children}</div>
-      </div>
+      {routeShell ? (
+        <div className="relative z-10"><RouteShell layout={cl}>{children}</RouteShell></div>
+      ) : (
+        <div className={`relative z-10 ${reserve ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
+          <div className={labHome ? "w-full pb-28 pt-4 md:pb-10 md:pt-20" : "mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20"}>{children}</div>
+        </div>
+      )}
       <Nav />
-      {showKiller && <KillerDock />}
+      {showKiller && !labHome && !routeShell && <KillerDock />}
       {showKiller && <KillerBubble />}
       <TauntWatcher />
       <NotifPrompt />
