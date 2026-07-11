@@ -140,6 +140,12 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
       <div data-zone={zoneId} style={{ gridArea: zoneId, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }} className={editing ? "lab-zone-edit" : ""}>{content}</div>
     );
   }
+  // 只放了杀手的格子:杀手卡片自己就是圆角卡片、内部自带滚动 —— 直接铺进格子,不再套滚动遮罩(避免双重圆角 + 头部被滚走)
+  if (ids.length === 1 && ids[0] === "__killer") {
+    return (
+      <div data-zone={zoneId} style={{ gridArea: zoneId, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }} className={editing ? "lab-zone-edit" : ""}>{content}</div>
+    );
+  }
   // 圆角遮罩(外层只负责圆角)+ 内层滚动器(圆角细滚动条)。无自定义 JS,避免卡死。
   return (
     <div data-zone={zoneId} style={{ gridArea: zoneId, minWidth: 0, minHeight: 0, borderRadius: 24, overflow: "hidden" }} className={editing ? "lab-zone-edit" : ""}>
