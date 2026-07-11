@@ -21,7 +21,7 @@ export default function AppShell({ children }) {
   const hideKiller = path.startsWith("/practice") || path.startsWith("/mock") || path === "/chat" || path.startsWith("/onboarding");
   const showKiller = !hideKiller;
   const labHome = path === "/" && S.isDesktop && lab.hasHomeLayout();
-  const reserve = showKiller && S.isDesktop && !lab.contentToRender(); // 没有 v2 布局时才为浮动杀手留右边一条
+  const reserve = showKiller && S.isDesktop && !labHome; // 浮动杀手常驻时留右边一条(首页 v2 网格除外)
   return (
     <>
       <div className="app-bg" />
