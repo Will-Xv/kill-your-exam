@@ -1,5 +1,6 @@
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import db from "@/lib/db";
 import { AiErrorProvider } from "@/components/AiErrorDialog";
 import { I18nProvider } from "@/components/I18n";
 
@@ -14,12 +15,14 @@ export const metadata = {
 export const viewport = { themeColor: "#33241a" };
 
 export default function RootLayout({ children }) {
+  let initialLayout = null; // 服务端预读【已发布的全站默认布局】,首帧就知道该不该套外壳,避免刷新时闪一下
+  try { const row = db.prepare("SELECT value FROM settings WHERE key='ui_default_layout'").get(); if (row && row.value) initialLayout = JSON.parse(row.value); } catch {}
   return (
     <html lang="zh-CN">
       <body>
         <I18nProvider>
         <AiErrorProvider>
-          <AppShell>{children}</AppShell>
+          <AppShell initialLayout={initialLayout}>{children}</AppShell>
         </AiErrorProvider>
         </I18nProvider>
       </body>
