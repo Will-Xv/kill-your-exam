@@ -1,9 +1,5 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import KillerChat from "@/components/KillerChat";
-import { useKillerSlot } from "@/lib/uilab/killerSlot";
 import Nav from "@/components/Nav";
 import KillerDock from "@/components/KillerDock";
 import KillerBubble from "@/components/KillerBubble";
@@ -19,10 +15,6 @@ const BARE = ["/login", "/welcome", "/privacy"];
 export default function AppShell({ children }) {
   const path = usePathname();
   const S = lab.useUiLab();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const slot = useKillerSlot();
-  const fallbackRef = useRef(null);
   if (BARE.includes(path)) return children;
   // 开发者在首页开启布局(编辑中或已套用某套布局)时,主内容改为全宽画布 —— 不再被「给杀手让出右边一条」限制,
   // 内容与杀手可自由摆放(上下、任意位置)。内容本身不自动放宽,仍保持原来的宽度,只是可被拖到任何地方。
@@ -46,8 +38,6 @@ export default function AppShell({ children }) {
         </div>
       )}
       <Nav />
-      <div ref={fallbackRef} aria-hidden style={{ display: "none" }} />
-      {mounted && showKiller && v2 && (slot || fallbackRef.current) && createPortal(<KillerChat />, slot || fallbackRef.current)}
       {showKiller && !labHome && !routeShell && <KillerDock />}
       {showKiller && <KillerBubble />}
       <TauntWatcher />
