@@ -7,6 +7,7 @@ import Tour from "@/components/Tour";
 import { LayoutLab, Editable } from "@/components/uilab/LayoutLab";
 import * as placement from "@/lib/uilab/placement";
 import { getItem, itemVisibleTo } from "@/lib/uilab/items";
+import FeatureModule from "@/components/uilab/FeatureModule";
 
 export default function HomeClient({ initialLeaderboard = null, initialIsDev = false, initialData = null }) {
   const t = useT();
@@ -112,6 +113,9 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const gridCards = placement.active()
     ? placement.itemsIn(__bp, "morefeatures").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, { isDeveloper: isDev })).map((it) => ({ href: it.href, icon: it.icon, title: t(it.label), desc: t(it.desc) }))
     : features.map((f) => ({ href: f.href, icon: f.icon, title: f.title, desc: f.desc, grad: f.grad, tint: f.tint, ig: f.ig }));
+  const zoneModules = placement.active()
+    ? placement.itemsIn(__bp, "zone").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, { isDeveloper: isDev }))
+    : [];
 
   return (
     <>
@@ -222,6 +226,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
       </div>
       </Editable>
+
+      {/* 拖进「首页大模块」的功能 —— 用 Style-A 富模块渲染,并作为可摆放的布局块 */}
+      {zoneModules.map((it) => (
+        <Editable key={"feat:" + it.id} id={"feat:" + it.id}><FeatureModule item={it} /></Editable>
+      ))}
 
       {/* feature grid —— 按放置表渲染;未激活则回退当前 features */}
       <Editable id="more"><>
