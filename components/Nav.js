@@ -68,8 +68,8 @@ export default function Nav() {
   // 第二阶段:导航栏与「更多」菜单按放置表渲染(未激活则用现有 primary / more+extra)
   const pact = placement.active();
   const bp = S.isDesktop ? "desktop" : "mobile";
-  const navItems = pact ? placement.itemsIn(bp, "nav").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
-  const moreItems = pact ? placement.itemsIn(bp, "more").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
+  const navItems = pact ? placement.itemsIn(bp, "nav", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
+  const moreItems = pact ? placement.itemsIn(bp, "more", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
   const moreHasBadge = pact && moreItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
 
   const gestureBase = () => { const start = navRef.current.getBoundingClientRect(); const others = collectRects(navRef.current); lab.pushHistory(); return { start, others }; };

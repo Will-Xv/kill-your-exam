@@ -106,7 +106,7 @@ export default function ItemLibrary({ onClose }) {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 10, fontSize: 11, color: "#8a7a54" }}>{t("变更即时生效在你的视图;点「发布」后所有用户生效。「电脑/手机」可分别摆放。")}</div>
+        <div style={{ marginTop: 10, fontSize: 11, color: "#8a7a54" }}>{t("在板子里排好后,点「发布」才会生效(所有用户+你自己);没发布不影响你现在的界面。「电脑/手机」可分别摆放。")}</div>
       </div>
     </div>,
     document.body
