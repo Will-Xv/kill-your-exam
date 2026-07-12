@@ -27,7 +27,7 @@ export default function ItemLibrary({ onClose }) {
   useEffect(() => { setMounted(true); placement.startEditFromCurrent(); fetch("/api/me").then((r) => r.json()).then((d) => setMe(d.user || {})).catch(() => {}); }, []);
 
   const pl = placement.placementNow();
-  const assignable = allItems().filter((it) => itemVisibleTo(it, me));
+  const assignable = allItems().filter((it) => it.href && itemVisibleTo(it, me)); // 只分配有页面的功能项;原生模块(排行榜/今日任务)由布局编辑器管
   const inThisBp = new Set((pl[bp] || []).map((e) => e.item));
   const colItems = {};
   for (const c of COLS) colItems[c.where] = placement.itemsIn(bp, c.where, pl).map((e) => getItem(e.item)).filter(Boolean);
