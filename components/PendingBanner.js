@@ -18,7 +18,7 @@ export default function PendingBanner() {
   }, [path]);
   if (!pending || path === "/chat") return null;
   return (
-    <Link href="/chat" className="fixed left-1/2 top-2 z-[70] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 animate-in">
+    <Link href="/chat" className="md:hidden fixed left-1/2 top-2 z-[70] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 animate-in">
       🔐 {t("杀手有个改动等你确认")} →
     </Link>
   );

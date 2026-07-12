@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
+import Link from "next/link";
 
-export default function Leaderboard({ initial = null }) {
+export default function Leaderboard({ initial = null, full = false }) {
   const t = useT();
   const [data, setData] = useState(initial);
   const [tab, setTab] = useState("weekly");
@@ -36,9 +37,9 @@ export default function Leaderboard({ initial = null }) {
         {data.champion && <span>👑 {t("上周冠军")}: <b>{data.champion.username}</b></span>}
         {data.totalChampion && <span>{data.champion ? " · " : ""}🏆 {t("总榜榜一")}: <b>{data.totalChampion.username}</b></span>}
       </p>
-      <div className={`mt-2 space-y-1 ${expanded ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
+      <div className={`mt-2 space-y-1 ${expanded && !full ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
         {list.length === 0 && <p className="text-sm text-amber-100/80 py-2">{t("还没有做题记录")}</p>}
-        {(expanded ? list : list.slice(0, 3)).map((r, i) => (
+        {(full || expanded ? list : list.slice(0, 3)).map((r, i) => (
           <div key={r.id} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm ${r.id === data.me.id ? "bg-white/25 font-bold" : "bg-white/10"}`}>
             <span className="w-6 text-center">{medal(i)}</span>
             <span className="flex-1 truncate">{r.username}{r.id === data.me.id ? " · " + t("你") : ""}</span>
@@ -49,11 +50,12 @@ export default function Leaderboard({ initial = null }) {
           </div>
         ))}
       </div>
-      {list.length > 3 && (
+      {!full && list.length > 3 && (
         <button onClick={() => setExpanded((v) => !v)} className="mt-2 w-full rounded-full bg-white/15 py-1.5 text-xs font-semibold hover:bg-white/25">
           {expanded ? t("收起") : t("展开查看完整榜单") + " (" + list.length + ")"}
         </button>
       )}
+      {!full && <Link href="/leaderboard" className="mt-2 block w-full rounded-full bg-white/10 py-1.5 text-center text-xs font-semibold hover:bg-white/20">{t("打开完整榜单页")} →</Link>}
     </div>
   );
 }

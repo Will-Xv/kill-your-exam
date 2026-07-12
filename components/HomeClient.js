@@ -114,7 +114,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     ? placement.itemsIn(__bp, "morefeatures").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, { isDeveloper: isDev })).map((it) => ({ href: it.href, icon: it.icon, title: t(it.label), desc: t(it.desc) }))
     : features.map((f) => ({ href: f.href, icon: f.icon, title: f.title, desc: f.desc, grad: f.grad, tint: f.tint, ig: f.ig }));
   const zoneModules = placement.active()
-    ? placement.itemsIn(__bp, "zone").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, { isDeveloper: isDev }))
+    ? placement.itemsIn(__bp, "zone").map((e) => getItem(e.item)).filter((it) => it && it.href && !it.native && itemVisibleTo(it, { isDeveloper: isDev }))
     : [];
   const nativeShown = (nid) => { if (!placement.active()) return true; const ps = placement.placementOf(__bp, nid); if (!ps.length) return true; return ps.some((p) => p.where === "zone"); };
 
