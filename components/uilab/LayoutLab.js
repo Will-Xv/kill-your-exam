@@ -40,7 +40,16 @@ export function LayoutLab({ enabled, children }) {
     e.preventDefault(); e.stopPropagation();
     lab.pushHistory();
     const dragEl = e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest("[data-item]") : null;
-    if (dragEl) dragEl.classList.add("lab-dragging");
+    const sx = e.clientX, sy = e.clientY;
+    let clone = null;
+    if (dragEl) {
+      const r0 = dragEl.getBoundingClientRect();
+      clone = dragEl.cloneNode(true);
+      Object.assign(clone.style, { position: "fixed", left: r0.left + "px", top: r0.top + "px", width: r0.width + "px", height: r0.height + "px", margin: "0", pointerEvents: "none", zIndex: "9999", transition: "none", boxShadow: "0 18px 42px rgba(0,0,0,.34)", opacity: "0.97" });
+      clone.classList.add("lab-clone");
+      document.body.appendChild(clone);
+      dragEl.style.opacity = "0";
+    }
     const hit = (x, y) => {
       const zones = document.querySelectorAll("[data-zone]");
       for (const zel of zones) {
@@ -55,10 +64,15 @@ export function LayoutLab({ enabled, children }) {
       }
       return null;
     };
-    const move = (ev) => { const t = hit(ev.clientX, ev.clientY); lab.setDrop(t); };
+    const move = (ev) => {
+      if (clone) clone.style.transform = "translate(" + (ev.clientX - sx) + "px, " + (ev.clientY - sy) + "px)";
+      lab.setDrop(hit(ev.clientX, ev.clientY));
+    };
     const up = (ev) => {
       const t = hit(ev.clientX, ev.clientY) || S.drop;
-      if (dragEl) dragEl.classList.remove("lab-dragging");
+      if (t && clone) flipOverride.current[id] = clone.getBoundingClientRect();
+      if (clone) clone.remove();
+      if (dragEl) dragEl.style.opacity = "";
       if (t) lab.moveItem(id, t.zone, t.index);
       lab.setDrop(null);
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
