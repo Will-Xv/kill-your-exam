@@ -116,13 +116,15 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const zoneModules = placement.active()
     ? placement.itemsIn(__bp, "zone").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, { isDeveloper: isDev }))
     : [];
+  const nativeShown = (nid) => { if (!placement.active()) return true; const ps = placement.placementOf(__bp, nid); if (!ps.length) return true; return ps.some((p) => p.where === "zone"); };
 
   return (
     <>
       <Tour />
       <LayoutLab enabled={isDev}>
-      <Editable id="leaderboard"><Leaderboard initial={initialLeaderboard} /></Editable>
+      {nativeShown("leaderboard") && <Editable id="leaderboard"><Leaderboard initial={initialLeaderboard} /></Editable>}
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
+      {nativeShown("hero") && (
       <Editable id="hero">
       <div className="animate-in relative overflow-hidden rounded-3xl p-6 shadow-xl ring-1 ring-[#d9c89b]" style={{ background: "#efe3c4", color: "#2f2413" }}>
         {/* 手机端:手绘血刃(内联 SVG);pad/桌面(md+,含 iPad 竖屏):原来的刺客贴画 */}
@@ -192,6 +194,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         </div>
       </div>
       </Editable>
+      )}
 
       {!exam.completed_at && days != null && days >= 0 && days < 7 && (
         <Editable id="weekwarn">
@@ -207,6 +210,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       )}
 
       {/* today's plan */}
+      {nativeShown("today") && (
       <Editable id="today">
       <div id="tour-today" className="card animate-in d1 mt-4">
         <div className="mb-2 flex items-center justify-between">
@@ -226,6 +230,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
       </div>
       </Editable>
+      )}
 
       {/* 拖进「首页大模块」的功能 —— 用 Style-A 富模块渲染,并作为可摆放的布局块 */}
       {zoneModules.map((it) => (
@@ -252,6 +257,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       </></Editable>
 
       {/* AI strategy */}
+      {nativeShown("strategy") && (
       <Editable id="strategy">
       <div className="card animate-in mt-5">
         <div className="flex items-center justify-between">
@@ -271,6 +277,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         )}
       </div>
       </Editable>
+      )}
 
       {stats.matCount === 0 && (
         <Editable id="matwarn">

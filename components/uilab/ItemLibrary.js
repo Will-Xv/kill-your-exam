@@ -27,7 +27,7 @@ export default function ItemLibrary({ onClose }) {
   useEffect(() => { setMounted(true); placement.startEditFromCurrent(); fetch("/api/me").then((r) => r.json()).then((d) => setMe(d.user || {})).catch(() => {}); }, []);
 
   const pl = placement.placementNow();
-  const assignable = allItems().filter((it) => it.href && itemVisibleTo(it, me)); // 只分配有页面的功能项;原生模块(排行榜/今日任务)由布局编辑器管
+  const assignable = allItems().filter((it) => itemVisibleTo(it, me)); // 功能项 + 原生模块都进板子
   const inThisBp = new Set((pl[bp] || []).map((e) => e.item));
   const colItems = {};
   for (const c of COLS) colItems[c.where] = placement.itemsIn(bp, c.where, pl).map((e) => getItem(e.item)).filter(Boolean);
@@ -36,6 +36,13 @@ export default function ItemLibrary({ onClose }) {
   const sig = JSON.stringify(pl[bp] || []) + "|" + bp;
   useFlip(rootRef, sig, { override: flipOverride });
 
+  const dropIndex = (colEl, y, skipId) => {
+    if (!colEl) return 0;
+    const chips = Array.from(colEl.querySelectorAll("[data-chip]")).filter((c) => c.getAttribute("data-flip") !== skipId);
+    let idx = chips.length;
+    for (let i = 0; i < chips.length; i++) { const r = chips[i].getBoundingClientRect(); if (y < r.top + r.height / 2) { idx = i; break; } }
+    return idx;
+  };
   const startDrag = (id, e) => {
     e.preventDefault(); e.stopPropagation();
     const chip = e.currentTarget.closest ? e.currentTarget.closest("[data-chip]") : null;
@@ -52,10 +59,14 @@ export default function ItemLibrary({ onClose }) {
     const move = (ev) => { if (clone) clone.style.transform = "translate(" + (ev.clientX - sx) + "px," + (ev.clientY - sy) + "px)"; };
     const up = (ev) => {
       const target = colAt(ev.clientX, ev.clientY);
-      if (target && clone) flipOverride.current[id] = clone.getBoundingClientRect();
+      const it = getItem(id) || {};
+      let allowed = !!target;
+      if (target && it.pinned && it.pinned !== target) allowed = false;              // 固定项(首页)只能留在导航栏
+      if (target && it.moduleOnly && target !== "zone" && target !== "hidden") allowed = false; // 原生模块只能进 首页大模块/隐藏
+      if (allowed && clone) flipOverride.current[id] = clone.getBoundingClientRect();
       if (clone) clone.remove();
       if (chip) chip.style.opacity = "";
-      if (target) placement.moveItem(bp, id, target);
+      if (allowed) { const colEl = document.querySelector('[data-col="' + target + '"]'); placement.moveItem(bp, id, target, dropIndex(colEl, ev.clientY, id)); }
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
     };
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
@@ -87,7 +98,7 @@ export default function ItemLibrary({ onClose }) {
                 {colItems[c.where].map((it) => (
                   <div key={it.id} data-chip data-flip={it.id} onPointerDown={(e) => startDrag(it.id, e)} title={t("拖到其它列")}
                     style={{ display: "flex", alignItems: "center", gap: 6, cursor: "grab", background: "#fff", border: "1px solid #e4d5af", borderRadius: 10, padding: "6px 8px", fontSize: 13, color: "#2f2413", userSelect: "none", touchAction: "none" }}>
-                    <span>{it.icon}</span><span style={{ fontWeight: 600 }}>{t(it.label)}</span>
+                    <span>{it.icon}</span><span style={{ fontWeight: 600 }}>{t(it.label)}</span>{it.pinned && <span title={t("固定在此")} style={{ marginLeft: "auto", fontSize: 11, opacity: 0.6 }}>🔒</span>}
                   </div>
                 ))}
                 {colItems[c.where].length === 0 && <div style={{ fontSize: 11, color: "#b0a075", padding: "8px 4px" }}>{t("拖到这里")}</div>}
