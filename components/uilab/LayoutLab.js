@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
 import { TEMPLATES, TEMPLATE_ORDER } from "@/lib/uilab/templates";
 import { useFlip } from "@/lib/uilab/flip";
+import ItemLibrary from "@/components/uilab/ItemLibrary";
 import { useT } from "@/components/I18n";
 import KillerChat from "@/components/KillerChat";
 
@@ -219,6 +220,7 @@ function Toolbar({ S }) {
   const active = lab.activePreset();
   const editing = S.editing;
   const [libOpen, setLibOpen] = useState(false);
+  const [itemLibOpen, setItemLibOpen] = useState(false);
   const curTpl = (S.working && S.working.template) || "single";
   const btn = "rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-40";
   const ghost = btn + " bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]";
@@ -250,6 +252,7 @@ function Toolbar({ S }) {
         <div className="flex flex-wrap items-center gap-2">
           <button className={btn + " bg-[#2f2413] text-[#f6efdd] shadow-lg hover:opacity-90"} onClick={() => lab.enterEdit(labIds())}>🎨 {t("编辑布局")}</button>
           <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => setLibOpen((v) => !v)}>📚 {t("布局库")}</button>
+          <button className={btn + " bg-[#2f2413] text-[#f6efdd] hover:opacity-90"} onClick={() => setItemLibOpen(true)}>🧩 {t("栏目分配")}</button>
           {active && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.revertActive()} title={t("回到原始首页")}>↩ {t("撤回")}</button>}
           {!active && S.lastReverted && S.presets.some((p) => p.id === S.lastReverted) && <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.reapplyReverted()} title={t("重新套用刚撤回的布局")}>↪ {t("恢复布局")}</button>}
           {active && <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>}
@@ -267,6 +270,7 @@ function Toolbar({ S }) {
           <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af]"} onClick={() => { if (window.confirm(t("储存并覆盖当前页面?\n\n「确定」= 保存本次修改并覆盖当前生效的布局。\n「取消」= 不保存。"))) { lab.saveOverwriteCurrent(); } else if (window.confirm(t("不保存,直接退出编辑吗?\n(「取消」可继续编辑)"))) { lab.exitEdit(); } }}>✓ {t("完成")}</button>
         </div>
       )}
+      {itemLibOpen && <ItemLibrary onClose={() => setItemLibOpen(false)} />}
     </div>
   );
 }
