@@ -264,7 +264,7 @@ function Toolbar({ S }) {
           <button className={btn + " bg-[#2f2413] text-[#f6efdd]"} onClick={() => { const n = window.prompt(t("给这套布局起个名字:"), active ? active.name : t("我的布局")); if (n && n.trim()) lab.savePreset(n.trim()); }}>💾 {t("另存为")}</button>
           {active && <button className={btn + " bg-[#3d2b10] text-[#f6efdd]"} onClick={() => lab.overwriteActive()} title={t("覆盖保存到:") + active.name}>💾 {t("覆盖")}「{active.name}」</button>}
           <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>
-          <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af]"} onClick={() => lab.exitEdit()}>✓ {t("完成")}</button>
+          <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af]"} onClick={() => { if (window.confirm(t("储存并覆盖当前页面?\n\n「确定」= 保存本次修改并覆盖当前生效的布局。\n「取消」= 不保存。"))) { lab.saveOverwriteCurrent(); } else if (window.confirm(t("不保存,直接退出编辑吗?\n(「取消」可继续编辑)"))) { lab.exitEdit(); } }}>✓ {t("完成")}</button>
         </div>
       )}
     </div>
