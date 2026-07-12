@@ -32,8 +32,9 @@ export function LayoutLab({ enabled, children }) {
   const pageScroll = !!(rl && rl.template === "single"); // 整列=整页滚;其余=分区固定、内部滚
   childById["__killer"] = <Editable id="__killer" fill={!pageScroll}><KillerItem fill={!pageScroll} /></Editable>; // 杀手作为可拖动的"栏目"
   const flipRef = useRef(null);
+  const flipOverride = useRef({}); // 拖拽松手时记下光标处位置,让落点动画从光标开始
   const zonesSig = rl ? JSON.stringify(rl.zones) : ""; // 排列签名:变化即触发 FLIP 位移动画
-  useFlip(flipRef, zonesSig);
+  useFlip(flipRef, zonesSig, { override: flipOverride });
 
   // 拖动控制:命中测试分区 + 插入位置
   const startDrag = (id, e) => {
