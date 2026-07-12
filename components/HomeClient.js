@@ -6,9 +6,9 @@ import { useT } from "@/components/I18n";
 import Tour from "@/components/Tour";
 import { LayoutLab, Editable } from "@/components/uilab/LayoutLab";
 
-export default function HomeClient({ initialLeaderboard = null, initialIsDev = false }) {
+export default function HomeClient({ initialLeaderboard = null, initialIsDev = false, initialData = null }) {
   const t = useT();
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(initialData);
   const [daily, setDaily] = useState(null);
   const [sugg, setSugg] = useState(null);
   const [suggBusy, setSuggBusy] = useState(false);
