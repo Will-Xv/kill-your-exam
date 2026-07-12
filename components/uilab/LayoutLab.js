@@ -3,6 +3,7 @@ import { createContext, useContext, useRef, useEffect, useState, useCallback, Fr
 import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
 import { TEMPLATES, TEMPLATE_ORDER } from "@/lib/uilab/templates";
+import { useFlip } from "@/lib/uilab/flip";
 import { useT } from "@/components/I18n";
 import KillerChat from "@/components/KillerChat";
 
@@ -30,11 +31,16 @@ export function LayoutLab({ enabled, children }) {
   const rl = editing ? S.working : null; // 只有编辑时画分区网格;套用时透传(由 AppShell 的 RouteShell 统一渲染)
   const pageScroll = !!(rl && rl.template === "single"); // 整列=整页滚;其余=分区固定、内部滚
   childById["__killer"] = <Editable id="__killer" fill={!pageScroll}><KillerItem fill={!pageScroll} /></Editable>; // 杀手作为可拖动的"栏目"
+  const flipRef = useRef(null);
+  const zonesSig = rl ? JSON.stringify(rl.zones) : ""; // 排列签名:变化即触发 FLIP 位移动画
+  useFlip(flipRef, zonesSig);
 
   // 拖动控制:命中测试分区 + 插入位置
   const startDrag = (id, e) => {
     e.preventDefault(); e.stopPropagation();
     lab.pushHistory();
+    const dragEl = e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest("[data-item]") : null;
+    if (dragEl) dragEl.classList.add("lab-dragging");
     const hit = (x, y) => {
       const zones = document.querySelectorAll("[data-zone]");
       for (const zel of zones) {
@@ -52,6 +58,7 @@ export function LayoutLab({ enabled, children }) {
     const move = (ev) => { const t = hit(ev.clientX, ev.clientY); lab.setDrop(t); };
     const up = (ev) => {
       const t = hit(ev.clientX, ev.clientY) || S.drop;
+      if (dragEl) dragEl.classList.remove("lab-dragging");
       if (t) lab.moveItem(id, t.zone, t.index);
       lab.setDrop(null);
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
@@ -70,7 +77,7 @@ export function LayoutLab({ enabled, children }) {
     if (S.isDesktop) {
       const narrow = rl.template === "single" || rl.template === "tb";
       body = (
-        <div style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", ...(pageScroll ? {} : { height: "calc(100dvh - 7.5rem)" }) }}>
+        <div ref={flipRef} style={{ maxWidth: narrow ? 820 : 1360, margin: "0 auto", ...(pageScroll ? {} : { height: "calc(100dvh - 7.5rem)" }) }}>
           <div style={{ display: "grid", gap: 16, ...(pageScroll ? {} : { height: "100%" }), gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: t.gridTemplateAreas }}>
             {zoneIds.map((z, zi) => (
               <Zone key={z} zoneId={z} pageScroll={pageScroll} editing={editing} drop={S.drop} childById={childById}
@@ -92,6 +99,7 @@ export function LayoutLab({ enabled, children }) {
       {enabled && S.isDesktop && mounted && createPortal(<Toolbar S={S} />, document.body)}
       <style>{`
         .lab-item{ position:relative; }
+        .lab-dragging{ opacity:.92; box-shadow:0 14px 34px rgba(0,0,0,.30); z-index:40; border-radius:16px; }
         .lab-item.edit{ outline:1.5px dashed rgba(158,20,12,.5); outline-offset:3px; border-radius:16px; }
         .lab-grip{ position:absolute; top:6px; left:8px; z-index:20; display:flex; align-items:center; gap:4px; cursor:grab; user-select:none;
           background:#9e140c; color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:9999px; box-shadow:0 1px 4px rgba(0,0,0,.35); }
@@ -182,9 +190,9 @@ export function Editable({ id, children, fill }) {
   const ctx = useContext(Ctx);
   const wrap = fill ? { flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" } : undefined;
   const inner = fill ? { pointerEvents: "none", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" } : { pointerEvents: "none" };
-  if (!ctx || !ctx.editing) return <div data-item data-id={id} className="lab-item" style={wrap}>{children}</div>;
+  if (!ctx || !ctx.editing) return <div data-item data-id={id} data-flip={id} className="lab-item" style={wrap}>{children}</div>;
   return (
-    <div data-item data-id={id} className="lab-item edit" style={wrap}>
+    <div data-item data-id={id} data-flip={id} className="lab-item edit" style={wrap}>
       <div className="lab-grip" onPointerDown={(e) => ctx.startDrag(id, e)} title="拖动:排序 / 移到其它分区">⠿ 拖动</div>
       <div style={inner}>{children}</div>
     </div>
