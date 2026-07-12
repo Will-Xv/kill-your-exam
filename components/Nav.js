@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { useT } from "@/components/I18n";
 import * as lab from "@/lib/uilab/store";
+import * as placement from "@/lib/uilab/placement";
+import { getItem, itemVisibleTo } from "@/lib/uilab/items";
+import { useStats, statValue } from "@/lib/uilab/stats";
 import { collectRects, snapMove, snapEdgeX } from "@/lib/uilab/snap";
 
 const primary = [
@@ -29,6 +32,7 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const [me, setMe] = useState(null);
   const S = lab.useUiLab();
+  placement.useItems(); useStats();
   const navRef = useRef(null);
   const onHome = path === "/";
   useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => {}); }, []);
@@ -61,6 +65,13 @@ export default function Nav() {
   if (me?.isDeveloper) extra.push({ href: "/dev", label: "开发者工具", icon: "🛠️", desc: "调试" });
   if (me?.isAdmin || me?.isDeveloper) extra.push({ href: "/bugs", label: "Bug 反馈", icon: "🐞", desc: "用户反馈的问题" });
 
+  // 第二阶段:导航栏与「更多」菜单按放置表渲染(未激活则用现有 primary / more+extra)
+  const pact = placement.active();
+  const bp = S.isDesktop ? "desktop" : "mobile";
+  const navItems = pact ? placement.itemsIn(bp, "nav").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
+  const moreItems = pact ? placement.itemsIn(bp, "more").map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
+  const moreHasBadge = pact && moreItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
+
   const gestureBase = () => { const start = navRef.current.getBoundingClientRect(); const others = collectRects(navRef.current); lab.pushHistory(); return { start, others }; };
   const begin = (e, handler) => {
     e.preventDefault(); e.stopPropagation();
@@ -83,7 +94,7 @@ export default function Nav() {
         <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="absolute bottom-16 left-1/2 w-[92%] max-w-md -translate-x-1/2 md:top-16 md:bottom-auto" onClick={(e) => e.stopPropagation()}>
             <div className="card grid grid-cols-2 gap-2 shadow-2xl animate-in">
-              {[...more, ...extra].map((it) => (
+              {moreItems.map((it) => (
                 <Link key={it.href} href={it.href} className={`flex items-start gap-2 rounded-2xl p-3 transition ${active(it.href) ? "bg-[#efe0bd] text-[#6b4a25]" : "hover:bg-[#efe6cf]"}`}>
                   <span className="text-xl">{it.icon}</span>
                   <span><span className="block text-sm font-semibold">{t(it.label)}</span><span className="block text-xs text-[#8a7a54]">{t(it.desc)}</span></span>
@@ -95,7 +106,7 @@ export default function Nav() {
       )}
       <nav className={`fixed bottom-0 left-0 right-0 z-50 md:top-0 md:bottom-auto ${dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
         <div ref={navRef} data-snap style={navStyle} className="mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg">
-          {primary.map((it) => (
+          {navItems.map((it) => (
             <Link key={it.href} href={it.href}
               className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
               <span className="text-lg md:text-base">{it.icon}</span><span>{t(it.label)}</span>
@@ -103,7 +114,7 @@ export default function Nav() {
           ))}
           <button onClick={() => setOpen(!open)}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${open ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
-            <span className="text-lg md:text-base">☰</span><span>{t("更多")}</span>
+            <span className="relative text-lg md:text-base">☰{moreHasBadge && <span className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#f6efdc]" />}</span><span>{t("更多")}</span>
           </button>
           {editing && (
             <>
