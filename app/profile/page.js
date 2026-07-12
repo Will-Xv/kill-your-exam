@@ -104,6 +104,47 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      <MemorySection t={t} />
+    </div>
+  );
+}
+
+function MemorySection({ t }) {
+  const [mem, setMem] = useState(null);
+  const [showForgotten, setShowForgotten] = useState(false);
+  const load = () => fetch("/api/memory").then((r) => (r.ok ? r.json() : null)).then(setMem).catch(() => {});
+  useEffect(() => { load(); }, []);
+  if (!mem) return null; // 非开发者(403)或加载中:不显示
+  const act = async (action, id) => { await fetch("/api/memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, id }) }); load(); };
+  const global = mem.active.filter((r) => r.scope === "global" || r.scope == null);
+  const perExam = mem.active.filter((r) => r.scope === "exam");
+  const Row = ({ r }) => (
+    <div className="flex items-start gap-2 rounded-xl bg-stone-50 px-3 py-2 text-sm">
+      <div className="flex-1 min-w-0">
+        <span className="font-medium">{r.subject}</span>:<span> {r.claim}</span>
+        <span className="ml-2 text-[10px] text-stone-400">{t("权重")}{r.recency}{r.valence ? "·" + r.valence : ""}{r.exam_id ? "·#" + r.exam_id : ""}</span>
+      </div>
+      <button className="text-stone-400 hover:text-red-500" title={t("忘掉(可恢复)")} onClick={() => act("forget", r.id)}>🗑</button>
+    </div>
+  );
+  return (
+    <div className="card space-y-2">
+      <p className="font-semibold">🧠 {t("杀手记得你什么")} <span className="text-[10px] font-normal text-amber-600">{t("仅开发者")}</span></p>
+      <p className="text-xs text-stone-400">{t("这是杀手对你的长期记忆,可删(软删除、随时恢复,便于排查)。")}</p>
+      {global.length > 0 && <div><p className="mb-1 text-xs font-semibold text-stone-500">{t("全局记忆")}</p><div className="space-y-1">{global.map((r) => <Row key={r.id} r={r} />)}</div></div>}
+      {perExam.length > 0 && <div><p className="mb-1 mt-2 text-xs font-semibold text-stone-500">{t("按考试的记忆")}</p><div className="space-y-1">{perExam.map((r) => <Row key={r.id} r={r} />)}</div></div>}
+      {mem.active.length === 0 && <p className="text-xs text-stone-400">{t("还没有记忆条目。")}</p>}
+      {mem.forgotten.length > 0 && (
+        <div className="pt-1">
+          <button className="text-xs text-stone-400 underline" onClick={() => setShowForgotten((v) => !v)}>{showForgotten ? t("收起") : t("已忘记的") + " (" + mem.forgotten.length + ")"}</button>
+          {showForgotten && <div className="mt-1 space-y-1">{mem.forgotten.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 rounded-xl bg-stone-50 px-3 py-1.5 text-xs text-stone-400 line-through">
+              <span className="min-w-0 flex-1 truncate">{r.subject}: {r.claim}</span>
+              <button className="text-emerald-600 no-underline hover:underline" onClick={() => act("restore", r.id)}>↩ {t("恢复")}</button>
+            </div>))}</div>}
+        </div>
+      )}
     </div>
   );
 }
