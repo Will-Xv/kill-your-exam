@@ -31,7 +31,7 @@ export default function FeatureModule({ item, fill }) {
         </div>
       </div>
 
-      {typeof statN === "number" && (
+      {typeof statN === "number" && statN > 0 && (
         <div className="mt-3 flex items-baseline gap-2">
           <span className="text-3xl font-black leading-none">{statN}</span>
           {suffix && <span className="text-xs text-[#8a7a54]">{suffix}</span>}
@@ -40,7 +40,7 @@ export default function FeatureModule({ item, fill }) {
 
       <Link href={item.href || "#"}
         className="mt-auto block w-full rounded-full bg-[#2f2413] px-4 py-2.5 text-center text-sm font-bold text-[#f6efdd] transition hover:opacity-90"
-        style={{ marginTop: typeof statN === "number" ? "0.75rem" : "0.9rem" }}>
+        style={{ marginTop: typeof statN === "number" && statN > 0 ? "0.75rem" : "0.9rem" }}>
         {verb} →
       </Link>
     </div>
