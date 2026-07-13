@@ -46,7 +46,8 @@ export async function POST(req) {
     db.prepare("UPDATE materials SET status='ready' WHERE id=?").run(materialId);
     try { const exRow = db.prepare("SELECT id FROM exams WHERE id=?").get(examId); if (exRow) await augmentKnowledgeTree(exRow, user.lang); } catch {} // 按新资料补充知识点(学习目标增)
     await afterMaterialsChanged(examId); // 重算覆盖度/掌握度 + 刷新今日计划
-    try { await autoResolveOnUpload(user, examId, materialId); } catch {} // 若这份(或已有资料)是「指针清单」,自动在教材里定位并把真题入库,结果进首页横幅
+    // 若这份(或已有资料)是「指针清单」,后台自动在教材里定位并把真题入库,结果进首页横幅(不阻塞上传返回)。
+    Promise.resolve().then(() => autoResolveOnUpload(user, examId, materialId)).catch(() => {});
     return Response.json({ ok: true, materialId, chunks });
   } catch (e) {
     const msg = String(e?.message || e).slice(0, 300);
