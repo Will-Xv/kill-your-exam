@@ -3,10 +3,12 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { TEMPLATES } from "@/lib/uilab/templates";
 import KillerChat from "@/components/KillerChat";
 import * as lab from "@/lib/uilab/store";
+import { useT } from "@/components/I18n";
 
 // 统一外壳:杀手固定在它在布局里的那一格(和首页同位置/大小),其余格子合并成一个内容区渲染当前页面。
 // 服务端首帧就渲染(不依赖客户端 isDesktop),内容永不重挂;手机端由 CSS 收成单列并隐藏内联杀手(改用浮动气泡)。
 export default function RouteShell({ layout, children }) {
+  const tr = useT();
   const S = lab.useUiLab();
   const t = TEMPLATES[layout && layout.template] || TEMPLATES.single;
   const vpRef = useRef(null);
@@ -45,7 +47,7 @@ export default function RouteShell({ layout, children }) {
       <div className="rs-grid" style={{ display: "grid", gap: 16, height: "100%", maxWidth: 1360, margin: "0 auto", boxSizing: "border-box", gridTemplateColumns: t.gridTemplateColumns, gridTemplateRows: t.gridTemplateRows, gridTemplateAreas: areas }}>
         <div className="rs-contcell" style={{ gridArea: "cont", minWidth: 0, minHeight: 0, position: "relative", paddingRight: 14 }}>
           <div ref={vpRef} onScroll={recompute} className="rs-hidebar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", borderRadius: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{children}</div>
-          {bar && <div onPointerDown={dragThumb} className="rs-thumb" title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, height: bar.h }} />}
+          {bar && <div onPointerDown={dragThumb} className="rs-thumb" title={tr("拖动滚动")} style={{ position: "absolute", top: bar.top, right: 3, height: bar.h }} />}
         </div>
         <div className="rs-killercell" style={{ gridArea: "kilr", minWidth: 0, minHeight: 0 }}>
           {S.isDesktop && (

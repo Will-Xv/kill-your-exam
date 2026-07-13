@@ -2,6 +2,7 @@
 import { createContext, useContext, useRef, useEffect, useState, useCallback, Fragment, Children } from "react";
 import { createPortal } from "react-dom";
 import * as lab from "@/lib/uilab/store";
+import * as placement from "@/lib/uilab/placement";
 import { TEMPLATES, TEMPLATE_ORDER } from "@/lib/uilab/templates";
 import { useFlip } from "@/lib/uilab/flip";
 import ItemLibrary from "@/components/uilab/ItemLibrary";
@@ -145,6 +146,7 @@ function KillerItem({ fill }) {
 }
 
 function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
+  const t = useT();
   const here = editing && drop && drop.zone === zoneId;
   const vpRef = useRef(null);
   const [bar, setBar] = useState(null); // 自定义滚动条 {top,h};null=不需要
@@ -179,7 +181,7 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
         </Fragment>
       ))}
       {here && drop.index >= ids.length && <div className="lab-drop" />}
-      {editing && ids.length === 0 && <div className="lab-empty">拖到这里</div>}
+      {editing && ids.length === 0 && <div className="lab-empty">{t("拖到这里")}</div>}
     </>
   );
   if (pageScroll) {
@@ -197,24 +199,48 @@ function Zone({ zoneId, ids, childById, editing, drop, pageScroll }) {
   return (
     <div data-zone={zoneId} style={{ gridArea: zoneId, minWidth: 0, minHeight: 0, position: "relative", paddingRight: 14 }} className={editing ? "lab-zone-edit" : ""}>
       <div ref={vpRef} onScroll={recompute} className="lab-hidebar" style={{ height: "100%", overflowY: "auto", overscrollBehavior: "contain", borderRadius: 24, display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{content}</div>
-      {bar && <div onPointerDown={dragThumb} className="lab-thumb" title="拖动滚动" style={{ position: "absolute", top: bar.top, right: 3, height: bar.h }} />}
+      {bar && <div onPointerDown={dragThumb} className="lab-thumb" title={t("拖动滚动")} style={{ position: "absolute", top: bar.top, right: 3, height: bar.h }} />}
     </div>
   );
 }
 
 export function Editable({ id, children, fill }) {
   const ctx = useContext(Ctx);
+  const t = useT();
   const wrap = fill ? { flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" } : undefined;
   const inner = fill ? { pointerEvents: "none", flex: "1 1 0", minHeight: 0, display: "flex", flexDirection: "column" } : { pointerEvents: "none" };
   if (!ctx || !ctx.editing) return <div data-item data-id={id} data-flip={id} className="lab-item" style={wrap}>{children}</div>;
   return (
     <div data-item data-id={id} data-flip={id} className="lab-item edit" style={wrap}>
-      <div className="lab-grip" onPointerDown={(e) => ctx.startDrag(id, e)} title="拖动:排序 / 移到其它分区">⠿ 拖动</div>
+      <div className="lab-grip" onPointerDown={(e) => ctx.startDrag(id, e)} title={t("拖动:排序 / 移到其它分区")}>⠿ {t("拖动")}</div>
       <div style={inner}>{children}</div>
     </div>
   );
 }
 
+function NavDockControl() {
+  const t = useT();
+  const S = lab.useUiLab();
+  placement.useItems();
+  const [plat, setPlat] = useState("both");
+  const bp = S.isDesktop ? "desktop" : "mobile";
+  const cur = placement.active() ? placement.navDockOf(placement.renderPlacement(), bp) : (S.isDesktop ? "top" : "bottom");
+  async function move(edge) {
+    try { await fetch("/api/ui-nav", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ edge, breakpoint: plat === "both" ? undefined : plat }) }); } catch {}
+    placement.initClient();
+  }
+  const edges = [["top", "⬆", t("顶部")], ["bottom", "⬇", t("底部")], ["left", "⬅", t("左竖")], ["right", "➡", t("右竖")]];
+  const plats = [["both", t("两端")], ["desktop", t("电脑")], ["mobile", t("手机")]];
+  const eb = "rounded-lg px-2 py-1 text-[11px] ";
+  return (
+    <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-1.5 shadow-xl">
+      <span className="px-1 text-[11px] font-semibold text-[#8a6a2c]">{t("导航栏:")}</span>
+      {plats.map(([k, l]) => (<button key={k} onClick={() => setPlat(k)} className={eb + (plat === k ? "bg-[#6b4a25] text-white" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]")}>{l}</button>))}
+      <span className="mx-0.5 h-4 w-px bg-[#e4d5af]" />
+      {edges.map(([k, ic, l]) => (<button key={k} onClick={() => move(k)} title={l} className={eb + (cur === k ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95")}>{ic} {l}</button>))}
+    </div>
+  );
+}
 function Toolbar({ S }) {
   const t = useT();
   const active = lab.activePreset();
@@ -226,6 +252,7 @@ function Toolbar({ S }) {
   const ghost = btn + " bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]";
   return (
     <div className="fixed bottom-6 left-5 z-[60] flex max-w-[94vw] flex-col items-start gap-2">
+      <NavDockControl />
       {libOpen && (
         <div className="w-64 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-2 shadow-xl">
           <div className="px-1 pb-1 text-[11px] font-bold text-[#6b4a25]">{t("布局库")}</div>
@@ -242,9 +269,9 @@ function Toolbar({ S }) {
       )}
       {editing && (
         <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-1.5 shadow-xl">
-          <span className="px-1 text-[11px] font-semibold text-[#8a6a2c]">分区:</span>
+          <span className="px-1 text-[11px] font-semibold text-[#8a6a2c]">{t("分区:")}</span>
           {TEMPLATE_ORDER.map((k) => (
-            <button key={k} onClick={() => lab.setTemplate(k)} className={"rounded-lg px-2 py-1 text-[11px] " + (curTpl === k ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95")}>{TEMPLATES[k].label}</button>
+            <button key={k} onClick={() => lab.setTemplate(k)} className={"rounded-lg px-2 py-1 text-[11px] " + (curTpl === k ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95")}>{t(TEMPLATES[k].label)}</button>
           ))}
         </div>
       )}
@@ -260,7 +287,7 @@ function Toolbar({ S }) {
         </div>
       ) : (
         <div className="flex max-w-[94vw] flex-wrap items-center gap-1.5 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-2 shadow-xl">
-          <span className="px-1 text-[11px] text-[#8a6a2c]">拖手柄:排序 / 跨区移动</span>
+          <span className="px-1 text-[11px] text-[#8a6a2c]">{t("拖手柄:排序 / 跨区移动")}</span>
           <button className={ghost} disabled={!S.past.length} onClick={() => lab.undo()}>↶ {t("撤销")}</button>
           <button className={ghost} disabled={!S.future.length} onClick={() => lab.redo()}>↷ {t("重做")}</button>
           <button className={ghost} onClick={() => lab.resetNatural()} title={t("恢复到默认排版")}>⟲ {t("恢复默认")}</button>

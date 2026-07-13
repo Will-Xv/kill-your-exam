@@ -38,7 +38,11 @@ export default function AppShell({ children, initialLayout = null }) {
   const _defDock = S.isDesktop ? "top" : "bottom";
   const _navDock = _pact ? placement.navDockOf(placement.renderPlacement(), _bp) : _defDock;
   const _dockCustom = !!(_pact && _navDock && _navDock !== _defDock);
-  const padCls = !_dockCustom ? "pb-28 pt-4 md:pb-10 md:pt-20" : (_navDock === "top" ? "pt-24 pb-6" : "pb-24 pt-6"); // 默认串保持原样=零回归
+  const padCls = !_dockCustom ? "pb-28 pt-4 md:pb-10 md:pt-20"
+    : _navDock === "top" ? "pt-24 pb-6"
+    : _navDock === "bottom" ? "pb-24 pt-6"
+    : "pt-4 pb-10"; // left/right:上下正常留白,横向留白由 xCls 负责
+  const xCls = !_dockCustom ? "px-4" : _navDock === "left" ? "pl-20 pr-4" : _navDock === "right" ? "pr-20 pl-4" : "px-4"; // 竖排导航栏时给内容让出侧边;默认=px-4 零回归
   return (
     <>
       <div className="app-bg" />
@@ -46,7 +50,7 @@ export default function AppShell({ children, initialLayout = null }) {
         <div className="relative z-10"><RouteShell layout={cl}>{children}</RouteShell></div>
       ) : (
         <div className={`relative z-10 ${reserve ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
-          <div className={labHome ? `w-full ${padCls}` : `mx-auto max-w-3xl px-4 ${padCls}`}>{children}</div>
+          <div className={labHome ? `w-full ${xCls} ${padCls}` : `mx-auto max-w-3xl ${xCls} ${padCls}`}>{children}</div>
         </div>
       )}
       <Nav />

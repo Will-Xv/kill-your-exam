@@ -73,8 +73,17 @@ export default function Nav() {
   const _navDock = _rp ? placement.navDockOf(_rp, bp) : _defDock;
   const dockCustom = !!(pact && _navDock && _navDock !== _defDock); // 仅当自定义且与默认不同才覆盖,默认路径零改动
   const dockPos = dockCustom ? _navDock : _defDock;
-  const navPosCls = dockCustom ? (dockPos === "top" ? "top-0 bottom-auto" : "bottom-0 top-auto") : "bottom-0 md:top-0 md:bottom-auto";
-  const navMarginCls = dockCustom ? (dockPos === "top" ? "mt-3" : "mb-3") : "md:mt-3";
+  const vertical = dockCustom && (dockPos === "left" || dockPos === "right");
+  const navPosCls = !dockCustom ? "left-0 right-0 bottom-0 md:top-0 md:bottom-auto"
+    : vertical ? `top-0 bottom-0 ${dockPos === "left" ? "left-0" : "right-0"}`
+    : `left-0 right-0 ${dockPos === "top" ? "top-0 bottom-auto" : "bottom-0 top-auto"}`;
+  const navMarginCls = (dockCustom && !vertical) ? (dockPos === "top" ? "mt-3" : "mb-3") : (dockCustom ? "" : "md:mt-3");
+  const innerCls = vertical
+    ? `flex h-full flex-col items-center justify-center gap-1 ${dockPos === "left" ? "border-r" : "border-l"} border-[#e4d5af] bg-[#f6efdc]/95 px-1.5 py-3 backdrop-blur-xl shadow-lg overflow-y-auto`
+    : `mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl ${navMarginCls} md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg`;
+  const itemBase = vertical
+    ? "flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-[10px] font-medium transition"
+    : "flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm";
   const navItems = pact ? placement.itemsIn(bp, "nav", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
   const moreItems = pact ? placement.itemsIn(bp, "more", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
   const moreHasBadge = pact && moreItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
@@ -111,16 +120,16 @@ export default function Nav() {
           </div>
         </div>
       )}
-      <nav className={`fixed left-0 right-0 z-50 ${navPosCls} ${dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
-        <div ref={navRef} data-snap style={navStyle} className={`mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl ${navMarginCls} md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg`}>
+      <nav className={`fixed z-50 ${navPosCls} ${!vertical && dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
+        <div ref={navRef} data-snap style={navStyle} className={innerCls}>
           {navItems.map((it) => (
             <Link key={it.href} href={it.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
+              className={`${itemBase} ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
               <span className="text-lg md:text-base">{it.icon}</span><span>{t(it.label)}</span>
             </Link>
           ))}
           <button onClick={() => setOpen(!open)}
-            className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${open ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
+            className={`${itemBase} ${open ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
             <span className="relative text-lg md:text-base">☰{moreHasBadge && <span className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#f6efdc]" />}</span><span>{t("更多")}</span>
           </button>
           {editing && (
