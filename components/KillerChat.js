@@ -28,6 +28,7 @@ export default function KillerChat() {
   const [bjobs, setBjobs] = useState([]);
   const [genExams, setGenExams] = useState([]);
   const [steps, setSteps] = useState([]);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [me, setMe] = useState(null);
   const pollRef = useRef(null);
   const bottom = useRef(null);
@@ -92,7 +93,8 @@ export default function KillerChat() {
   }
 
   async function clearChat() {
-    if (!confirm(t("清空和杀手的这段对话?聊天记录、上下文摘要、以及杀手生成的文件都会删除,不可恢复。(不影响你的考试/知识点/做题数据)"))) return;
+    if (!confirmClear) { setConfirmClear(true); setTimeout(() => setConfirmClear(false), 3000); return; } // 应用内两步确认,不用浏览器弹窗
+    setConfirmClear(false);
     try { await fetch("/api/chat", { method: "DELETE" }); } catch {}
     stopPoll(); setMessages([]); setPending(null); setSteps([]); setBusy(false); setPlanFeedback("");
   }
@@ -118,7 +120,7 @@ export default function KillerChat() {
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h1 className="text-2xl font-black text-[#2f2413]">{t("问问杀手")}</h1>
-        {messages.length > 0 && me?.isDeveloper && <button className="btn-ghost shrink-0 text-xs text-rose-500" onClick={clearChat}>🗑️ {t("清空对话")}</button>}
+        {messages.length > 0 && me?.isDeveloper && <button className={"btn-ghost shrink-0 text-xs " + (confirmClear ? "bg-rose-500 text-white" : "text-rose-500")} onClick={clearChat}>🗑️ {confirmClear ? t("确认清空?") : t("清空对话")}</button>}
       </div>
       <div className="nice-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-3 pb-3 min-w-0">
         {!messages.length && !pending && (
