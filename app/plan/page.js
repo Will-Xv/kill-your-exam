@@ -26,7 +26,7 @@ export default function PlanPage() {
       {data?.topTask && (
         <div className="rounded-3xl border border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-wide text-amber-700">{t("今天最该做的一件事")}</div>
-          <div className="mt-1 text-lg font-black text-[#5a2d0c]">{data.topTask}</div>
+          <div className="mt-1 text-lg font-black text-[#5a2d0c]">{data.topTask.text}{data.topTask.minutes ? ` · ${data.topTask.minutes}${t("分钟")}` : ""}</div>
         </div>
       )}
 
