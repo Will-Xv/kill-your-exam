@@ -23,7 +23,7 @@ export async function POST(req) {
       const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
         .run(questionId, q.exam_id, q.kp_id, "[不会做]", 0, 0, "", mode);
       updateReviewQueue(questionId, false);
-      let autoTriggersDK = null; try { autoTriggersDK = onAnswer(user.id, q.exam_id, { correct: false, kpId: q.kp_id }); } catch {}
+      let autoTriggersDK = null; try { autoTriggersDK = onAnswer(user.id, q.exam_id, { correct: false, kpId: q.kp_id, questionId }); } catch {}
       maybeAutoUpdateOverall(user);
       return Response.json({ attemptId: ins.lastInsertRowid, correct: false, score: 0, dontKnow: true, autoTriggers: autoTriggersDK, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real });
     }
@@ -65,7 +65,7 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
     const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
       .run(questionId, q.exam_id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode);
     updateReviewQueue(questionId, !!correct);
-    let autoTriggers = null; try { autoTriggers = onAnswer(user.id, q.exam_id, { correct: !!correct, kpId: q.kp_id }); } catch {} // 确定性触发器:按已激活模式自动升/降难度等
+    let autoTriggers = null; try { autoTriggers = onAnswer(user.id, q.exam_id, { correct: !!correct, kpId: q.kp_id, questionId }); } catch {} // 确定性触发器:按已激活模式自动升/降难度等
     // 做题反映的熟悉度 -> 并入同一套记忆(冲突并存、按新近加权;和自述说法可相互印证)
     try {
       if (q.kp_id) {
