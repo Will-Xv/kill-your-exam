@@ -110,12 +110,12 @@ export default function Nav() {
         <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="absolute bottom-16 left-1/2 w-[92%] max-w-md -translate-x-1/2 md:top-16 md:bottom-auto" onClick={(e) => e.stopPropagation()}>
             <div className="card grid grid-cols-2 gap-2 shadow-2xl animate-in">
-              {moreItems.map((it) => (
+              {moreItems.map((it) => { const bv = it.badge ? (statValue(it.badge) || 0) : 0; return (
                 <Link key={it.href} href={it.href} className={`flex items-start gap-2 rounded-2xl p-3 transition ${active(it.href) ? "bg-[#efe0bd] text-[#6b4a25]" : "hover:bg-[#efe6cf]"}`}>
-                  <span className="text-xl">{it.icon}</span>
+                  <span className="relative text-xl">{it.icon}{bv > 0 && <span className="absolute -right-1.5 -top-1 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#f6efdc]">{bv}</span>}</span>
                   <span><span className="block text-sm font-semibold">{t(it.label)}</span><span className="block text-xs text-[#8a7a54]">{t(it.desc)}</span></span>
                 </Link>
-              ))}
+              ); })}
             </div>
           </div>
         </div>
