@@ -221,7 +221,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       <div id="tour-today" className="card animate-in d1 mt-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="font-bold">📋 {t("今日任务")}</h2>
-          {allDone && <span className="text-sm font-semibold text-amber-700">{t("全部完成 🎉")}</span>}
+          <div className="flex items-center gap-2">
+            {allDone && <span className="text-sm font-semibold text-amber-700">{t("全部完成 🎉")}</span>}
+            <Link href="/plan" className="text-xs text-[#8a6a2c] underline hover:opacity-80">🗺️ {t("跨考试规划")}</Link>
+          </div>
         </div>
         {!daily ? <div className="shimmer h-10 rounded-xl" /> : (
           <div className="space-y-1">
