@@ -9,12 +9,12 @@ export async function POST(req) {
   const u = await getSessionUser();
   if (!u) return unauthorized();
   if (!u.is_developer) return Response.json({ ok: true, skipped: true });
-  try { const body = await req.json().catch(() => ({})); const tz = body && body.tz; if (tz && /^[A-Za-z]+\/[A-Za-z_\/+-]+$/.test(String(tz))) db.prepare("UPDATE users SET timezone=? WHERE id=?").run(String(tz).slice(0, 60), u.id); } catch {}
+  try { const body = await req.json().catch(() => ({})); const tz = body && body.tz; if (tz && /^[A-Za-z]+\/[A-Za-z_\/+-]+$/.test(String(tz))) setSetting("tz:" + u.id, String(tz).slice(0, 60)); } catch {}
   const ex = getActiveExam(u.id);
   if (!ex) return Response.json({ ok: true, noExam: true });
   let fired = null;
   try { fired = await onSession(u.id, ex.id); } catch {}
   let tzInfo = null;
-  try { const t = db.prepare("SELECT timezone FROM users WHERE id=?").get(u.id)?.timezone || "UTC"; tzInfo = { tz: t, localDay: new Intl.DateTimeFormat("en-CA", { timeZone: t }).format(new Date()), localDow: new Intl.DateTimeFormat("en-US", { timeZone: t, weekday: "short" }).format(new Date()) }; } catch {}
+  try { const t = getSetting("tz:" + u.id, "") || "UTC"; tzInfo = { tz: t, localDay: new Intl.DateTimeFormat("en-CA", { timeZone: t }).format(new Date()), localDow: new Intl.DateTimeFormat("en-US", { timeZone: t, weekday: "short" }).format(new Date()) }; } catch {}
   return Response.json({ ok: true, fired, tzInfo });
 }
