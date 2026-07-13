@@ -28,7 +28,7 @@ export function I18nProvider({ children }) {
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     document.title = "Kill Your Exam";
   }, [lang]);
-  const t = useCallback((s) => (lang === "zh" ? s : lang === "zh-TW" ? (ZH_TW[s] ?? toTradTW(s)) : lang === "zh-HK" ? (ZH_HK[s] ?? toTradHK(s)) : (DICTS[lang]?.[s] ?? DICTS.en?.[s] ?? s)), [lang]);
+  const t = useCallback((s) => (lang === "zh" ? s : lang === "zh-TW" ? (ZH_TW[s] ?? toTradTW(s)) : lang === "zh-HK" ? (ZH_HK[s] ?? toTradHK(s)) : (DICTS[lang]?.[s] ?? s)), [lang]);
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>;
 }
 export const useI18n = () => useContext(Ctx);
