@@ -67,8 +67,7 @@ export async function DELETE() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!user.is_developer) return forbidden(); // 硬门控:只有开发者账号能清空对话,普通用户(含让杀手绕道)一律拒绝
-  if (!exam) return Response.json({ ok: true });
-  const scope = scopeSql(familyScope(exam.id));
+  const scope = scopeSql([...(exam ? familyScope(exam.id) : []), -user.id]); // 连同「无考试」哨兵对话一起清,和 GET 的范围一致
   try { db.prepare(`DELETE FROM chat_messages WHERE exam_id IN ${scope}`).run(); } catch {}
   try { db.prepare(`DELETE FROM chat_summary WHERE exam_id IN ${scope}`).run(); } catch {}
   try { db.prepare(`DELETE FROM chat_runs WHERE exam_id IN ${scope}`).run(); } catch {}
