@@ -9,6 +9,8 @@ import TauntWatcher from "@/components/TauntWatcher";
 import NotifPrompt from "@/components/NotifPrompt";
 import PendingBanner from "@/components/PendingBanner";
 import KillerOverlay from "@/components/KillerOverlay";
+import { openKiller } from "@/lib/killerUi";
+import { useT } from "@/components/I18n";
 import * as lab from "@/lib/uilab/store";
 import * as placement from "@/lib/uilab/placement";
 import RouteShell from "@/components/uilab/RouteShell";
@@ -18,6 +20,7 @@ const BARE = ["/login", "/welcome", "/privacy"];
 
 export default function AppShell({ children, initialLayout = null }) {
   const path = usePathname();
+  const t = useT();
   const S = lab.useUiLab();
   useEffect(() => { if (path !== "/" && lab.snap().editing) lab.exitEdit(); }, [path]); // 离开首页即退出编辑,避免编辑态泄漏到其它页
   useIso(() => { if (typeof window === "undefined") return; const mq = window.matchMedia("(min-width: 768px)"); const on = () => lab.setDesktop(mq.matches); on(); try { mq.addEventListener("change", on); } catch { mq.addListener(on); } return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } }; }, []); // 绘制前就确定桌面/手机,配合 SSR 布局:刷新时直接出正确外壳,不再闪
@@ -34,9 +37,9 @@ export default function AppShell({ children, initialLayout = null }) {
   const _pact = placement.active();
   const _bp = S.isDesktop ? "desktop" : "mobile";
   const killerHome = _pact ? placement.killerHomeOf(placement.renderPlacement(), _bp) : "dock";
-  const killerLauncher = killerHome !== "dock"; // 杀手缩成 导航栏/更多/更多功能 里的入口按钮:不占大面板、不走分区
-  const routeShell = !!applied && showKiller && !labHome && !killerLauncher; // 缩成入口时不走分区大面板
-  const reserve = showKiller && S.isDesktop && !labHome && !routeShell && !killerLauncher; // 浮动杀手才留右边一条
+  const killerFloatDesktop = showKiller && S.isDesktop && (killerHome === "float" || (!!applied && applied.template === "single")); // 电脑端:显式浮动 或 整列布局 → 杀手浮动(不占侧栏/分区)
+  const routeShell = !!applied && showKiller && !labHome && !killerFloatDesktop; // 浮动时不走分区大面板
+  const reserve = showKiller && S.isDesktop && !labHome && !routeShell && !killerFloatDesktop; // 浮动/整列时不给右边留常驻位
   const cl = applied;
   const _defDock = S.isDesktop ? "top" : "bottom";
   const _navDock = _pact ? placement.navDockOf(placement.renderPlacement(), _bp) : _defDock;
@@ -57,8 +60,9 @@ export default function AppShell({ children, initialLayout = null }) {
         </div>
       )}
       <Nav />
-      {showKiller && !labHome && !routeShell && !killerLauncher && <KillerDock />}
-      {showKiller && !killerLauncher && <KillerBubble />}
+      {showKiller && !labHome && !routeShell && !killerFloatDesktop && <KillerDock />}
+      {showKiller && <KillerBubble />}
+      {killerFloatDesktop && <button onClick={openKiller} title={t("问问杀手")} className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-2xl text-white shadow-lg shadow-amber-500/30 md:grid">💬</button>}
       {showKiller && <KillerOverlay />}
       <TauntWatcher />
       <NotifPrompt />

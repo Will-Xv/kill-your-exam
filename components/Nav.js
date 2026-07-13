@@ -6,7 +6,6 @@ import { useT } from "@/components/I18n";
 import * as lab from "@/lib/uilab/store";
 import * as placement from "@/lib/uilab/placement";
 import { getItem, itemVisibleTo } from "@/lib/uilab/items";
-import { openKiller } from "@/lib/killerUi";
 import { useStats, statValue } from "@/lib/uilab/stats";
 import { collectRects, snapMove, snapEdgeX } from "@/lib/uilab/snap";
 
@@ -88,10 +87,6 @@ export default function Nav() {
   const navItems = pact ? placement.itemsIn(bp, "nav", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
   const moreItems = pact ? placement.itemsIn(bp, "more", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
   const moreHasBadge = pact && moreItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
-  const killerHome = pact ? placement.killerHomeOf(placement.renderPlacement(), bp) : "dock";
-  const K_LAUNCH = { killer: true, icon: "💬", label: "杀手" }; // 杀手最小化成入口按钮
-  const navItems2 = killerHome === "nav" ? [...navItems, K_LAUNCH] : navItems;
-  const moreItems2 = killerHome === "more" ? [...moreItems, K_LAUNCH] : moreItems;
 
   const gestureBase = () => { const start = navRef.current.getBoundingClientRect(); const others = collectRects(navRef.current); lab.pushHistory(); return { start, others }; };
   const begin = (e, handler) => {
@@ -115,12 +110,7 @@ export default function Nav() {
         <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="absolute bottom-16 left-1/2 w-[92%] max-w-md -translate-x-1/2 md:top-16 md:bottom-auto" onClick={(e) => e.stopPropagation()}>
             <div className="card grid grid-cols-2 gap-2 shadow-2xl animate-in">
-              {moreItems2.map((it) => it.killer ? (
-                <button key="__khome" onClick={() => { setOpen(false); openKiller(); }} className="flex items-start gap-2 rounded-2xl p-3 text-left transition hover:bg-[#efe6cf]">
-                  <span className="text-xl">{it.icon}</span>
-                  <span><span className="block text-sm font-semibold">{t(it.label)}</span><span className="block text-xs text-[#8a7a54]">{t("问问杀手")}</span></span>
-                </button>
-              ) : (
+              {moreItems.map((it) => (
                 <Link key={it.href} href={it.href} className={`flex items-start gap-2 rounded-2xl p-3 transition ${active(it.href) ? "bg-[#efe0bd] text-[#6b4a25]" : "hover:bg-[#efe6cf]"}`}>
                   <span className="text-xl">{it.icon}</span>
                   <span><span className="block text-sm font-semibold">{t(it.label)}</span><span className="block text-xs text-[#8a7a54]">{t(it.desc)}</span></span>
@@ -132,11 +122,7 @@ export default function Nav() {
       )}
       <nav className={`fixed z-50 ${navPosCls} ${!vertical && dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
         <div ref={navRef} data-snap style={navStyle} className={innerCls}>
-          {navItems2.map((it) => it.killer ? (
-            <button key="__khome" onClick={openKiller} className={`${itemBase} text-[#8a6a2c] hover:text-[#2f2413]`}>
-              <span className="text-lg md:text-base">{it.icon}</span><span>{t(it.label)}</span>
-            </button>
-          ) : (
+          {navItems.map((it) => (
             <Link key={it.href} href={it.href}
               className={`${itemBase} ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
               <span className="text-lg md:text-base">{it.icon}</span><span>{t(it.label)}</span>

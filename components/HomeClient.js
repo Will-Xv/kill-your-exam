@@ -7,7 +7,6 @@ import Tour from "@/components/Tour";
 import { LayoutLab, Editable } from "@/components/uilab/LayoutLab";
 import * as placement from "@/lib/uilab/placement";
 import { getItem, itemVisibleTo } from "@/lib/uilab/items";
-import { openKiller } from "@/lib/killerUi";
 import FeatureModule from "@/components/uilab/FeatureModule";
 
 export default function HomeClient({ initialLeaderboard = null, initialIsDev = false, initialData = null }) {
@@ -118,7 +117,6 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     ? placement.itemsIn(__bp, "zone", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && !it.native && itemVisibleTo(it, { isDeveloper: isDev }))
     : [];
   const nativeShown = (nid) => { if (!placement.active()) return true; const ps = placement.placementOf(__bp, nid, placement.renderPlacement()); if (!ps.length) return true; return ps.some((p) => p.where === "zone"); };
-  const showKillerCard = placement.active() && placement.killerHomeOf(placement.renderPlacement(), __bp) === "morefeatures"; // 杀手缩到「更多功能」的入口卡片
 
   return (
     <>
@@ -241,16 +239,9 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
 
       {/* feature grid —— 按放置表渲染;未激活则回退当前 features */}
       <Editable id="more"><>
-      {(gridCards.length > 0 || showKillerCard) && <>
+      {gridCards.length > 0 && <>
       <h2 className="mt-6 mb-2 text-sm font-semibold text-[#e8c987]">{t("更多功能")}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {showKillerCard && (
-          <button onClick={openKiller} className="group relative flex flex-col items-start overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f5eed6] p-4 text-left text-[#2f2413] shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-amber-300 hover:shadow-xl">
-            <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 text-xl shadow-inner">💬</div>
-            <div className="relative mt-2 font-semibold">{t("杀手")}</div>
-            <div className="relative text-xs text-slate-500">{t("问问杀手")}</div>
-          </button>
-        )}
         {gridCards.map((f, i) => (
           <Link key={f.href} href={f.href} className={`group relative overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f5eed6] p-4 shadow-sm text-[#2f2413] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${f.tint || "hover:border-amber-300"} animate-in d${(i % 5) + 1} flex flex-col items-start`}>
             <div className={`absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br ${f.grad || "from-amber-400 to-orange-500"} opacity-10 blur-xl transition-opacity group-hover:opacity-25`} />

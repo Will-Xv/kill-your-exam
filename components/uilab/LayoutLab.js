@@ -252,7 +252,7 @@ function KillerHomeControl() {
     try { await fetch("/api/ui-nav", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ killerHome: mode, breakpoint: plat === "both" ? undefined : plat }) }); } catch {}
     placement.refreshServer();
   }
-  const modes = [["dock", "🗔", t("默认常驻")], ["nav", "🧭", t("导航栏")], ["more", "☰", t("更多")], ["morefeatures", "🧩", t("更多功能")]];
+  const modes = [["dock", "🗔", t("占大格")], ["float", "💬", t("浮动")]];
   const plats = [["both", t("两端")], ["desktop", t("电脑")], ["mobile", t("手机")]];
   const eb = "rounded-lg px-2 py-1 text-[11px] ";
   return (
