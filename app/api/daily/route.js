@@ -1,6 +1,7 @@
-import db from "@/lib/db";
+import db, { rootExamId } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
+import { crossExamPlan } from "@/lib/planner";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -35,5 +36,22 @@ export async function GET() {
     return it;
   });
   const streak = db.prepare(`SELECT COUNT(DISTINCT date(created_at,'localtime')) n FROM attempts WHERE exam_id=? AND mode!='resolved'`).get(exam.id).n;
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak });
+  // 跨考试:把规划器对【其他】顶层考试的今日分配也带回首页,让今日任务不再只盯着当前这门。
+  let crossExam = null;
+  try {
+    const cp = crossExamPlan(user.id, {});
+    if (cp && cp.examCount > 1) {
+      const activeTop = rootExamId(exam.id);
+      const others = cp.exams
+        .filter((e) => Number(e.id) !== Number(activeTop))
+        .slice(0, 4)
+        .map((e) => {
+          const top = e.tasks && e.tasks[0] ? e.tasks[0] : null;
+          return { examId: e.id, name: e.name, daysLeft: e.daysLeft, allocMinutes: e.allocMinutes, due: e.due,
+            top: top ? { type: top.type, title: top.title || null, count: top.count || null, minutes: top.minutes || null, href: top.href || "/practice" } : null };
+        });
+      if (others.length) crossExam = { totalMinutes: cp.totalMinutes, others };
+    }
+  } catch {}
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam });
 }
