@@ -449,7 +449,7 @@ function PracticeInner() {
           )}
           {tagNote && <p className="text-xs text-emerald-700 mt-1">✓ {tagNote}</p>}
           {result.discussTagNote && <p className="text-xs text-emerald-700 mt-1">✓ {result.discussTagNote}</p>}
-          {result.discussLabels?.length > 0 && <p className="text-xs text-emerald-700 mt-1">🏷️ {t("已加标记:")}{result.discussLabels.join("、")}</p>}
+          {result.discussLabels?.length > 0 && <p className="text-xs text-emerald-700 mt-1">🏷️ {t("已加标记:")}{result.discussLabels.map((l) => (typeof l === "string" ? l : l.name + (l.effect === "down" ? " ↓" : l.effect === "up" ? " ↑" : ""))).join("、")}</p>}
           <p className="text-xs text-slate-400 mt-2">
             {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
