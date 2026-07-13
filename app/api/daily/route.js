@@ -1,4 +1,4 @@
-import db, { rootExamId } from "@/lib/db";
+import db, { rootExamId, familyScope } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan } from "@/lib/planner";
@@ -41,9 +41,9 @@ export async function GET() {
   try {
     const cp = crossExamPlan(user.id, {});
     if (cp && cp.examCount > 1) {
-      const activeTop = rootExamId(exam.id);
+      const fam = new Set((familyScope(exam.id) || []).map(Number)); // 当前考试所在的整棵家族树:不当作"别的考试"
       const others = cp.exams
-        .filter((e) => Number(e.id) !== Number(activeTop))
+        .filter((e) => !fam.has(Number(e.id)))
         .slice(0, 4)
         .map((e) => {
           const top = e.tasks && e.tasks[0] ? e.tasks[0] : null;
