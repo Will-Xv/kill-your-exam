@@ -241,6 +241,29 @@ function NavDockControl() {
     </div>
   );
 }
+function KillerHomeControl() {
+  const t = useT();
+  const S = lab.useUiLab();
+  placement.useItems();
+  const [plat, setPlat] = useState("both");
+  const bp = S.isDesktop ? "desktop" : "mobile";
+  const cur = placement.active() ? placement.killerHomeOf(placement.renderPlacement(), bp) : "dock";
+  async function move(mode) {
+    try { await fetch("/api/ui-nav", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ killerHome: mode, breakpoint: plat === "both" ? undefined : plat }) }); } catch {}
+    placement.refreshServer();
+  }
+  const modes = [["dock", "🗔", t("默认常驻")], ["nav", "🧭", t("导航栏")], ["more", "☰", t("更多")], ["morefeatures", "🧩", t("更多功能")]];
+  const plats = [["both", t("两端")], ["desktop", t("电脑")], ["mobile", t("手机")]];
+  const eb = "rounded-lg px-2 py-1 text-[11px] ";
+  return (
+    <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-1.5 shadow-xl">
+      <span className="px-1 text-[11px] font-semibold text-[#8a6a2c]">{t("杀手:")}</span>
+      {plats.map(([k, l]) => (<button key={k} onClick={() => setPlat(k)} className={eb + (plat === k ? "bg-[#6b4a25] text-white" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]")}>{l}</button>))}
+      <span className="mx-0.5 h-4 w-px bg-[#e4d5af]" />
+      {modes.map(([k, ic, l]) => (<button key={k} onClick={() => move(k)} title={l} className={eb + (cur === k ? "bg-[#2f2413] text-[#f6efdd]" : "bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95")}>{ic} {l}</button>))}
+    </div>
+  );
+}
 function Toolbar({ S }) {
   const t = useT();
   const active = lab.activePreset();
@@ -269,6 +292,7 @@ function Toolbar({ S }) {
       </div>
       {!collapsed && (<>
       <NavDockControl />
+      <KillerHomeControl />
       {libOpen && (
         <div className="w-64 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-2 shadow-xl">
           <div className="px-1 pb-1 text-[11px] font-bold text-[#6b4a25]">{t("布局库")}</div>

@@ -8,6 +8,7 @@ import KillerBubble from "@/components/KillerBubble";
 import TauntWatcher from "@/components/TauntWatcher";
 import NotifPrompt from "@/components/NotifPrompt";
 import PendingBanner from "@/components/PendingBanner";
+import KillerOverlay from "@/components/KillerOverlay";
 import * as lab from "@/lib/uilab/store";
 import * as placement from "@/lib/uilab/placement";
 import RouteShell from "@/components/uilab/RouteShell";
@@ -29,12 +30,14 @@ export default function AppShell({ children, initialLayout = null }) {
   const onHome = path === "/";
   const applied = lab.contentToRender() || (!S.editing && initialLayout && initialLayout.v === 2 ? initialLayout : null); // 优先用 store;首帧(fetch 未回)用 SSR 传入的已发布布局
   const labHome = onHome && S.isDesktop && S.editing; // 首页【编辑中】才用 LayoutLab 编辑器(全宽网格)
-  const routeShell = !!applied && showKiller && !labHome; // 有已套用布局就走统一外壳(服务端首帧即渲染,手机端由外壳内 CSS 收成单列)——不再依赖客户端 isDesktop,避免刷新闪一下
-  const reserve = showKiller && S.isDesktop && !labHome && !routeShell; // 浮动杀手才留右边一条
-  const cl = applied;
   placement.useItems();
   const _pact = placement.active();
   const _bp = S.isDesktop ? "desktop" : "mobile";
+  const killerHome = _pact ? placement.killerHomeOf(placement.renderPlacement(), _bp) : "dock";
+  const killerLauncher = killerHome !== "dock"; // 杀手缩成 导航栏/更多/更多功能 里的入口按钮:不占大面板、不走分区
+  const routeShell = !!applied && showKiller && !labHome && !killerLauncher; // 缩成入口时不走分区大面板
+  const reserve = showKiller && S.isDesktop && !labHome && !routeShell && !killerLauncher; // 浮动杀手才留右边一条
+  const cl = applied;
   const _defDock = S.isDesktop ? "top" : "bottom";
   const _navDock = _pact ? placement.navDockOf(placement.renderPlacement(), _bp) : _defDock;
   const _dockCustom = !!(_pact && _navDock && _navDock !== _defDock);
@@ -54,8 +57,9 @@ export default function AppShell({ children, initialLayout = null }) {
         </div>
       )}
       <Nav />
-      {showKiller && !labHome && !routeShell && <KillerDock />}
-      {showKiller && <KillerBubble />}
+      {showKiller && !labHome && !routeShell && !killerLauncher && <KillerDock />}
+      {showKiller && !killerLauncher && <KillerBubble />}
+      {showKiller && <KillerOverlay />}
       <TauntWatcher />
       <NotifPrompt />
       <PendingBanner />
