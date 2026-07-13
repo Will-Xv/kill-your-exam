@@ -5,6 +5,8 @@ import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import * as placement from "@/lib/uilab/placement";
+import * as lab from "@/lib/uilab/store";
 
 // 记忆化消息气泡:内容没变就不重渲染——避免每次在输入框打字都重新解析所有 Markdown/KaTeX,导致输入卡顿。
 const ChatMsg = memo(function ChatMsg({ role, content }) {
@@ -57,7 +59,7 @@ export default function KillerChat() {
       const d = await fetch(`/api/chat/run?id=${runId}`).then((r) => r.json());
       const run = d.run; if (!run) return;
       setSteps(run.steps || []);
-      if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); }
+      if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
       else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, kind: run.pendingKind, plan: run.plan, actions: run.actions || [], approve }); }
       else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: "(出错了,请重试)" }]); }
     } catch {}

@@ -1,11 +1,13 @@
-import db from "@/lib/db";
+import db, { getActiveExam } from "@/lib/db";
 import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
+import { getExamLayout } from "@/lib/uiHomeLayout";
 
 // 全站默认首页布局:GET 公开(所有用户读取并套用),POST 仅开发者(发布/取消发布)。
 export async function GET() {
-  let layout = null;
+  let layout = null, examLayout = null;
   try { const row = db.prepare("SELECT value FROM settings WHERE key='ui_default_layout'").get(); if (row && row.value) layout = JSON.parse(row.value); } catch {}
-  return Response.json({ layout });
+  try { const u = await getSessionUser(); if (u && u.is_developer) { const ex = getActiveExam(u.id); if (ex) examLayout = getExamLayout(ex.id); } } catch {} // 仅开发者账号有 per-exam 布局
+  return Response.json({ layout, examLayout });
 }
 
 export async function POST(req) {
