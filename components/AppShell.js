@@ -66,7 +66,7 @@ export default function AppShell({ children, initialLayout = null }) {
       {showKiller && <KillerOverlay />}
       <TauntWatcher />
       <NotifPrompt />
-      <PendingBanner />
+      <PendingBanner floatDesktop={killerFloatDesktop} />
     </>
   );
 }
