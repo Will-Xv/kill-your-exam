@@ -14,5 +14,7 @@ export async function POST(req) {
   if (!ex) return Response.json({ ok: true, noExam: true });
   let fired = null;
   try { fired = await onSession(u.id, ex.id); } catch {}
-  return Response.json({ ok: true, fired });
+  let tzInfo = null;
+  try { const t = db.prepare("SELECT timezone FROM users WHERE id=?").get(u.id)?.timezone || "UTC"; tzInfo = { tz: t, localDay: new Intl.DateTimeFormat("en-CA", { timeZone: t }).format(new Date()), localDow: new Intl.DateTimeFormat("en-US", { timeZone: t, weekday: "short" }).format(new Date()) }; } catch {}
+  return Response.json({ ok: true, fired, tzInfo });
 }
