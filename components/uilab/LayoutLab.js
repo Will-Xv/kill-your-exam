@@ -250,8 +250,24 @@ function Toolbar({ S }) {
   const curTpl = (S.working && S.working.template) || "single";
   const btn = "rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-40";
   const ghost = btn + " bg-white/70 text-[#3d2b10] ring-1 ring-[#e4d5af]";
+  const [collapsed, setCollapsed] = useState(true);   // 默认收起,少占地方
+  const [corner, setCorner] = useState("bl");          // 默认左下角,可换到另外三个角
+  useEffect(() => { try { const o = JSON.parse(localStorage.getItem("kye.uiPanel") || "null"); if (o) { if (o.corner) setCorner(o.corner); if (typeof o.collapsed === "boolean") setCollapsed(o.collapsed); } } catch {} }, []);
+  useEffect(() => { try { localStorage.setItem("kye.uiPanel", JSON.stringify({ corner, collapsed })); } catch {} }, [corner, collapsed]);
+  const posCls = { bl: "bottom-6 left-5 items-start", br: "bottom-6 right-5 items-end", tl: "top-6 left-5 items-start", tr: "top-6 right-5 items-end" }[corner] || "bottom-6 left-5 items-start";
+  const colDir = corner[0] === "t" ? "flex-col" : "flex-col-reverse"; // 上方角:按钮在上;下方角:按钮在下、面板往上长
+  const CORNERS = [["tl", "↖"], ["tr", "↗"], ["bl", "↙"], ["br", "↘"]];
   return (
-    <div className="fixed bottom-6 left-5 z-[60] flex max-w-[94vw] flex-col items-start gap-2">
+    <div className={`fixed z-[60] flex max-w-[94vw] gap-2 ${colDir} ${posCls}`}>
+      <div className={`flex items-center gap-1 ${corner.endsWith("r") ? "flex-row-reverse" : ""}`}>
+        <button onClick={() => setCollapsed((v) => !v)} className="rounded-full bg-[#2f2413] px-3 py-2 text-xs font-semibold text-[#f6efdd] shadow-lg hover:opacity-90">{collapsed ? `🎨 ${t("UI 设置")}` : `✕ ${t("收起")}`}</button>
+        {!collapsed && (
+          <div className="flex items-center gap-0.5 rounded-full bg-[#f6efdc] px-1 py-1 shadow ring-1 ring-[#e4d5af]">
+            {CORNERS.map(([c, ic]) => (<button key={c} onClick={() => setCorner(c)} title={t("移到这个角")} className={"h-6 w-6 rounded-full text-xs " + (corner === c ? "bg-[#2f2413] text-[#f6efdd]" : "text-[#6b4a25] hover:bg-[#efe0bd]")}>{ic}</button>))}
+          </div>
+        )}
+      </div>
+      {!collapsed && (<>
       <NavDockControl />
       {libOpen && (
         <div className="w-64 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-2 shadow-xl">
@@ -298,6 +314,7 @@ function Toolbar({ S }) {
         </div>
       )}
       {itemLibOpen && <ItemLibrary onClose={() => setItemLibOpen(false)} />}
+      </>)}
     </div>
   );
 }
