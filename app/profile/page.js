@@ -117,6 +117,13 @@ function MemorySection({ t }) {
   useEffect(() => { load(); }, []);
   if (!mem) return null; // 非开发者(403)或加载中:不显示
   const act = async (action, id) => { await fetch("/api/memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, id }) }); load(); };
+  // 记忆时间线(类12):同一主题随时间出现【不同 valence】的,展示它对你的了解如何变化(不覆盖旧记录)。
+  const bySubj = {};
+  for (const r of mem.active) { (bySubj[r.subject] = bySubj[r.subject] || []).push(r); }
+  const timelines = Object.entries(bySubj)
+    .filter(([, arr]) => arr.length > 1 && new Set(arr.map((x) => x.valence || "")).size > 1)
+    .map(([subj, arr]) => ({ subj, entries: arr.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) }));
+  const vColor = (v) => v === "strong" || v === "mastered" ? "text-emerald-700" : v === "weak" ? "text-rose-600" : "text-stone-500";
   const global = mem.active.filter((r) => r.scope === "global" || r.scope == null);
   const perExam = mem.active.filter((r) => r.scope === "exam");
   const Row = ({ r }) => (
@@ -130,8 +137,29 @@ function MemorySection({ t }) {
   );
   return (
     <div className="card space-y-2">
-      <p className="font-semibold">🧠 {t("杀手记得你什么")} <span className="text-[10px] font-normal text-amber-600">{t("仅开发者")}</span></p>
-      <p className="text-xs text-stone-400">{t("这是杀手对你的长期记忆,可删(软删除、随时恢复,便于排查)。")}</p>
+      <p className="font-semibold">🧠 {t("杀手记得你什么")}</p>
+      <p className="text-xs text-stone-400">{t("这是杀手对你的长期记忆——它据此更懂你。任何一条你都可以删(软删、随时恢复)。")}</p>
+      {timelines.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-semibold text-stone-500">🕒 {t("它对你的了解随时间的变化")}</p>
+          <div className="space-y-1.5">
+            {timelines.map((tl) => (
+              <div key={tl.subj} className="rounded-xl bg-stone-50 px-3 py-2 text-sm">
+                <span className="font-medium">{tl.subj}</span>
+                <div className="mt-1 flex flex-wrap items-center gap-1 text-xs">
+                  {tl.entries.map((e, i) => (
+                    <span key={e.id} className="inline-flex items-center gap-1">
+                      {i > 0 && <span className="text-stone-300">→</span>}
+                      <span className={vColor(e.valence)}>{e.valence || t("中性")}</span>
+                      <span className="text-stone-400">{(e.created_at || "").slice(0, 10)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {global.length > 0 && <div><p className="mb-1 text-xs font-semibold text-stone-500">{t("全局记忆")}</p><div className="space-y-1">{global.map((r) => <Row key={r.id} r={r} />)}</div></div>}
       {perExam.length > 0 && <div><p className="mb-1 mt-2 text-xs font-semibold text-stone-500">{t("按考试的记忆")}</p><div className="space-y-1">{perExam.map((r) => <Row key={r.id} r={r} />)}</div></div>}
       {mem.active.length === 0 && <p className="text-xs text-stone-400">{t("还没有记忆条目。")}</p>}
