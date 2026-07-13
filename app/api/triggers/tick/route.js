@@ -1,5 +1,5 @@
 import { getSessionUser, unauthorized } from "@/lib/auth";
-import { getActiveExam } from "@/lib/db";
+import { getActiveExam, getSetting, setSetting } from "@/lib/db";
 import { onSession } from "@/lib/triggers";
 import { ensureCron } from "@/lib/cron";
 
