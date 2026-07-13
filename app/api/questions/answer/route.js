@@ -4,6 +4,7 @@ import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemi
 import { materialParts } from "@/lib/rag";
 import { updateReviewQueue, leafKpList, recordCrossKp, kpMasteryLevel, invalidateKnowledgeState } from "@/lib/mastery";
 import { addFact, analyzeMistakeBg } from "@/lib/memory";
+import { bumpUsageAndMaybeDiagnose } from "@/lib/diagnose";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { onAnswer } from "@/lib/triggers";
 import { aiErrorResponse } from "@/lib/errors";
@@ -78,11 +79,12 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
         }
       }
       invalidateKnowledgeState(q.exam_id); // 做题后让知识状态摘要下次重算
-      if (!correct) { // 错题:后台提炼细颗粒不熟条目(仅开发者账号,不阻塞)
+      if (q.qtype === "short" || !correct) { // AI 判分的题(简答)或任何错题:判分时顺手提炼细颗粒根因信号(不阻塞)
         let stem = ""; try { stem = JSON.parse(q.body).stem; } catch {}
         const kt2 = q.kp_id ? (db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title || "") : "";
-        analyzeMistakeBg(user, q.exam_id, { stem, userAnswer: String(userAnswer || ""), correctAnswer: ans.answer, kpTitle: kt2 });
+        analyzeMistakeBg(user, q.exam_id, { stem, userAnswer: String(userAnswer || ""), correctAnswer: ans.answer, kpTitle: kt2, correct: !!correct });
       }
+      try { bumpUsageAndMaybeDiagnose(user, q.exam_id); } catch {} // 累计使用时长,满阈值(默认2h,可经杀手改,下限1.5h)后台自动跑跨章节根因
     } catch {}
     const masteryUpdates = gradeCross ? recordCrossKp(q.exam_id, questionId, gradeCross, q.kp_id) : [];
     maybeAutoUpdateOverall(user); // 里程碑时后台刷新整体画像

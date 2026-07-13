@@ -11,6 +11,7 @@ function StudyInner() {
   const aiFetch = useAiFetch();
   const [tree, setTree] = useState(null);
   const [levels, setLevels] = useState({});
+  const [roots, setRoots] = useState({});
   const [levelCounts, setLevelCounts] = useState({});
   const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
@@ -28,9 +29,9 @@ function StudyInner() {
       }
     });
     fetch("/api/mastery").then((r) => r.json()).then((d) => {
-      const lv = {}; const cnt = { mastered: 0, ok: 0, weak: 0, unlearned: 0 };
-      (d.matrix || []).forEach((m) => { lv[m.id] = m.level; cnt[m.level] = (cnt[m.level] || 0) + 1; });
-      setLevels(lv); setLevelCounts(cnt); setInsights(d.insights || []);
+      const lv = {}; const cnt = { mastered: 0, ok: 0, weak: 0, unlearned: 0 }; const rt = {};
+      (d.matrix || []).forEach((m) => { lv[m.id] = m.level; cnt[m.level] = (cnt[m.level] || 0) + 1; if (m.rootCause) rt[m.id] = true; });
+      setLevels(lv); setLevelCounts(cnt); setInsights(d.insights || []); setRoots(rt);
     }).catch(() => {});
   }, []);
 
@@ -90,7 +91,7 @@ function StudyInner() {
           <div className="space-y-1">
             {ch.points.map((p) => (
               <button key={p.id} onClick={() => open(p)} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-50">
-                <span className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${LVDOT[levels[p.id] || "unlearned"]}`} />{p.title} <span className="text-xs">{COVER[p.coverage]}</span></span>
+                <span className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${LVDOT[levels[p.id] || "unlearned"]}`} />{p.title} <span className="text-xs">{COVER[p.coverage]}</span>{roots[p.id] && <span title={t("根因知识点:它薄弱会拖垮一片其它内容")} className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 ring-1 ring-rose-300">🔗 {t("根因")}</span>}</span>
                 <span className="text-xs text-slate-400 shrink-0 ml-2">{p.attempts > 0 ? `${p.correct}/${p.attempts}` : t("未练")}</span>
               </button>
             ))}
@@ -110,7 +111,7 @@ function StudyInner() {
           </div>
         </div>
       )}
-      <p className="text-xs text-slate-400">{t("点色=掌握度(绿=掌握/浅绿=一般/红=薄弱/灰=未学);🟢🟡⚪=资料覆盖。点知识点看讲解。")}</p>
+      <p className="text-xs text-slate-400">{t("点色=掌握度(绿=掌握/浅绿=一般/红=薄弱/灰=未学);🟢🟡⚪=资料覆盖。点知识点看讲解。")} {t("🔗根因=诊断认为它拖垮了一片其它知识点。")}</p>
     </div>
   );
 }

@@ -57,6 +57,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       location.reload();
     } catch (e) { alert(t("标记失败:") + " " + ((e && e.message) || e)); }
   }
+  async function dismissDiag() {
+    setDaily((d) => (d ? { ...d, rootCauseBanner: null } : d));
+    try { await fetch("/api/diagnose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss" }) }); } catch {}
+  }
   async function uncomplete() {
     try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "uncomplete", examId: data?.exam?.id }) }); } catch {}
     location.reload();
@@ -213,6 +217,20 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           </div>
         </div>
         </Editable>
+      )}
+
+      {daily?.rootCauseBanner && (
+        <div className="card animate-in mt-4 border-rose-300 bg-rose-50">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-rose-700">🔍 {t("根因诊断")}</div>
+              <p className="mt-0.5 text-sm font-semibold text-[#5a2d0c]">{daily.rootCauseBanner.summary}</p>
+              {daily.rootCauseBanner.markedCount > 0 && <p className="mt-0.5 text-xs text-rose-700/80">{t("已在掌握度矩阵标出根因知识点")}（{daily.rootCauseBanner.markedCount}）</p>}
+            </div>
+            <button onClick={dismissDiag} title={t("知道了")} className="shrink-0 text-sm text-rose-400 hover:text-rose-600">✕</button>
+          </div>
+          <Link href="/study" className="mt-2 inline-block text-xs font-semibold text-rose-700 underline">{t("去看根因知识点")} →</Link>
+        </div>
       )}
 
       {/* today's plan */}

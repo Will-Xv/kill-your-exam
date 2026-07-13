@@ -8,17 +8,6 @@ export default function Mistakes() {
   const [list, setList] = useState(null);
   const load = () => fetch("/api/mistakes").then((r) => r.json()).then((d) => setList(d.mistakes));
   useEffect(() => { load(); }, []);
-  const [diag, setDiag] = useState(null);
-  const [diagBusy, setDiagBusy] = useState(false);
-  const [diagReason, setDiagReason] = useState("");
-  const runDiag = async () => {
-    setDiagBusy(true); setDiagReason("");
-    try {
-      const d = await fetch("/api/diagnose").then((r) => r.json());
-      if (d.diagnosis) setDiag(d.diagnosis); else setDiagReason(d.reason || "err");
-    } catch { setDiagReason("err"); }
-    setDiagBusy(false);
-  };
   async function resolve(id) {
     await fetch("/api/mistakes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: id }) });
     load();
@@ -29,56 +18,6 @@ export default function Mistakes() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("错题本")}</h1>
         <a className="btn-ghost text-sm py-2" href="/practice?mode=review">{t("✍️ 重练到期错题")}</a>
-      </div>
-      <div className="card">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h2 className="font-bold text-sm">🔍 {t("根因诊断")}</h2>
-            <p className="text-xs text-stone-400">{t("不看表面频率,找出真正拖垮你的根因知识点、反复的错误模式,以及你是不是在躲最难的内容。")}</p>
-          </div>
-          {!diag && <button className="btn-ghost py-2 text-xs shrink-0" onClick={runDiag} disabled={diagBusy}>{diagBusy ? t("分析中…") : t("诊断我的错题")}</button>}
-        </div>
-        {diagReason === "no_data" && <p className="mt-2 text-xs text-stone-400">{t("先做一些练习,才能诊断根因。")}</p>}
-        {diagReason && diagReason !== "no_data" && <p className="mt-2 text-xs text-stone-400">{t("诊断失败,稍后再试。")}</p>}
-        {diag && (
-          <div className="mt-3 space-y-3 text-sm">
-            {diag.summary && <div className="rounded-xl bg-amber-50 px-3 py-2 font-semibold text-[#5a2d0c]">🎯 {diag.summary}</div>}
-            {diag.rootCauses?.length > 0 && (
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("根因知识点")}</div>
-                <div className="mt-1 space-y-1.5">
-                  {diag.rootCauses.map((r, i) => (
-                    <div key={i} className="rounded-xl bg-rose-50 px-3 py-2">
-                      <div className="font-semibold text-[#2f2413]">{r.chapter ? r.chapter + " · " : ""}{r.title}</div>
-                      <div className="text-xs text-stone-600">{r.why}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {diag.errorPatterns?.length > 0 && (
-              <div>
-                <div className="text-xs font-bold uppercase tracking-wide text-amber-700">{t("反复的错误模式")}</div>
-                <div className="mt-1 space-y-1.5">
-                  {diag.errorPatterns.map((p, i) => (
-                    <div key={i} className="rounded-xl bg-amber-50 px-3 py-2">
-                      <div className="font-semibold text-[#2f2413]">{p.name}</div>
-                      {p.evidence && <div className="text-xs text-stone-500">{p.evidence}</div>}
-                      <div className="mt-0.5 text-xs text-emerald-800">🛠 {p.drill}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {diag.avoidance?.avoiding && (
-              <div className="rounded-xl bg-stone-100 px-3 py-2">
-                <div className="text-xs font-bold uppercase tracking-wide text-stone-600">{t("你在躲最难的内容")}</div>
-                <div className="text-xs text-stone-600">{diag.avoidance.detail}</div>
-              </div>
-            )}
-            <button className="text-xs text-stone-400 underline" onClick={runDiag} disabled={diagBusy}>{diagBusy ? t("分析中…") : t("重新诊断")}</button>
-          </div>
-        )}
       </div>
       {!list.length && <p className="text-center text-stone-400 py-10">{t("没有错题,漂亮!答错的题会自动收进来,按 1/3/7/15/30 天安排重练。")}</p>}
       {list.map((m) => (

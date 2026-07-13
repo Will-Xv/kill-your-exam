@@ -2,6 +2,7 @@ import db, { rootExamId, familyScope } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan } from "@/lib/planner";
+import { getBanner } from "@/lib/diagnose";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -53,5 +54,6 @@ export async function GET() {
       if (others.length) crossExam = { totalMinutes: cp.totalMinutes, others };
     }
   } catch {}
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam });
+  let rootCauseBanner = null; try { rootCauseBanner = getBanner(user.id); } catch {}
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner });
 }
