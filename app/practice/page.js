@@ -45,6 +45,7 @@ function PracticeInner() {
   const [sel, setSel] = useState([]);
   const [text, setText] = useState("");
   const [result, setResult] = useState(null);
+  const [tagNote, setTagNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [gradeErr, setGradeErr] = useState("");
   const [done, setDone] = useState({}); // { [questionId]: correct }
@@ -153,6 +154,13 @@ function PracticeInner() {
   useEffect(() => { if (!hydrated.current) return; try { localStorage.setItem(storeKey + ":hands", JSON.stringify(hands)); } catch {} }, [hands]); // eslint-disable-line
   // 当前题的作答状态(选项/文字/批改结果)随时存,刷新可恢复
   useEffect(() => { const cq = questions[idx]; if (!cq) return; setAnswers((a) => ({ ...a, [cq.id]: { sel, text, result } })); }, [sel, text, result]); // eslint-disable-line
+  useEffect(() => { setTagNote(""); }, [idx]);
+  async function tagAttempt(tag) {
+    const aid = result?.attemptId; if (!aid) return;
+    const notes = { careless: t("已记为粗心 · 基本不计入掌握度"), guessed: t("已记为猜对 · 已安排验证题尽快再考"), slow: t("已记为懂但慢 · 会安排练速度") };
+    setTagNote(notes[tag] || "");
+    try { await fetch("/api/questions/tag", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ attemptId: aid, tag }) }); } catch {}
+  }
   const q = questions[idx];
 
   function playScript(text, lang) { try { const sy = window.speechSynthesis; if (!sy || !text) return; sy.cancel(); const u = new SpeechSynthesisUtterance(String(text)); u.lang = lang || "en-US"; u.rate = 0.95; sy.speak(u); } catch {} }
@@ -427,6 +435,15 @@ function PracticeInner() {
           <div className="text-sm mt-1 text-slate-600"><b>{t("解析:")}</b><MD inline>{result.explanation}</MD></div>
           {result.revisedNote && <p className="text-sm mt-1 text-amber-700">↺ <MD inline>{result.revisedNote}</MD></p>}
           {result.masteryNote && <p className="text-sm mt-1 text-emerald-700">📊 <MD inline>{result.masteryNote}</MD></p>}
+          {!result.dontKnow && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-amber-200/60 pt-2">
+              <span className="text-xs text-slate-500">{t("这次其实是?")}</span>
+              {!result.correct && <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => tagAttempt("careless")}>😅 {t("粗心,我会的")}</button>}
+              {result.correct && q.qtype !== "short" && <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => tagAttempt("guessed")}>🎲 {t("刚才是猜的")}</button>}
+              {result.correct && <button type="button" className="btn-ghost px-2 py-1 text-xs" onClick={() => tagAttempt("slow")}>🐢 {t("懂但慢")}</button>}
+            </div>
+          )}
+          {tagNote && <p className="text-xs text-emerald-700 mt-1">✓ {tagNote}</p>}
           <p className="text-xs text-slate-400 mt-2">
             {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
