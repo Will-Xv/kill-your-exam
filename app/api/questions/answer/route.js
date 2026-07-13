@@ -2,8 +2,8 @@ import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemini";
 import { materialParts } from "@/lib/rag";
-import { updateReviewQueue, leafKpList, recordCrossKp, kpMasteryLevel } from "@/lib/mastery";
-import { addFact } from "@/lib/memory";
+import { updateReviewQueue, leafKpList, recordCrossKp, kpMasteryLevel, invalidateKnowledgeState } from "@/lib/mastery";
+import { addFact, analyzeMistakeBg } from "@/lib/memory";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -70,8 +70,14 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
         if (lvl && lvl !== "unlearned") {
           const kt = db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title || "该知识点";
           const label = { weak: "偏弱", ok: "一般", mastered: "较熟" }[lvl] || lvl;
-          addFact(user.id, q.exam_id, { subject: kt, kind: "observation", claim: `做题反映:「${kt}」目前${label}`, valence: lvl });
+          addFact(user.id, q.exam_id, { subject: kt, kind: "observation", claim: `做题反映:「${kt}」目前${label}`, valence: lvl, scope: "exam" });
         }
+      }
+      invalidateKnowledgeState(q.exam_id); // 做题后让知识状态摘要下次重算
+      if (!correct) { // 错题:后台提炼细颗粒不熟条目(仅开发者账号,不阻塞)
+        let stem = ""; try { stem = JSON.parse(q.body).stem; } catch {}
+        const kt2 = q.kp_id ? (db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title || "") : "";
+        analyzeMistakeBg(user, q.exam_id, { stem, userAnswer: String(userAnswer || ""), correctAnswer: ans.answer, kpTitle: kt2 });
       }
     } catch {}
     const masteryUpdates = gradeCross ? recordCrossKp(q.exam_id, questionId, gradeCross, q.kp_id) : [];
