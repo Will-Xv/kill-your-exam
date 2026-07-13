@@ -191,12 +191,16 @@ function PracticeInner() {
     aiFetch("/api/questions/discuss/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: qid, attemptId, history: hist }) })
       .then((d) => {
         const mn = fmtMastery(d.applied?.masteryUpdates);
-        if (!d.applied?.revised && !mn) return;
+        const dTag = d.applied?.tag ? ({ careless: t("已记为粗心 · 基本不计入掌握度"), guessed: t("已记为猜对 · 已安排验证题尽快再考"), slow: t("已记为懂但慢 · 会安排练速度") })[d.applied.tag] : null;
+        const dLabels = d.applied?.labels || null;
+        if (!d.applied?.revised && !mn && !dTag && !(dLabels && dLabels.length)) return;
         setAnswers((a) => {
           const prev = a[qid] || {}; const r = prev.result || {};
           return { ...a, [qid]: { ...prev, result: { ...r,
             ...(d.applied?.revised ? { correct: d.applied.newCorrect, score: d.applied.newScore, feedback: d.applied.newFeedback || r.feedback, revisedNote: (t("已按讨论修订评分为") + " " + d.applied.newScore + (d.applied.reason ? " · " + d.applied.reason : "")) } : {}),
-            ...(mn ? { masteryNote: mn } : {}) } } };
+            ...(mn ? { masteryNote: mn } : {}),
+            ...(dTag ? { discussTagNote: dTag } : {}),
+            ...(dLabels && dLabels.length ? { discussLabels: dLabels } : {}) } } };
         });
         if (d.applied?.revised) setDone((m) => ({ ...m, [qid]: !!d.applied.newCorrect }));
       }).catch(() => {}).finally(() => setPendingFinalize((n) => Math.max(0, n - 1)));
@@ -444,6 +448,8 @@ function PracticeInner() {
             </div>
           )}
           {tagNote && <p className="text-xs text-emerald-700 mt-1">✓ {tagNote}</p>}
+          {result.discussTagNote && <p className="text-xs text-emerald-700 mt-1">✓ {result.discussTagNote}</p>}
+          {result.discussLabels?.length > 0 && <p className="text-xs text-emerald-700 mt-1">🏷️ {t("已加标记:")}{result.discussLabels.join("、")}</p>}
           <p className="text-xs text-slate-400 mt-2">
             {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
             {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
