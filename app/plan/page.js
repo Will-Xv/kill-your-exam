@@ -5,6 +5,8 @@ import { useT } from "@/components/I18n";
 
 export default function PlanPage() {
   const t = useT();
+  const topText = (tt) => !tt ? "" : tt.action === "review" ? `${t("复习")}「${tt.exam}」${t("的到期题")}(${tt.count})` : tt.action === "weak" ? `${t("攻")}「${tt.exam}」${t("的薄弱点")}:${tt.title}` : `${t("练一练")}「${tt.exam}」`;
+  const taskText = (tk) => tk.type === "review" ? `🔁 ${t("复习到期题")}(${tk.count})` : tk.type === "kp" ? `🎯 ${tk.title}` : `✏️ ${t("自由练习")}`;
   const [data, setData] = useState(null);
   const [minutes, setMinutes] = useState("");
   const [sprint, setSprint] = useState(false);
@@ -26,7 +28,7 @@ export default function PlanPage() {
       {data?.topTask && (
         <div className="rounded-3xl border border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm">
           <div className="text-xs font-bold uppercase tracking-wide text-amber-700">{t("今天最该做的一件事")}</div>
-          <div className="mt-1 text-lg font-black text-[#5a2d0c]">{data.topTask.text}{data.topTask.minutes ? ` · ${data.topTask.minutes}${t("分钟")}` : ""}</div>
+          <div className="mt-1 text-lg font-black text-[#5a2d0c]">{topText(data.topTask)}{data.topTask.minutes ? ` · ${data.topTask.minutes}${t("分钟")}` : ""}</div>
         </div>
       )}
 
@@ -61,8 +63,15 @@ export default function PlanPage() {
               <div><div className="font-black text-amber-600">{e.due}</div><div className="text-[11px] text-[#8a7a54]">{t("待复习")}</div></div>
               <div><div className="font-black text-[#2f2413]">{e.accuracy}%</div><div className="text-[11px] text-[#8a7a54]">{t("正确率")}</div></div>
             </div>
-            {e.weakTitles?.length > 0 && (
-              <div className="mt-2 text-xs text-[#6b4a25]">{t("先攻:")}{e.weakTitles.join("、")}</div>
+            {e.tasks?.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {e.tasks.map((tk, ti) => (
+                  <a key={ti} href={tk.href} className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2 text-sm text-[#2f2413] transition hover:bg-white">
+                    <span className="truncate pr-2">{taskText(tk)}</span>
+                    <span className="shrink-0 text-xs font-semibold text-[#8a7a54]">{tk.minutes}{t("分钟")}</span>
+                  </a>
+                ))}
+              </div>
             )}
           </div>
         ))}
