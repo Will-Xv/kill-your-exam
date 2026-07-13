@@ -1,11 +1,13 @@
-import db from "@/lib/db";
+import db, { getActiveExam } from "@/lib/db";
 import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
+import { getExamPlacement } from "@/lib/uiPlacement";
 
 // 全站默认栏目放置:GET 公开读取,POST 仅开发者发布/清除。
 export async function GET() {
-  let placement = null;
+  let placement = null, examPlacement = null;
   try { const row = db.prepare("SELECT value FROM settings WHERE key='ui_item_placement'").get(); if (row && row.value) placement = JSON.parse(row.value); } catch {}
-  return Response.json({ placement });
+  try { const u = await getSessionUser(); if (u) { const ex = getActiveExam(u.id); if (ex) examPlacement = getExamPlacement(ex.id); } } catch {}
+  return Response.json({ placement, examPlacement });
 }
 export async function POST(req) {
   const u = await getSessionUser();
