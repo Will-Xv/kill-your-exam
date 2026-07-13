@@ -7,6 +7,7 @@ import { aiErrorResponse } from "@/lib/errors";
 import { saveMat, delMat, guessMime, kindOf } from "@/lib/files";
 import { autoResolveOnUpload } from "@/lib/referenceResolve";
 import { readImage } from "@/lib/gemini";
+import { splitPdfBySize } from "@/lib/pdfSplit";
 
 export const maxDuration = 300;
 
@@ -49,12 +50,20 @@ export async function POST(req) {
     await afterMaterialsChanged(examId); // 重算覆盖度/掌握度 + 刷新今日计划
     // 若这份(或已有资料)是「指针清单」,后台自动在教材里定位并把真题入库,结果进首页横幅(不阻塞上传返回)。
     Promise.resolve().then(() => autoResolveOnUpload(user, examId, materialId)).catch(() => {});
-    // 扫描版 PDF(pdf-parse 抽不出文字)→ 后台交给 Gemini 原生读取整份 PDF:转写文字 + 描述示意图,保留页码,入库供检索。
-    if (kind === "pdf" && !chunks && buffer.length <= 18 * 1024 * 1024) {
+    // 扫描版 PDF(pdf-parse 抽不出文字)→ 后台交给 Gemini 原生读:转写文字 + 描述示意图,保留页码,入库供检索。
+    // >18MB(Gemini 单次上限)→ 用 pdf-lib 按大小拆成小片,逐片读、拼起来,再大的书也能读。
+    if (kind === "pdf" && !chunks) {
       Promise.resolve().then(async () => {
+        const PROMPT = "这是一份 PDF 教材(可能是扫描件)。把它的内容转成便于检索的文本:①逐页完整转写页面上的所有文字(每页开头标注「第N页 / Page N」,保留题号/条目结构);②对页里的示意图/图表/流程图/插图,用简短文字描述它画了什么、关键组成与关系。只输出这些内容,不要额外说明。";
         try {
-          const tt = await readImage(buffer, "application/pdf", "这是一份 PDF 教材(可能是扫描件)。把它的内容转成便于检索的文本:①逐页完整转写页面上的所有文字(每页开头标注「第N页 / Page N」,保留题号/条目结构);②对页里的示意图/图表/流程图/插图,用简短文字描述它画了什么、关键组成与关系。只输出这些内容,不要额外说明。");
-          if (tt && tt.trim().length >= 30) { await indexMaterial(materialId, examId, tt.trim(), file.name.replace(/\.\w+$/, "")); await afterMaterialsChanged(examId); }
+          let combined = "";
+          if (buffer.length <= 18 * 1024 * 1024) {
+            const tt = await readImage(buffer, "application/pdf", PROMPT); if (tt) combined = tt.trim();
+          } else {
+            const slices = await splitPdfBySize(buffer, 17 * 1024 * 1024);
+            for (const sl of slices) { try { const tt = await readImage(sl.buffer, "application/pdf", `${PROMPT}\n(这是原书第 ${sl.startPage}–${sl.endPage} 页)`); if (tt && tt.trim()) combined += `\n\n${tt.trim()}`; } catch {} }
+          }
+          if (combined.trim().length >= 30) { await indexMaterial(materialId, examId, combined.trim(), file.name.replace(/\.\w+$/, "")); await afterMaterialsChanged(examId); }
         } catch {}
       }).catch(() => {});
     }
