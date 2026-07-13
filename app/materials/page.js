@@ -16,6 +16,16 @@ export default function Materials() {
   const [openId, setOpenId] = useState(null);
   const [openContent, setOpenContent] = useState("");
   const [openBusy, setOpenBusy] = useState(false);
+  const [resBusy, setResBusy] = useState(null);
+  const [resOut, setResOut] = useState({});
+  async function resolveRefs(id) {
+    setResBusy(id); setResOut((o) => ({ ...o, [id]: null }));
+    try {
+      const r = await fetch("/api/bank/resolve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ materialId: id }) }).then((x) => x.json());
+      setResOut((o) => ({ ...o, [id]: r }));
+    } catch { setResOut((o) => ({ ...o, [id]: { error: 1 } })); }
+    setResBusy(null);
+  }
 
   const load = () => fetch("/api/materials").then((r) => r.json()).then((d) => { setList(d.materials); const cl = d.checklist || []; setChecklist(cl); const o = cl.find((c) => c.item === OTHER); setOther(o?.answer || ""); });
   useEffect(() => { load(); }, []);
@@ -84,8 +94,26 @@ export default function Materials() {
                   {m.status === "failed" && <span className="text-red-600">✗ {m.error}</span>}
                 </p>
               </button>
-              {!m.shared && <button className="shrink-0 text-stone-400 hover:text-red-600 text-sm" onClick={() => del(m.id)}>{t("删除")}</button>}
+              <div className="flex shrink-0 items-center gap-2">
+                {m.status === "ready" && m.kind !== "image" && m.kind !== "audio" && (
+                  <button className="text-amber-700 hover:text-amber-900 text-xs underline" disabled={resBusy === m.id} onClick={() => resolveRefs(m.id)}>{resBusy === m.id ? t("解析中…") : "📎 " + t("解析成真题")}</button>
+                )}
+                {!m.shared && <button className="text-stone-400 hover:text-red-600 text-sm" onClick={() => del(m.id)}>{t("删除")}</button>}
+              </div>
             </div>
+            {resOut[m.id] && (
+              <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-stone-700 ring-1 ring-amber-200">
+                {resOut[m.id].error ? t("解析失败,稍后再试。")
+                 : resOut[m.id].reason === "not_pointer_list" ? t("这份资料看起来不是「教材第X页第Y题」那种指针清单,没解析出可入库的真题。")
+                 : resOut[m.id].reason === "no_source" ? t("这份资料没有可读文本(可能是扫描图/未入库)。")
+                 : <>
+                    <div className="font-semibold text-amber-800">{t("已把定位到的真题入库")}：{resOut[m.id].added}/{resOut[m.id].total}</div>
+                    {(resOut[m.id].misses || []).length > 0 && <div className="mt-0.5 text-stone-500">{t("没找到(不编题)")}：{(resOut[m.id].misses || []).slice(0, 6).join("；")}{(resOut[m.id].misses || []).length > 6 ? "…" : ""}</div>}
+                    {(resOut[m.id].needImages || []).length > 0 && <div className="mt-0.5 text-stone-500">{t("这些在扫描图里,需你把那几页拍清楚给杀手看")}：{(resOut[m.id].needImages || []).slice(0, 6).join("；")}</div>}
+                    {resOut[m.id].added > 0 && <a href="/practice?fresh=1" className="mt-1 inline-block font-semibold text-amber-700 underline">{t("去练这些真题")} →</a>}
+                   </>}
+              </div>
+            )}
             {openId === m.id && (
               <div className="mt-2 border-t border-stone-200 pt-2">
                 {m.stored && m.kind === "image" ? (
