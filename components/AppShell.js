@@ -23,7 +23,7 @@ export default function AppShell({ children, initialLayout = null }) {
   const t = useT();
   const S = lab.useUiLab();
   useEffect(() => { if (path !== "/" && lab.snap().editing) lab.exitEdit(); }, [path]);
-  useEffect(() => { fetch("/api/triggers/tick", { method: "POST" }).catch(() => {}); }, []); // 打开应用时触发 session/每日/每周级触发器 // 离开首页即退出编辑,避免编辑态泄漏到其它页
+  useEffect(() => { fetch("/api/triggers/tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tz: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })() }) }).catch(() => {}); }, []); // 打开应用时触发 session/每日/每周级触发器 // 离开首页即退出编辑,避免编辑态泄漏到其它页
   useIso(() => { if (typeof window === "undefined") return; const mq = window.matchMedia("(min-width: 768px)"); const on = () => lab.setDesktop(mq.matches); on(); try { mq.addEventListener("change", on); } catch { mq.addListener(on); } return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } }; }, []); // 绘制前就确定桌面/手机,配合 SSR 布局:刷新时直接出正确外壳,不再闪
   if (BARE.includes(path)) return children;
   // 开发者在首页开启布局(编辑中或已套用某套布局)时,主内容改为全宽画布 —— 不再被「给杀手让出右边一条」限制,
