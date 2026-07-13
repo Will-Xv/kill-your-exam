@@ -16,6 +16,20 @@ export default function PlanPage() {
     if (sp) q.set("mode", "sprint");
     fetch("/api/plan?" + q.toString()).then((r) => (r.ok ? r.json() : null)).then(setData).catch(() => {});
   };
+  // 本周按天排期(类13.3)
+  const [weekOpen, setWeekOpen] = useState(false);
+  const [weekCaps, setWeekCaps] = useState(["60","60","60","60","60","60","60"]);
+  const [weekData, setWeekData] = useState(null);
+  const WD = [t("周日"), t("周一"), t("周二"), t("周三"), t("周四"), t("周五"), t("周六")];
+  const dayLabel = (i) => { const d = new Date(); d.setDate(d.getDate() + i); return WD[d.getDay()]; };
+  const setCap = (i, v) => setWeekCaps((cs) => cs.map((x, j) => (j === i ? v.replace(/\D/g, "") : x)));
+  const weekTaskLabel = (top) => !top ? t("练一练") : top.type === "review" ? `${t("复习到期")}${top.count ? ` (${top.count})` : ""}` : top.type === "kp" ? `${t("攻薄弱点:")}${top.title || ""}` : t("自由练习一组");
+  const loadWeek = () => {
+    const caps = weekCaps.map((x) => parseInt(x, 10) || 0).join(",");
+    const q = new URLSearchParams({ week: "1", caps });
+    if (sprint) q.set("mode", "sprint");
+    fetch("/api/plan?" + q.toString()).then((r) => (r.ok ? r.json() : null)).then(setWeekData).catch(() => {});
+  };
   useEffect(() => { load(); }, []);
   const exams = data?.exams || [];
   const pct = (e) => (e.kpTotal ? Math.round((e.mastered / e.kpTotal) * 100) : 0);
@@ -38,6 +52,49 @@ export default function PlanPage() {
         <span className="text-[#6b4a25]">{t("分钟")}</span>
         <label className="ml-2 flex items-center gap-1"><input type="checkbox" checked={sprint} onChange={(e) => setSprint(e.target.checked)} /> {t("临考冲刺模式")}</label>
         <button className="btn px-3 py-1.5" onClick={() => load(minutes, sprint)}>{t("重新规划")}</button>
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-[#2f2413]">📆 {t("本周按天排期")}</h2>
+          <button onClick={() => setWeekOpen((o) => !o)} className="text-xs text-[#8a7a54] underline">{weekOpen ? t("收起") : t("展开")}</button>
+        </div>
+        {weekOpen && (
+          <>
+            <p className="mt-1 text-xs text-[#8a7a54]">{t("每天可用时间不一样?填每天的分钟数,我按紧迫度分配到各天。0 = 休息。")}</p>
+            <div className="mt-2 grid grid-cols-7 gap-1">
+              {weekCaps.map((m, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-[10px] text-[#8a7a54]">{dayLabel(i)}</div>
+                  <input value={m} onChange={(e) => setCap(i, e.target.value)} inputMode="numeric" className="w-full rounded-lg border border-[#e4d5af] bg-white px-1 py-1 text-center text-sm" />
+                </div>
+              ))}
+            </div>
+            <button className="btn mt-2 px-3 py-1.5" onClick={loadWeek}>{t("排这周")}</button>
+            {weekData?.days?.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {weekData.days.map((d, di) => (
+                  <div key={di} className={`rounded-2xl px-3 py-2 ring-1 ring-[#e4d5af] ${d.totalMinutes === 0 ? "bg-[#f3ecda] opacity-70" : "bg-white/60"}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-[#2f2413]">{dayLabel(di)} · {(d.date || "").slice(5)}</span>
+                      <span className="text-xs text-[#8a7a54]">{d.totalMinutes === 0 ? t("休息") : d.totalMinutes + t("分钟")}</span>
+                    </div>
+                    {d.totalMinutes > 0 && (d.exams || []).filter((x) => x.allocMinutes > 0).length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {d.exams.filter((x) => x.allocMinutes > 0).map((x) => (
+                          <a key={x.examId} href={x.top?.href || "/plan"} className="flex items-center justify-between text-xs text-[#2f2413] hover:underline">
+                            <span className="truncate pr-2">{x.name} · {weekTaskLabel(x.top)}</span>
+                            <span className="shrink-0 text-[#8a7a54]">{x.allocMinutes}{t("分钟")}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {exams.length === 0 && <div className="card text-[#8a7a54]">{t("还没有考试。")}</div>}
