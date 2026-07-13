@@ -227,7 +227,7 @@ function NavDockControl() {
   const cur = placement.active() ? placement.navDockOf(placement.renderPlacement(), bp) : (S.isDesktop ? "top" : "bottom");
   async function move(edge) {
     try { await fetch("/api/ui-nav", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ edge, breakpoint: plat === "both" ? undefined : plat }) }); } catch {}
-    placement.initClient();
+    placement.refreshServer();
   }
   const edges = [["top", "⬆", t("顶部")], ["bottom", "⬇", t("底部")], ["left", "⬅", t("左竖")], ["right", "➡", t("右竖")]];
   const plats = [["both", t("两端")], ["desktop", t("电脑")], ["mobile", t("手机")]];
