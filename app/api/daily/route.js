@@ -57,5 +57,12 @@ export async function GET() {
   } catch {}
   let rootCauseBanner = null; try { rootCauseBanner = getBanner(user.id); } catch {}
   let resolveBanner = null; try { resolveBanner = getResolveBanner(user.id); } catch {}
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner });
+  // 失败预案(类15):今天真没时间也别断——从未完成项里挑最要紧的一件作为「保底」,其余顺延到明天。
+  let fallback = null;
+  const undone = enriched.filter((it) => !it.done);
+  if (undone.length) {
+    const pick = undone.find((it) => it.type === "review" && it.due > 0) || undone.find((it) => it.type === "kp") || undone[0];
+    fallback = { item: pick, remaining: undone.length, done: enriched.length - undone.length, total: enriched.length };
+  }
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner, fallback });
 }

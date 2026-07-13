@@ -293,6 +293,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           </div>
         )}
         {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
+        {daily?.fallback && daily.fallback.remaining > 0 && (
+          <Link href={linkFor(daily.fallback.item)} className="mt-2 block rounded-xl bg-[#f3ecda] px-3 py-2 text-xs text-[#6b4a25] ring-1 ring-[#e4d5af] hover:brightness-95">
+            🛟 {t("今天真没时间?至少做这一件保底,其余明天顺延:")}<span className="font-semibold">{labelFor(daily.fallback.item)}</span>
+          </Link>
+        )}
       </div>
       </Editable>
       )}
