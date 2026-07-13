@@ -57,10 +57,10 @@ export async function POST(req) {
         const PROMPT = "这是一份 PDF 教材(可能是扫描件)。把它的内容转成便于检索的文本:①逐页完整转写页面上的所有文字(每页开头标注「第N页 / Page N」,保留题号/条目结构);②对页里的示意图/图表/流程图/插图,用简短文字描述它画了什么、关键组成与关系。只输出这些内容,不要额外说明。";
         try {
           let combined = "";
-          if (buffer.length <= 14 * 1024 * 1024) { // 14MB:base64后≈18.6MB,<20MB 请求上限
+          if (buffer.length <= 50 * 1024 * 1024) { // File API 读整份 PDF(上限 50MB/1000 页)
             const tt = await readImage(buffer, "application/pdf", PROMPT); if (tt) combined = tt.trim();
           } else {
-            const slices = await splitPdfBySize(buffer, 14 * 1024 * 1024); // 每片≤14MB原始 → base64后≈18.6MB
+            const slices = await splitPdfBySize(buffer, 45 * 1024 * 1024); // >50MB 才拆,每片≤45MB(File API 上传)
             for (const sl of slices) { try { const tt = await readImage(sl.buffer, "application/pdf", `${PROMPT}\n(这是原书第 ${sl.startPage}–${sl.endPage} 页)`); if (tt && tt.trim()) combined += `\n\n${tt.trim()}`; } catch {} }
           }
           if (combined.trim().length >= 30) { await indexMaterial(materialId, examId, combined.trim(), file.name.replace(/\.\w+$/, "")); await afterMaterialsChanged(examId); }

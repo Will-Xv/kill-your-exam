@@ -38,8 +38,8 @@ ${body.options?.length ? "选项:" + body.options.join(" | ") : ""}
 ${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
 
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
-    const ap = attachParts(attachments);
-    const mp = materialParts(exam.id, { max: 4 });
+    const ap = await attachParts(attachments);
+    const mp = await materialParts(exam.id, { max: 4 });
     if ((ap.length || mp.length) && contents.length) contents[contents.length - 1].parts = [{ text: contents[contents.length - 1].parts[0].text }, ...ap, ...mp];
     const res = await generate(null, { contents, system });
     const reply = res.text || "(未生成回复)";

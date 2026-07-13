@@ -55,7 +55,7 @@ export async function POST(req) {
       contents.push({ role: "model", parts: [{ text: "好的,我记住了。" }] });
     }
     for (const m of recent) contents.push({ role: m.role, parts: [{ text: m.content }] });
-    const ap = attachParts(attachments);
+    const ap = await attachParts(attachments);
     if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: message }, ...ap];
     const runId = startRun(exam, user, contents);
     return Response.json({ runId });

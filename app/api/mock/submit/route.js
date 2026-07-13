@@ -32,7 +32,7 @@ export async function POST(req) {
       let gradeCross = null;
       let shortScore = -1;
       if (q.qtype === "short") {
-        const ap = attachParts(attachments[qid]);
+        const ap = await attachParts(attachments[qid]);
         const kpList = leafKpList(exam.id);
         const kpListStr = kpList.slice(0, 120).map((k) => `[${k.id}] ${k.chapter ? k.chapter + "/" : ""}${k.title}`).join("\n");
         const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || (ap.length ? "(见附件:手写/上传作答,请先识别其中内容)" : "(未答)")}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)\n如果这份答案里【顺带】清楚体现出考生对【别的知识点】(不是本题知识点)的正确理解或错误理解,在 crossKp 里列出:正确理解->kind=understanding;主动说出错误理解/概念错误->kind=misconception;只是没涉及/看不出->不填。kpId 只能取自下面清单,要确凿才填。本题知识点id=${q.kp_id || 0}(不要放进 crossKp)。知识点清单:\n${kpListStr}` + langInstruction(user.lang);
@@ -40,11 +40,11 @@ export async function POST(req) {
           crossKp: { type: "array", items: { type: "object", properties: { kpId: { type: "integer" }, kind: { type: "string", enum: ["understanding", "misconception"] }, insight: { type: "string" } }, required: ["kpId", "kind"] } } }, required: ["score"] };
         let g;
         if (ap.length) {
-          const mp = materialParts(exam.id, { max: 4 });
+          const mp = await materialParts(exam.id, { max: 4 });
           const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...ap, ...mp] }], jsonSchema: gradeSchema });
           g = JSON.parse(res.text);
         } else {
-          g = await generateJson(gradePrompt, gradeSchema, mmOpts(exam.id, gradePrompt));
+          g = await generateJson(gradePrompt, gradeSchema, await mmOpts(exam.id, gradePrompt));
         }
         shortScore = Math.max(0, Math.min(100, g.score || 0)); correct = shortScore >= 60 ? 1 : 0;
         gradeCross = g.crossKp;

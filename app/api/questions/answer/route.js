@@ -40,8 +40,8 @@ export async function POST(req) {
 ${attachments && attachments.length ? "考生以图片/文件形式作答(见附件),请识别其中内容再评分。" : ""}
 按要点给 0~100 分,并指出答对了什么、缺了什么。数学公式用 $...$ 包裹。
 如果这份答案里【顺带】清楚体现出考生对【别的知识点】(不是本题知识点)的态度,请在 crossKp 里列出,kpId 只能取自下面清单:正确扎实的理解->kind=understanding;主动说出【错误的理解/概念错误】->kind=misconception;只是没涉及/看不出懂不懂->不要填。要确凿才填、宁缺毋滥,没有就空数组。本题知识点id=${q.kp_id || 0}(不要放进 crossKp)。可引用的知识点清单:\n${kpListStr}` + langInstruction(user.lang);
-      const ap = attachParts(attachments);
-      const mp = materialParts(q.exam_id, { max: 4 });
+      const ap = await attachParts(attachments);
+      const mp = await materialParts(q.exam_id, { max: 4 });
       let g;
       if (ap.length || mp.length) {
         const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...ap, ...mp] }], jsonSchema: gradeSchema });

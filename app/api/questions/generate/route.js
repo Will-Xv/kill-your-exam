@@ -114,7 +114,7 @@ export async function POST(req) {
       let lessons = ""; try { lessons = db.prepare("SELECT text FROM gen_lessons WHERE exam_id=? ORDER BY id DESC LIMIT 12").all(exam.id).map((x) => "- " + x.text).join("\n"); } catch {}
       let qaAnswers = ""; try { const cl = JSON.parse(exam.checklist || "[]"); qaAnswers = cl.filter((c) => c.kind === "qa" && c.answer).map((c) => `${c.item}: ${c.answer}`).join("; "); } catch {}
       const sourceType = hits.length ? "material" : "model";
-      const mparts = materialParts(exam.id, { kinds: ["image", "audio", "pdf"], max: 6 });
+      const mparts = await materialParts(exam.id, { kinds: ["image", "audio", "pdf"], max: 6 });
       const audioMats = db.prepare("SELECT id, filename FROM materials WHERE exam_id=? AND kind='audio' AND status='ready' AND COALESCE(auto,0)=0").all(exam.id);
       const audioList = audioMats.map((m) => `[${m.id}] ${m.filename}`).join(" ; ");
       const performBlock = `\n【表演/技能类】若这门考试考的是表演/技能(表演、播音主持、舞蹈、声乐、朗诵、口语、演讲等),可出 qtype="perform" 的表演任务题(考生用录音或录像作答),按真实考试规则设计 perform 字段:captureType(audio 录音 / video 录像)、mediaMaterialId(要播放的音频素材 id,从下面列表选,没有就填 0)、analyzeAudio(舞蹈/形体填 music=只用所给音乐原曲判断合拍、不单独分析录像里录到的原声;声乐/台词/朗诵/演讲填 recorded=分析录进去的人声;两者都要填 both)、countdownSec(开始前倒计时,一般 3)、autoStopAfterMediaSec(所放音频结束后再录几秒自动停,一般 7;无音频则当作固定录制时长)、rubric(评分维度数组)、instructions(给考生的说明);stem 写命题(如"跟随所给音乐即兴舞蹈")。【重要】给定音乐的题里,stem 和 instructions 都【不要】写死具体曲名、乐器或曲风(如"二胡古典曲""电子乐"),因为配乐由系统自动附上、风格未必一致;一律只说"所给音乐/上方试听的音乐"。可选音频素材:${audioList || "(暂无,mediaMaterialId 填 0)"}。纯知识类考试【不要】出 perform。`;

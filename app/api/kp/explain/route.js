@@ -19,7 +19,7 @@ export async function POST(req) {
     const hits = await retrieve(exam.id, `${chapter} ${kp.title}`, 6);
     const dossier = getDocument(exam.id, "dossier")?.content_md || "";
     const sourceType = hits.length ? "material" : "model";
-    const mparts = materialParts(exam.id, { kinds: ["image", "audio", "pdf"], max: 6 });
+    const mparts = await materialParts(exam.id, { kinds: ["image", "audio", "pdf"], max: 6 });
     const explainPrompt = `你是「${exam.name}」的备考讲师。请讲解知识点「${kp.title}」(所属章节:${chapter})。
 ${hits.length ? "以下是考生资料库中检索到的相关内容,讲解必须优先以此为准,并在引用处自然融入:\n" + ragBlock(hits) : "⚠️ 资料库中没有找到相关内容,你只能凭训练知识讲解。请在讲解开头用一句话明确提醒考生:这部分内容没有资料支撑,建议对照官方资料核实。"}
 
