@@ -61,6 +61,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     setDaily((d) => (d ? { ...d, rootCauseBanner: null } : d));
     try { await fetch("/api/diagnose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss" }) }); } catch {}
   }
+  async function dismissResolve() {
+    setDaily((d) => (d ? { ...d, resolveBanner: null } : d));
+    try { await fetch("/api/bank/resolve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss" }) }); } catch {}
+  }
   async function uncomplete() {
     try { await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "uncomplete", examId: data?.exam?.id }) }); } catch {}
     location.reload();
@@ -217,6 +221,23 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           </div>
         </div>
         </Editable>
+      )}
+
+      {daily?.resolveBanner && (
+        <div className="card animate-in mt-4 border-emerald-300 bg-emerald-50">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wide text-emerald-700">📎 {t("从资料里找到了真题")}</div>
+              <p className="mt-0.5 text-sm font-semibold text-[#14532d]">
+                {t("在你上传的教材里定位并入库了")} {daily.resolveBanner.added} {t("道真题")}
+                {daily.resolveBanner.misses > 0 ? `，${daily.resolveBanner.misses} ${t("条没找到(未编题)")}` : ""}
+                {daily.resolveBanner.files?.length ? `（${daily.resolveBanner.files.join("、")}）` : ""}
+              </p>
+            </div>
+            <button onClick={dismissResolve} title={t("知道了")} className="shrink-0 text-sm text-emerald-500 hover:text-emerald-700">✕</button>
+          </div>
+          {daily.resolveBanner.added > 0 && <a href="/practice?fresh=1" className="mt-2 inline-block text-xs font-semibold text-emerald-700 underline">{t("去练这些真题")} →</a>}
+        </div>
       )}
 
       {daily?.rootCauseBanner && (

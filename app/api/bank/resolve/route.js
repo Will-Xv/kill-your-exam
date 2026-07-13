@@ -1,5 +1,5 @@
 import { requireUser, unauthorized } from "@/lib/auth";
-import { resolveReferenceList } from "@/lib/referenceResolve";
+import { resolveReferenceList, clearResolveBanner } from "@/lib/referenceResolve";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 300;
@@ -10,6 +10,7 @@ export async function POST(req) {
   if (!user) return unauthorized();
   if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
   const b = await req.json().catch(() => ({}));
+  if (b.action === "dismiss") { clearResolveBanner(user.id); return Response.json({ ok: true }); }
   try {
     const r = await resolveReferenceList(user, exam, { text: b.text, materialId: b.materialId, markMust: !!b.markMust });
     return Response.json({ ok: true, ...r });

@@ -3,6 +3,7 @@ import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
+import { getResolveBanner } from "@/lib/referenceResolve";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -55,5 +56,6 @@ export async function GET() {
     }
   } catch {}
   let rootCauseBanner = null; try { rootCauseBanner = getBanner(user.id); } catch {}
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner });
+  let resolveBanner = null; try { resolveBanner = getResolveBanner(user.id); } catch {}
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner });
 }
