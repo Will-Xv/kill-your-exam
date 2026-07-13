@@ -68,6 +68,13 @@ export default function Nav() {
   // 第二阶段:导航栏与「更多」菜单按放置表渲染(未激活则用现有 primary / more+extra)
   const pact = placement.active();
   const bp = S.isDesktop ? "desktop" : "mobile";
+  const _rp = pact ? placement.renderPlacement() : null;
+  const _defDock = S.isDesktop ? "top" : "bottom";
+  const _navDock = _rp ? placement.navDockOf(_rp, bp) : _defDock;
+  const dockCustom = !!(pact && _navDock && _navDock !== _defDock); // 仅当自定义且与默认不同才覆盖,默认路径零改动
+  const dockPos = dockCustom ? _navDock : _defDock;
+  const navPosCls = dockCustom ? (dockPos === "top" ? "top-0 bottom-auto" : "bottom-0 top-auto") : "bottom-0 md:top-0 md:bottom-auto";
+  const navMarginCls = dockCustom ? (dockPos === "top" ? "mt-3" : "mb-3") : "md:mt-3";
   const navItems = pact ? placement.itemsIn(bp, "nav", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
   const moreItems = pact ? placement.itemsIn(bp, "more", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
   const moreHasBadge = pact && moreItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
@@ -104,8 +111,8 @@ export default function Nav() {
           </div>
         </div>
       )}
-      <nav className={`fixed bottom-0 left-0 right-0 z-50 md:top-0 md:bottom-auto ${dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
-        <div ref={navRef} data-snap style={navStyle} className="mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl md:mt-3 md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg">
+      <nav className={`fixed left-0 right-0 z-50 ${navPosCls} ${dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
+        <div ref={navRef} data-snap style={navStyle} className={`mx-auto flex max-w-3xl items-center justify-around gap-1 border-t border-[#e4d5af] bg-[#f6efdc]/95 px-1 py-1.5 backdrop-blur-xl ${navMarginCls} md:justify-center md:gap-1 md:rounded-full md:border md:border-[#e4d5af] md:px-2 md:shadow-lg`}>
           {navItems.map((it) => (
             <Link key={it.href} href={it.href}
               className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>

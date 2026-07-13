@@ -9,6 +9,7 @@ import TauntWatcher from "@/components/TauntWatcher";
 import NotifPrompt from "@/components/NotifPrompt";
 import PendingBanner from "@/components/PendingBanner";
 import * as lab from "@/lib/uilab/store";
+import * as placement from "@/lib/uilab/placement";
 import RouteShell from "@/components/uilab/RouteShell";
 
 // 营销/登录类公开页不套应用外壳
@@ -31,6 +32,13 @@ export default function AppShell({ children, initialLayout = null }) {
   const routeShell = !!applied && showKiller && !labHome; // 有已套用布局就走统一外壳(服务端首帧即渲染,手机端由外壳内 CSS 收成单列)——不再依赖客户端 isDesktop,避免刷新闪一下
   const reserve = showKiller && S.isDesktop && !labHome && !routeShell; // 浮动杀手才留右边一条
   const cl = applied;
+  placement.useItems();
+  const _pact = placement.active();
+  const _bp = S.isDesktop ? "desktop" : "mobile";
+  const _defDock = S.isDesktop ? "top" : "bottom";
+  const _navDock = _pact ? placement.navDockOf(placement.renderPlacement(), _bp) : _defDock;
+  const _dockCustom = !!(_pact && _navDock && _navDock !== _defDock);
+  const padCls = !_dockCustom ? "pb-28 pt-4 md:pb-10 md:pt-20" : (_navDock === "top" ? "pt-24 pb-6" : "pb-24 pt-6"); // 默认串保持原样=零回归
   return (
     <>
       <div className="app-bg" />
@@ -38,7 +46,7 @@ export default function AppShell({ children, initialLayout = null }) {
         <div className="relative z-10"><RouteShell layout={cl}>{children}</RouteShell></div>
       ) : (
         <div className={`relative z-10 ${reserve ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
-          <div className={labHome ? "w-full pb-28 pt-4 md:pb-10 md:pt-20" : "mx-auto max-w-3xl px-4 pb-28 pt-4 md:pb-10 md:pt-20"}>{children}</div>
+          <div className={labHome ? `w-full ${padCls}` : `mx-auto max-w-3xl px-4 ${padCls}`}>{children}</div>
         </div>
       )}
       <Nav />
