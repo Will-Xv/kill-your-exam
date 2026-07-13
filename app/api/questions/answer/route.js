@@ -69,8 +69,9 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
         const lvl = kpMasteryLevel(q.kp_id);
         if (lvl && lvl !== "unlearned") {
           const kt = db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title || "该知识点";
-          const label = { weak: "偏弱", ok: "一般", mastered: "较熟" }[lvl] || lvl;
-          addFact(user.id, q.exam_id, { subject: kt, kind: "observation", claim: `做题反映:「${kt}」目前${label}`, valence: lvl, scope: "exam" });
+          const _zh = !user.lang || String(user.lang).startsWith("zh");
+          const label = (_zh ? { weak: "偏弱", ok: "一般", mastered: "较熟" } : { weak: "weak", ok: "fair", mastered: "solid" })[lvl] || lvl;
+          addFact(user.id, q.exam_id, { subject: kt, kind: "observation", claim: _zh ? `做题反映:「${kt}」目前${label}` : `Practice shows: "${kt}" is currently ${label}`, valence: lvl, scope: "exam" });
         }
       }
       invalidateKnowledgeState(q.exam_id); // 做题后让知识状态摘要下次重算
