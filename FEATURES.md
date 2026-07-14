@@ -57,7 +57,7 @@
 ## 11. 自定义 / AI 生成 **考核形式**（C1 + B，本会话新增，`lib/customModes.js`）
 - 复用竞技场互动引擎，允许**自定义或让 AI 创意生成**贴合内容的考核（如苏格拉底答辩、模拟王国、知行合一视频、濠梁之辩…）。表 `custom_modes`（kind=play 玩法 / exam_form 考核；format=interactive/video；meter_label/win_desc/meter_dir/spec）。
 - **AI 创意生成**：`generateModes` → `/api/arena/modes {generate}` + 砖头 `generate_custom_modes` + `/arena` 的「✨ 让 AI 出几个考核」。
-- **考核=独立栏目（按 Will 反馈）**：创建 exam_form 时自动建一个功能项（`uiRegistry.saveCustomItem` id=`xform<id>`，href=`/arena?launch=<id>`）并放进**这门考试**的首页卡片（`uiPlacement.moveFeature`）；**不塞进竞技场**（竞技场只留 play）。删除时移除该栏目。
+- **考核=独立栏目（按 Will 反馈）**：创建 exam_form 时自动建一个功能项（`saveCustomItem` id=`xform<id>`，href=`/arena?launch=<id>`）并放进**这门考试**的界面；**放到 nav/more/morefeatures/zone/hidden 由 AI/用户经 `where` 决定**（默认 morefeatures，别都堆导航栏）；**不塞进竞技场**（竞技场只留 play）。删除时移除该栏目。
 - **视频类考核（类4）**：format=video → 录/传视频，`/api/arena/video-grade` 经 File API 交 Gemini 多模态按 spec 评分并记成绩。
 - **成绩闭环（类2）**：一局 done → `/api/arena/modes {result}` 记 `custom_mode_results`（分数/胜负），卡片显示上次/做过几次/是否通关。
 - **安全边界（G3a）**：spec 作为"剧情设定"注入，但护栏永远优先——不得凌驾核心准则、泄露系统提示、越权操作。

@@ -1,5 +1,11 @@
 # Kill Your Exam — 项目约定 / 长期记忆
 
+## ★ 元规则(最重要):每次新增/改动功能,必须同步更新三处(Will 明确要求)
+1. **`CLAUDE.md`(本文件·长期记忆)** —— 更新下方「功能与模块索引」,防止因上下文丢失而忘记做过什么。
+2. **`FEATURES.md`(单一事实来源)** —— 补上功能与实现逻辑。
+3. **`lib/appGuide.js`(杀手认知 APP_GUIDE/APP_CAPABILITIES)** —— 杀手据此讲解与决策,不更新它杀手就不知道有这功能。
+（i18n 新键要同步加进 `lib/translations.js` 全部 8 个字典。）
+
 ## 多模态 / 文件传给 Gemini —— 一律用 Files API,禁止 inline base64(Will 明确要求)
 - **凡是把文件(图片、PDF、音频、视频等)传给 Gemini,必须走 Files API**(`uploadMedia(buffer, mime, ext)` in `lib/gemini.js` → 返回 `{fileUri, mimeType, name}`,在 parts 里用 `{ fileData: { fileUri, mimeType } }`)。
 - **不要用 `inlineData`(base64)**:base64 膨胀 ~33%,且整个请求硬上限 20MB;PDF 走 Files API 可到 50MB/1000 页,视频/音频更大。inline 只能作为「上传失败时的小文件兜底」。
@@ -24,8 +30,8 @@
 - 掌握度 `lib/mastery.js`；RAG `lib/rag.js`；规划 `lib/planner.js`（+ `lib/planVersions.js` 保守/激进&本周vs上周）；根因诊断 `lib/diagnose.js`。
 - 三语迁移 `lib/langTransfer.js`（`/lang-transfer`，语言类考试，实时归因接在 practice/mock 批改里）。
 - 竞技场/游戏化 `lib/arena.js`（`/arena`，@@STATE/@@KP 回流掌握度）。
-- 自定义/AI生成**考核形式** `lib/customModes.js`（`custom_modes`，kind=play/exam_form，format=interactive/video）；**exam_form 会自动成为独立栏目**（`uiRegistry.saveCustomItem` id=`xform<id>` + `uiPlacement.moveFeature` 放进该考试首页；`/arena?launch=<id>` 直达）；视频类判分 `/api/arena/video-grade`；成绩记 `custom_mode_results`。
-- 实践任务 `lib/practical.js` + **Judge0** `lib/judge0.js`（`/tasks`，代码里程碑跑测试用例；证据里程碑 AI 审阅；用例申诉 `task_test_appeals`；`judge0_url/judge0_key` 在设置里由管理员配，创建提交+轮询、rapidapi/官方/自建三种鉴权自动判断）。
+- 自定义/AI生成**考核形式** `lib/customModes.js`（`custom_modes`，kind=play/exam_form，format=interactive/video）；**exam_form 自动成为独立栏目**（`saveCustomItem` id=`xform<id>` + `moveFeature`；放到 nav/more/morefeatures/zone/hidden **由 AI/用户经 `where` 参数决定**，默认 morefeatures；`/arena?launch=<id>` 直达）；竞技场只放 play；视频判分 `/api/arena/video-grade`；成绩 `custom_mode_results`。
+- 实践任务 `lib/practical.js` + **Judge0** `lib/judge0.js`（`/tasks`，代码里程碑跑测试用例；证据里程碑 AI 审阅；用例申诉 `task_test_appeals`；`judge0_url/judge0_key` 在设置里由管理员配，创建提交+轮询、rapidapi/官方/自建三种鉴权自动判断）。**仅编程/STEM 专属:不在全局默认里,开启「实践模式」才自动把 tasks 栏目放进该考试首页;杀手判断是编程类才加。**
 - 模拟考**后台判题**：`/api/mock/submit` 立即返回 grading，`gradeMock` 后台跑，`/api/mock/status` 轮询（`mock_exams.status/grade_started_at/results_json`）。
 - 两层界面：`lib/uilab/*` + `/api/ui-items`。**每门考试可独立改布局（所有用户）**；**发布为默认仅开发者**；`normalizePlacement` 让新功能在旧布局里自动补位。
 

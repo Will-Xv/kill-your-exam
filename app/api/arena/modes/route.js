@@ -25,7 +25,7 @@ export async function POST(req) {
     }
     const r = createMode(user, exam, {
       kind: b.kind, name: b.name, emoji: b.emoji, spec: b.spec,
-      meterLabel: b.meterLabel, winDesc: b.winDesc, meterStart: b.meterStart, meterDir: b.meterDir, format: b.format,
+      meterLabel: b.meterLabel, winDesc: b.winDesc, meterStart: b.meterStart, meterDir: b.meterDir, format: b.format, where: b.where,
     });
     return Response.json({ ok: true, ...r });
   } catch (e) { return aiErrorResponse(e); }
