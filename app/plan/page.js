@@ -60,7 +60,17 @@ export default function PlanPage() {
             {data.warnings.map((w) => (
               <div key={w.examId} className="text-sm text-[#5a2d0c]">
                 <span className="font-semibold">{w.name}</span>：{t("要过完薄弱/未学的内容约需")} {w.needHours}{t("小时")}，{w.daysLeft} {t("天里只有")} {w.availHours}{t("小时")}。
-                <div className="mt-0.5 text-xs text-stone-600">{t("折中方案:")}①{t("每天学到")} {w.suggestDailyMin} {t("分钟")}；②{w.suggestExtendDays > 0 ? t("或把考试日期后延约") + " " + w.suggestExtendDays + " " + t("天") : t("或砍掉非重点章节、只保最可能考的")}；③{t("或用冲刺模式只攻最薄弱的")}。</div>
+                <div className="mt-1 rounded-lg bg-white/70 px-2 py-1.5 text-xs">
+                  <a href="/practice?fresh=1" className="font-semibold text-emerald-700 underline">🩺 {t("先花几分钟做个快速能力诊断")} →</a>
+                  <span className="text-stone-600"> {t("那些『没学』的点你可能早就会,测完真实差距往往小得多,再重排。")}</span>
+                </div>
+                <div className="mt-1 rounded-lg bg-white/70 px-2 py-1.5 text-xs">
+                  <span className="font-semibold text-[#6b4a25]">⚡ {t("时间紧就别排了,直接上手:")}</span>
+                  <a href="/mock" className="ml-1 text-amber-700 underline">🎯 {t("做一次模拟考")}</a>
+                  <span className="text-stone-400"> · </span>
+                  <a href="/practice?fresh=1" className="text-amber-700 underline">✍️ {t("直接刷题")}</a>
+                </div>
+                <div className="mt-0.5 text-xs text-stone-600">{t("或:")}①{t("每天学到")} {w.suggestDailyMin} {t("分钟")}；②{w.suggestExtendDays > 0 ? t("或把考试日期后延约") + " " + w.suggestExtendDays + " " + t("天") : t("或砍掉非重点章节、只保最可能考的")}；③{t("或用冲刺模式只攻最薄弱的")}。</div>
               </div>
             ))}
           </div>
