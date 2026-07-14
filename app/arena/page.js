@@ -3,6 +3,9 @@ import { useT } from "@/components/I18n";
 import { useState, useRef, useEffect } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import MD from "@/components/MD";
+import HandwritePad from "@/components/HandwritePad";
+import DropZone from "@/components/DropZone";
+import { filesToAttachments } from "@/lib/attach";
 
 const PRESETS = [
   { key: "boss", emoji: "🗡️", title: "错题 Boss 战", desc: "把你的错题变成一只 Boss,答对造成伤害,把它砍到 0 血。", meterLabel: "Boss 血量", down: true },
@@ -20,6 +23,12 @@ export default function ArenaPage() {
   const [done, setDone] = useState(null);
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState("");
+  const [handOpen, setHandOpen] = useState(false);
+  const [handImg, setHandImg] = useState(null);
+  const [aFiles, setAFiles] = useState([]);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const padRef = useRef(null);
+  const draftRef = useRef(null);
   const [custom, setCustom] = useState({ play: [], exam_form: [] });
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
@@ -42,7 +51,7 @@ export default function ArenaPage() {
   }, []);
   useEffect(() => {
     try {
-      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs, meter, done }));
+      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs: msgs.map((m) => ({ role: m.role, content: m.content })), meter, done }));
       else if (!launch) localStorage.removeItem("kye_arena");
     } catch {}
   }, [launch, msgs, meter, done]);
@@ -56,10 +65,10 @@ export default function ArenaPage() {
   const launchedRef = useRef(false);
   useEffect(() => { loadModes(); }, []);
 
-  async function turn(history, l) {
+  async function turn(history, l, attachments) {
     setBusy(true);
     try {
-      const r = await aiFetch("/api/arena", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: (l || launch).key, scope, history }) });
+      const r = await aiFetch("/api/arena", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: (l || launch).key, scope, history, attachments: attachments || [] }) });
       const next = [...history, { role: "assistant", content: r.reply || "…" }];
       setMsgs(next);
       if (r.state && typeof r.state.meter === "number") setMeter(r.state.meter);
@@ -71,11 +80,19 @@ export default function ArenaPage() {
     } catch {}
     setBusy(false);
   }
-  function start(l) { setLaunch(l); setMsgs([]); setMeter(null); setDone(null); setTimeout(() => turn([], l), 0); }
-  function send() {
-    if (!input.trim() || busy || done) return;
-    const h = [...msgs, { role: "user", content: input.trim() }];
-    setMsgs(h); setInput(""); turn(h);
+  function start(l) { setLaunch(l); setMsgs([]); setMeter(null); setDone(null); setAFiles([]); setHandImg(null); setHandOpen(false); setDraftOpen(false); setTimeout(() => turn([], l), 0); }
+  async function send() {
+    if (busy || done) return;
+    const txt = input.trim();
+    let attachments = [];
+    try { attachments = await filesToAttachments(aFiles); } catch {}
+    if (handImg) { const b64 = handImg.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }]; }
+    attachments = attachments.slice(0, 4);
+    if (!txt && !attachments.length) return;
+    const imgs = attachments.filter((a) => (a.mime || "").startsWith("image/")).map((a) => `data:${a.mime};base64,${a.data}`);
+    const h = [...msgs, { role: "user", content: txt || t("(见附件作答)"), imgs }];
+    setMsgs(h); setInput(""); setAFiles([]); setHandImg(null); setHandOpen(false);
+    turn(h, null, attachments);
   }
   const launchCustom = (m) => { const l = { key: "custom:" + m.id, id: m.id, emoji: m.emoji, title: m.name, meterLabel: m.meter_label || "进度", down: m.meter_dir === "down", format: m.format, spec: m.spec, winDesc: m.win_desc }; if (m.format === "video") { setLaunch(l); } else { start(l); } };
   async function genModes() {
@@ -146,7 +163,7 @@ export default function ArenaPage() {
         {msgs.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : ""}>
             <div className={`inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-[#2f2413] text-white" : "bg-white text-stone-800 ring-1 ring-stone-200"}`}>
-              {m.role === "user" ? m.content : <div className="prose-zh text-stone-800"><MD>{m.content}</MD></div>}
+              {m.role === "user" ? (<>{m.content}{m.imgs && m.imgs.length > 0 && <div className="mt-1 space-y-1">{m.imgs.map((src, ii) => <img key={ii} src={src} alt="" className="max-h-40 rounded-lg border border-white/25" />)}</div>}</>) : <div className="prose-zh text-stone-800"><MD>{m.content}</MD></div>}
             </div>
           </div>
         ))}
@@ -159,9 +176,21 @@ export default function ArenaPage() {
           <button onClick={() => start(launch)} className="btn mt-2 py-1.5 text-sm">{t("再来一局")}</button>
         </div>
       ) : (
-        <div className="flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-3 py-2 text-sm" />
-          <button onClick={send} disabled={busy || !input.trim()} className="btn px-4">{t("发送")}</button>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setHandOpen((v) => !v)}>✍️ {handOpen ? t("收起手写") : t("手写作答(触控笔/手写板)")}</button>
+            <button type="button" className="btn-ghost px-3 py-1 text-sm" onClick={() => setDraftOpen((v) => !v)}>✏️ {draftOpen ? t("收起草稿纸") : t("草稿纸(手写演算,不计入作答)")}</button>
+          </div>
+          {handOpen && <HandwritePad ref={padRef} initial={handImg} onChange={setHandImg} />}
+          {draftOpen && <HandwritePad ref={draftRef} />}
+          <DropZone onFiles={(fs) => setAFiles((p) => [...p, ...fs])} className="flex items-center gap-2 text-sm text-stone-400">
+            <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setAFiles([...e.target.files])} /></label>
+            {aFiles.length > 0 && <span className="text-stone-500">{aFiles.length} {t("个文件")} <button className="underline" onClick={() => setAFiles([])}>{t("清除")}</button></span>}
+          </DropZone>
+          <div className="flex gap-2">
+            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-3 py-2 text-sm" />
+            <button onClick={send} disabled={busy || (!input.trim() && !aFiles.length && !handImg)} className="btn px-4">{t("发送")}</button>
+          </div>
         </div>
       )}
     </div>

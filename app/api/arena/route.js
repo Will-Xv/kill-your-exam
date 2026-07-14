@@ -9,8 +9,8 @@ export async function POST(req) {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no_exam" }, { status: 400 });
-    const { mode, scope, history } = await req.json();
-    const r = await arenaTurn(user, exam, { mode, scope, history: Array.isArray(history) ? history.slice(-24) : [] });
+    const { mode, scope, history, attachments } = await req.json();
+    const r = await arenaTurn(user, exam, { mode, scope, history: Array.isArray(history) ? history.slice(-24) : [], attachments: Array.isArray(attachments) ? attachments.slice(0, 4) : [] });
     return Response.json(r);
   } catch (e) { return aiErrorResponse(e); }
 }
