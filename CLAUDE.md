@@ -31,11 +31,12 @@
 - 三语迁移 `lib/langTransfer.js`（`/lang-transfer`，语言类考试，实时归因接在 practice/mock 批改里）。
 - 竞技场/游戏化 `lib/arena.js`（`/arena`，@@STATE/@@KP 回流掌握度）。
 - 自定义/AI生成**考核形式** `lib/customModes.js`（`custom_modes`，kind=play/exam_form，format=interactive/video）；**exam_form 自动成为独立栏目**（`saveCustomItem` id=`xform<id>` + `moveFeature`；放到 nav/more/morefeatures/zone/hidden **由 AI/用户经 `where` 参数决定**，默认 morefeatures；`/arena?launch=<id>` 直达）；竞技场只放 play；视频判分 `/api/arena/video-grade`；成绩 `custom_mode_results`。
+- 实践任务回流掌握度改用 embedding 语义匹配知识点(≥0.55)+子串兜底;视频类自定义考核评分时 AI 归因 kpSignals→recordCrossKp 也回流掌握度。
 - 实践任务 `lib/practical.js` + **Judge0** `lib/judge0.js`（`/tasks`，代码里程碑跑测试用例；证据里程碑 AI 审阅；用例申诉 `task_test_appeals`；`judge0_url/judge0_key` 在设置里由管理员配，创建提交+轮询、rapidapi/官方/自建三种鉴权自动判断）。**仅编程/STEM 专属:不在全局默认里,开启「实践模式」才自动把 tasks 栏目放进该考试首页;杀手判断是编程类才加。**
 - 模拟考**后台判题**：`/api/mock/submit` 立即返回 grading，`gradeMock` 后台跑，`/api/mock/status` 轮询（`mock_exams.status/grade_started_at/results_json`）。
 - 两层界面：`lib/uilab/*` + `/api/ui-items`。**每门考试可独立改布局（所有用户）**；**发布为默认仅开发者**；`normalizePlacement` 让新功能在旧布局里自动补位。
 
-- Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list`(未 seed published=仅dev)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2 已做**:`recipeProgress` 阶段掌握度增益测量(`recipe_phase_state` 快照)+ `ai_choose` 自动选增益最高的方法(recipe_status 显示 effectiveness/bestMethod)。**MVP-3 已做**:`lib/recipeRemap.js` proposeResegment(diff 预览不改数据)+ applyResegment(checkpoint→建新结构→AI映射+embedding兜底→非破坏重指 kp_id→删旧→integrityFix)。回退复用 checkpoint。冲突/优先级:getActiveRecipe(scope>priority>recency)已解析配方层。
+- Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list` + `recipe_resegment_preview/apply`(**已 seed published=对全体用户开放**)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2 已做**:`recipeProgress` 阶段掌握度增益测量(`recipe_phase_state` 快照)+ `ai_choose` 自动选增益最高的方法(recipe_status 显示 effectiveness/bestMethod)。**MVP-3 已做**:`lib/recipeRemap.js` proposeResegment(diff 预览不改数据)+ applyResegment(checkpoint→建新结构→AI映射+embedding兜底→非破坏重指 kp_id→删旧→integrityFix)。回退复用 checkpoint。冲突/优先级:getActiveRecipe(scope>priority>recency)已解析配方层。
 
 ## i18n
 - `lib/translations.js` 8 个字典（ZH_EN/FR/ES/RU/AR/ID/TW/HK），源键=简体中文，8 个都要同步加键。TW/HK 可用 opencc（s2twp/s2hk）从简体键机械生成。

@@ -181,8 +181,8 @@
 - **MVP-3(已做):结构重切 + diff 预览 + 作用域回退**(`lib/recipeRemap.js`)。`proposeResegment`:AI 把现有知识点按指令重新分组,给旧→新映射,**只预览**影响面(多少作答/错题/复习会迁移、孤儿点、不受影响的部分),暂存提案不改数据。`applyResegment`:先打 **checkpoint** → 建新结构 → 旧→新 id(先 AI 映射、再 embedding cosine≥0.5 兜底)→ **非破坏性重指** questions/attempts/insights 的 kp_id(原始行保留)→ 删旧点 → integrityFix。回退复用现有 checkpoint/rollback。杀手 brick `recipe_resegment_preview`(不改)/`recipe_resegment_apply`(改,dev)。
 - **冲突/优先级**:配方层已由 `getActiveRecipe` 解析(scope 特异性 > priority > recency,单一生效配方)。跨触发器细粒度优先级引擎留待后续。
 
-## 数据表总览（44）
-users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results**（粗体=本轮新增）。
+## 数据表总览（db.js 内 45 张 + `feature_registry`/`ui_events`(建于 uilab)≈47）
+users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results · recipes · recipe_versions · recipe_phase_state**（粗体=本轮新增)。另有 `feature_registry`(uiRegistry)、`ui_events`(uiPlacement) 建于其它模块。
 
 ## 砖头目录（37，已发布对全体开放）
 exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_aggregate/tree/promote_weak/provision/gen_status/merge/split/integrity_check · bank_list/set_closed/paste/add/set_must/delete · diagnose_root_cause/config · resolve_reference_list · plan_review/plan_compare · study_map · where_to_start · lang_background_set/lang_transfer_analyze/lang_transfer_predict · arena_play · create_custom_mode/list_custom_modes/generate_custom_modes · assign_practical_task/list_practical_tasks。
@@ -191,6 +191,8 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 
 ## 尚未做 / 已知边界
 - 根因分析未接入平时小测（当时未选）；无浏览器内 WASM 兜底（不要）。
-- 实践任务回流掌握度依赖能匹配到知识点；自定义考核成绩只记录+显示，未编入 KP 掌握度。
-- 学习模式/触发器工具目前 dev 门控（灰度）。
-- **下一阶段方向（ChatGPT 建议）：Workflow Recipe（planner-for-planner）** —— 让用户用自然语言定义一套**可保存/修改/复用/验证/回退**的 planner 行为规则（多阶段方法、学后测效果并据此改后续 planner、结构变更时旧错题/知识点/复习安全重映射、大改前 diff 影响范围、按作用域回退、规则冲突按 scope+优先级处理）。**现有底座**：`learning_modes`+`triggers`（规则持久化+行为改变+scope）、`checkpoints`（回退）、`planner`/`planVersions`（计划+版本对比）、`kp/rebuild` 保留策略（state remapping 雏形）。**缺口**：把它们统一到一个显式的、可视化 diff 的、带作用域优先级的 Recipe 层。
+- `learning_modes`/`triggers` 独立工具仍 dev 门控（Recipe 是它们的超集,已发布)。
+- **Workflow Recipe(planner-for-planner)学习端 MVP-1/2/3 已完成、已实测、并【已发布给全体用户】**(多阶段配方 + planner 按阶段选方法 + 阶段效果测量 + ai_choose 自动择优 + 结构重切/diff 预览/作用域回退)。当前边界:
+  - 跨触发器细粒度优先级引擎未做(配方层冲突已由 `getActiveRecipe`(scope>priority>recency) 解析);
+  - 科研复现 / AI4Science / 实验模拟等场景的 workflow 迁移尚未开始(学习只是低成本 sandbox);
+  - Recipe 专属可视化编辑页 / 可视化 diff 仍可打磨(目前经杀手对话 + 今日任务体现)。
