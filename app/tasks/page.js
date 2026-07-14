@@ -100,6 +100,19 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const [runOut, setRunOut] = useState(null);
   const [busy, setBusy] = useState("");
   const lang = ms.language || task.language || "python";
+  const invalid = (task.appeals && task.appeals[idx]) || {};
+  const [appealing, setAppealing] = useState(-1);
+  async function appeal(ti) {
+    setAppealing(ti);
+    try {
+      const note = prompt(t("(可选)说说你觉得这个用例哪里不对:")) || "";
+      const r = await aiFetch("/api/tasks/appeal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, idx, testIndex: ti, note }) });
+      if (r.verdict === "invalid") alert(t("申诉成立:该用例已判无效,不再计入判分。") + (r.note ? "\n" + r.note : ""));
+      else alert(t("复核后认为该用例是对的。") + (r.note ? "\n" + r.note : ""));
+      onGraded();
+    } catch {}
+    setAppealing(-1);
+  }
 
   async function run() {
     setBusy("run"); setRunOut(null);
@@ -128,8 +141,9 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
           {runOut && (runOut.notConfigured ? <p className="mt-1 text-xs text-amber-700">{t("未配置 Judge0,无法运行。")}</p> : runOut.error ? <p className="mt-1 text-xs text-rose-700">{t("运行出错")}: {runOut.error}{runOut.detail ? " · " + String(runOut.detail).slice(0, 120) : ""}</p> : runOut.results ? (
             <div className="mt-2 space-y-1">
               {runOut.results.map((r, ri) => (
-                <div key={ri} className={`rounded-lg px-2 py-1 text-xs ${r.passed ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
-                  {r.passed ? "✓" : "✗"} {t("用例")} {ri + 1}{r.stdin ? ` · in: ${r.stdin.slice(0, 30)}` : ""} {!r.passed && r.expected != null ? `· ${t("期望")} ${String(r.expected).slice(0, 40)} / ${t("实际")} ${String(r.stdout).slice(0, 40)}` : ""}{r.stderr ? ` · ${r.stderr.slice(0, 60)}` : ""}
+                <div key={ri} className={`rounded-lg px-2 py-1 text-xs ${invalid[ri] && invalid[ri].verdict === "invalid" ? "bg-stone-100 text-stone-400 line-through" : r.passed ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
+                  <span>{invalid[ri] && invalid[ri].verdict === "invalid" ? "⊘" : r.passed ? "✓" : "✗"} {t("用例")} {ri + 1}{r.stdin ? ` · in: ${r.stdin.slice(0, 30)}` : ""} {!r.passed && r.expected != null ? `· ${t("期望")} ${String(r.expected).slice(0, 40)} / ${t("实际")} ${String(r.stdout).slice(0, 40)}` : ""}{r.stderr ? ` · ${r.stderr.slice(0, 60)}` : ""}</span>
+                  {!r.passed && !invalid[ri] && <button onClick={() => appeal(ri)} disabled={appealing === ri} className="ml-2 rounded bg-white px-1.5 py-0.5 text-[10px] text-stone-600 ring-1 ring-stone-300 hover:bg-stone-50">{appealing === ri ? t("复核中…") : t("申诉此用例")}</button>}
                 </div>
               ))}
               <div className="text-xs font-semibold">{t("通过")} {runOut.passedCount}/{runOut.total}</div>
