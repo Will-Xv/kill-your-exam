@@ -1,6 +1,8 @@
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { assignTask, listTasks } from "@/lib/practical";
+import { assignTask, listTasks, deleteTask } from "@/lib/practical";
+import { inScope } from "@/lib/db";
+import { getTask } from "@/lib/practical";
 import { judge0Config } from "@/lib/judge0";
 
 export const maxDuration = 120;
@@ -17,8 +19,13 @@ export async function POST(req) {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no_exam" }, { status: 400 });
-    const { topic, kpId } = await req.json();
-    const r = await assignTask(user, exam, { topic: String(topic || "").slice(0, 160), kpId });
+    const b = await req.json();
+    if (b.delete) {
+      const tk = getTask(Number(b.delete));
+      if (!tk || !inScope(exam.id, tk.exam_id)) return Response.json({ ok: false });
+      return Response.json({ ok: deleteTask(user, b.delete) });
+    }
+    const r = await assignTask(user, exam, { topic: String(b.topic || "").slice(0, 160), kpId: b.kpId });
     return Response.json(r);
   } catch (e) { return aiErrorResponse(e); }
 }

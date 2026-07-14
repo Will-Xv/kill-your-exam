@@ -17,6 +17,11 @@ export default function TasksPage() {
   useEffect(() => { load(); }, []);
   const openTask = (id) => { setOpenId(id); setTask(null); fetch("/api/tasks/detail?id=" + id).then((r) => r.json()).then((d) => { setTask(d.task); setJudge0(!!d.judge0); }).catch(() => {}); };
 
+  async function del(id, e) {
+    e.stopPropagation();
+    if (!confirm(t("删除这个实践任务?"))) return;
+    try { await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); load(); } catch {}
+  }
   async function assign() {
     setBusy(true);
     try { const r = await aiFetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic }) }); setTopic(""); await load(); if (r.taskId) openTask(r.taskId); } catch {}
@@ -43,14 +48,19 @@ export default function TasksPage() {
       {list && list.length === 0 && <div className="card text-sm text-stone-500">{t("还没有实践任务。上面填个主题让 AI 给你布置一个。")}</div>}
       <div className="space-y-2">
         {(list || []).map((tk) => (
-          <button key={tk.id} onClick={() => openTask(tk.id)} className="card block w-full text-left hover:ring-2 hover:ring-indigo-300">
-            <div className="flex items-center justify-between">
-              <span className="font-bold">{tk.title}</span>
-              <span className="text-xs text-stone-400">{tk.done}/{tk.milestoneCount} {t("里程碑")}</span>
+          <div key={tk.id} className="card hover:ring-2 hover:ring-indigo-300">
+            <div className="flex items-start justify-between gap-2">
+              <button onClick={() => openTask(tk.id)} className="flex-1 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold">{tk.title}</span>
+                  <span className="text-xs text-stone-400">{tk.done}/{tk.milestoneCount} {t("里程碑")}</span>
+                </div>
+                <p className="mt-0.5 text-xs text-stone-500 line-clamp-2">{tk.brief}</p>
+                {tk.language && <span className="mt-1 inline-block rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-600">{tk.language}</span>}
+              </button>
+              <button onClick={(e) => del(tk.id, e)} title={t("删除")} className="shrink-0 text-xs text-stone-400 hover:text-rose-500">✕</button>
             </div>
-            <p className="mt-0.5 text-xs text-stone-500 line-clamp-2">{tk.brief}</p>
-            {tk.language && <span className="mt-1 inline-block rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-600">{tk.language}</span>}
-          </button>
+          </div>
         ))}
       </div>
     </div>
