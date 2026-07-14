@@ -13,7 +13,11 @@
 
 ## 知识树/规划的行为契约(Will 反复踩坑)
 - **PDF/图片摄取 = 一律 File API 多模态(Will 定,不 OCR/不抽文字)**:`parseUpload` 对 PDF 和图片【一律返回空文本、不抽字不 OCR】;原文件保存后靠 `materialParts`(File API,`fileData`)交给 Gemini 多模态直读。只有 docx/txt/md 等【原生数字文本】才抽字分块做 RAG 检索。因此 PDF/图片【没有 chunk、没有语义检索】,全靠把文件喂给模型——`materialParts` 默认 cap 20、建树 `buildKnowledgeTree` cap 60(把【全部】教材都喂进去,别再像以前 cap 6 那样漏掉)。代价:每次要带文件、成本更高、失去按知识点精准检索片段——这是 Will 明确接受的取舍。locate/引用真题靠 `referenceResolve` 的 File API 多模态兜底。
-- **动到已有进度的结构改动前,必须先用大白话问「保留补充 vs 重排映射」**:考试已有进度(做过题/掌握度/已有计划)时扩范围/重规划,杀手【每次都要】让主人二选一——①保留旧进度、只追加新章节(增量添加,不重复已有);②按新结构重排+语义映射旧进度(build_knowledge_tree retain=keep 自动迁移)。【绝不擅自决定,更不许旧的留着又重加一遍造成重复】。(踩坑:期中已有计划→规划到期末,杀手直接给了从头学的计划,旧进度没映射还重复了。)
+- **【重要·底层全是现成的,别重造,只路由】结构大改/家族组织前,杀手先用大白话让主人三选一**:①【完全保留旧知识和旧题】(不动现有树和题,只在需要时追加新内容);②【建新树+把旧知识点掌握度语义映射过去】;③【完全重新来】(清旧记录干净重建)。每次都问、别猜;弹重建确认≠问过。这套逻辑 Will 早就做好了,别再重实现,找现成的用:
+  - 单门考试重建=`rebuildKnowledgeTree(exam,lang,mode,opts)`(lib/generators.js):mode=keep(先删旧点建新点,再用 embedding 把旧 attempts/insights【语义映射】到最相近新点 cosine≥0.5=②)/ summarize(旧表现浓缩成观察挂新点、清原始记录)/ none(清记录干净重来=③)。杀手工具 build_knowledge_tree 的 retain 即它。
+  - 跨考试/家族=lib/bricks/crossExam.js:`exam_provision`(role=mother 的 carryMode=live/summarize/partial/copy_all 决定旧内容怎么处理)、`exam_set_aggregate`(母考试实时汇总整棵子树、不复制)、`exam_set_parent`、`exam_copy_kps`/`exam_copy_questions`、`exam_promote_weak`(冲刺精选集)。
+  - **家族防重复设计(已实现)**:carryMode=live→只开汇总不复制;summarize/partial/copy_all→复制内容并【关掉汇总】避免重复。
+  - **本次重复真因**:期中+期末是一个家族,期末【既开汇总(把期中并进来)又把早期章节建进了自己的树】→ /api/kp 按 examScope 聚合家族、把早期内容显示两遍。不是生成 bug、不是残留,是【汇总+自建】双份。家族范围重叠怎么组织,该【杀手问主人】,不该开发者代问。
 - 主人说【范围/目标】(如"规划到期末""复习整门课")= 清晰意图,别当"模糊"反复追问;若当前树没覆盖该范围,杀手【主动】扩建/重建(走确认弹窗,默认 retain=keep,不为 retain 单独盘问)。
 - **考试/节点名(期末/期中/quiz/final/某考试名)永远不是章节名、也不是知识点**:要把该范围里【还没建的真实内容单元】(如"多元函数最优化""二重积分")作为一个个【正常章节】补进去;【绝不】建一个叫考试名/节点名的章节。不知道范围含啥就查资料/联网搜 syllabus/问主人,别编。
 - `timeBudgetMin` 通用铁律:【只有】主人【明确给出很短时间预算+小范围】(如"一小时复习完这几节")才用(压成"以考试名命名的单章");【绝不能从范围词/考试名反推时间预算】——任何"扩大/铺开/覆盖到某节点/整门课"的需求都走正常多章重建。误判成小测就是"加一个叫期末的单元"那个 bug 的根因。
