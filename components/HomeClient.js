@@ -106,10 +106,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     t("自由练习一组");
   const firstUndone = items.find((it) => !it.done);
   const allDone = items.length && !firstUndone;
-  const linkFor = (it) => (it.type === "review" ? "/practice?mode=review" : it.type === "kp" ? `/study?kp=${it.kpId}` : "/practice?fresh=1");
+  const linkFor = (it) => (it.methodHref ? it.methodHref : it.type === "review" ? "/practice?mode=review" : it.type === "kp" ? `/study?kp=${it.kpId}` : "/practice?fresh=1");
   const labelFor = (it) =>
     it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
-    it.type === "kp" ? `${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
+    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
     `${t("自由练习")} (${it.count}/${it.target})`;
 
   const features = [
@@ -267,6 +267,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             <Link href="/plan" className="inline-flex items-center gap-1.5 rounded-full bg-[#2f2413] px-3.5 py-1.5 text-sm font-semibold text-[#f6efdd] shadow-sm hover:opacity-90">🗺️ {t("跨考试规划")}</Link>
           </div>
         </div>
+        {daily?.recipe && (
+          <div className="mb-2 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs text-indigo-800 ring-1 ring-indigo-200">
+            🧭 {t("学习配方")}「{daily.recipe.name}」· {t("阶段")} {daily.recipe.phaseIndex + 1}/{daily.recipe.phaseTotal}{daily.recipe.phase ? " · " + daily.recipe.phase : ""}{daily.recipe.allDone ? " ✓" : ""}
+          </div>
+        )}
         {!daily ? <div className="shimmer h-10 rounded-xl" /> : (
           <div className="space-y-1">
             {items.map((it, i) => (
