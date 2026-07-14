@@ -70,10 +70,40 @@ export default function Materials() {
     await fetch("/api/materials/upload", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     load();
   }
+  const [smap, setSmap] = useState(null);
+  const [smapBusy, setSmapBusy] = useState(false);
+  async function runStudyMap() {
+    setSmapBusy(true); setSmap(null);
+    try { const d = await fetch("/api/study-map").then((r) => r.json()); setSmap(d); } catch { setSmap({ err: 1 }); }
+    setSmapBusy(false);
+  }
   const done = checklist.filter((c) => c.done).length;
   return (
     <div className="space-y-4 md:mt-14">
       <h1 className="text-2xl font-bold">{t("补充资料")}</h1>
+      {list.length >= 2 && (
+        <div className="card">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="font-bold text-sm">🗺️ {t("学习地图")}</h2>
+              <p className="text-xs text-stone-400">{t("把这些资料理一理:哪些重复、哪些互补、缺什么、先学哪份。")}</p>
+            </div>
+            {!smap?.map && <button className="btn-ghost py-2 text-xs shrink-0" onClick={runStudyMap} disabled={smapBusy}>{smapBusy ? t("整理中…") : t("生成学习地图")}</button>}
+          </div>
+          {smap && (smap.map || smap.err || smap.reason) && (
+            smap.err ? <p className="mt-2 text-xs text-stone-400">{t("生成失败,稍后再试。")}</p>
+            : !smap.map ? <p className="mt-2 text-xs text-stone-400">{t("至少要2份资料才能生成地图。")}</p>
+            : (<div className="mt-3 space-y-3 text-sm">
+                {smap.map.summary && <div className="rounded-xl bg-amber-50 px-3 py-2 font-semibold text-[#5a2d0c]">{smap.map.summary}</div>}
+                {smap.map.order?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-emerald-700">{t("建议学习顺序")}</div><ol className="mt-1 list-decimal pl-5 text-stone-700">{smap.map.order.map((o, i) => <li key={i}><span className="font-medium">{o.material}</span>{o.why ? <span className="text-stone-500"> — {o.why}</span> : ""}</li>)}</ol></div>}
+                {smap.map.redundant?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("重复(留一份就够)")}</div>{smap.map.redundant.map((r, i) => <div key={i} className="mt-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs">{(r.materials || []).join(" · ")}{r.note ? <span className="text-stone-500"> — {r.note}</span> : ""}</div>)}</div>}
+                {smap.map.complementary?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-sky-700">{t("互补搭配")}</div>{smap.map.complementary.map((r, i) => <div key={i} className="mt-1 rounded-xl bg-sky-50 px-3 py-1.5 text-xs">{(r.materials || []).join(" + ")}{r.note ? <span className="text-stone-500"> — {r.note}</span> : ""}</div>)}</div>}
+                {smap.map.groups?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-stone-500">{t("按主题分组")}</div>{smap.map.groups.map((g, i) => <div key={i} className="mt-1 rounded-xl bg-stone-50 px-3 py-1.5 text-xs"><span className="font-medium">{g.topic}</span>：{(g.materials || []).join("、")}</div>)}</div>}
+                {smap.map.gaps?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-amber-700">{t("还缺资料的主题")}</div><ul className="mt-1 list-disc pl-5 text-stone-600">{smap.map.gaps.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
+              </div>)
+          )}
+        </div>
+      )}
       <div className="card space-y-2">
         <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,image/*,audio/*" />
         {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}
