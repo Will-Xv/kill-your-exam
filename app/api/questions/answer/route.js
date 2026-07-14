@@ -5,6 +5,7 @@ import { materialParts } from "@/lib/rag";
 import { updateReviewQueue, leafKpList, recordCrossKp, kpMasteryLevel, invalidateKnowledgeState } from "@/lib/mastery";
 import { addFact, analyzeMistakeBg } from "@/lib/memory";
 import { bumpUsageAndMaybeDiagnose } from "@/lib/diagnose";
+import { classifyTransferBg } from "@/lib/langTransfer";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { onAnswer } from "@/lib/triggers";
 import { aiErrorResponse } from "@/lib/errors";
@@ -83,6 +84,7 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
         let stem = ""; try { stem = JSON.parse(q.body).stem; } catch {}
         const kt2 = q.kp_id ? (db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title || "") : "";
         analyzeMistakeBg(user, q.exam_id, { stem, userAnswer: String(userAnswer || ""), correctAnswer: ans.answer, kpTitle: kt2, correct: !!correct });
+        if (!correct) { let stem3 = ""; try { stem3 = JSON.parse(q.body).stem; } catch {} classifyTransferBg(user, exam, { attemptId: ins.lastInsertRowid, kpId: q.kp_id, stem: stem3, correctAnswer: ans.answer, userAnswer: String(userAnswer || "") }); } // A2 语言题实时迁移归因
       }
       try { bumpUsageAndMaybeDiagnose(user, q.exam_id); } catch {} // 累计使用时长,满阈值(默认2h,可经杀手改,下限1.5h)后台自动跑跨章节根因
     } catch {}

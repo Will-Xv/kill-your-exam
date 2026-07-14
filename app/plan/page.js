@@ -170,7 +170,7 @@ export default function PlanPage() {
                   {cmp.variants[variant].exams.filter((e) => (e.tasks || []).length).map((e) => (
                     <div key={e.id} className="rounded-2xl bg-white/60 px-3 py-2 ring-1 ring-[#e4d5af]">
                       <div className="flex justify-between text-sm font-semibold text-[#2f2413]"><span>{e.name}</span><span className="text-xs text-[#8a7a54]">{e.allocMinutes}{t("分钟")}</span></div>
-                      <div className="mt-1 space-y-0.5">{e.tasks.map((tk, ti) => <a key={ti} href={tk.href} className="flex justify-between text-xs text-[#2f2413] hover:underline"><span className="truncate pr-2">{tk.title || tk.label}</span><span className="shrink-0 text-[#8a7a54]">{tk.minutes}{t("分钟")}</span></a>)}</div>
+                      <div className="mt-1 space-y-0.5">{e.tasks.map((tk, ti) => <a key={ti} href={tk.href} className="flex justify-between text-xs text-[#2f2413] hover:underline"><span className="truncate pr-2">{tk.root && <span className="mr-1 text-rose-600">🔗</span>}{tk.title || tk.label}</span><span className="shrink-0 text-[#8a7a54]">{tk.minutes}{t("分钟")}</span></a>)}</div>
                     </div>
                   ))}
                   {cmp.variants.sharedNote && <div className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-800">🔗 {cmp.variants.sharedNote}</div>}
@@ -224,7 +224,7 @@ export default function PlanPage() {
               <div className="mt-3 space-y-1.5">
                 {e.tasks.map((tk, ti) => (
                   <a key={ti} href={tk.href} className="flex items-center justify-between rounded-xl bg-white/60 px-3 py-2 text-sm text-[#2f2413] transition hover:bg-white">
-                    <span className="truncate pr-2">{taskText(tk)}</span>
+                    <span className="truncate pr-2">{tk.root && <span className="mr-1 rounded bg-rose-100 px-1 text-[10px] font-bold text-rose-700">🔗{t("根因")}</span>}{taskText(tk)}</span>
                     <span className="shrink-0 text-xs font-semibold text-[#8a7a54]">{tk.minutes}{t("分钟")}</span>
                   </a>
                 ))}

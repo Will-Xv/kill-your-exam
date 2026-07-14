@@ -6,6 +6,7 @@ import { saveMockAtt } from "@/lib/files";
 import { leafKpList, recordCrossKp, updateReviewQueue } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 import { runRootCauseDiagnosis } from "@/lib/diagnose";
+import { classifyTransferBg } from "@/lib/langTransfer";
 
 export const maxDuration = 300;
 
@@ -50,6 +51,7 @@ async function gradeMock(user, exam, mockId, ids, marksMap, answers, attachments
       .run(qid, q.exam_id, q.kp_id, String(ua || ""), correct, scoreVal);
     const attemptId = insA.lastInsertRowid;
     try { updateReviewQueue(qid, correct); } catch {}
+    if (!correct) { let stemT = ""; try { stemT = JSON.parse(q.body).stem; } catch {} classifyTransferBg(user, exam, { attemptId, kpId: q.kp_id, stem: stemT, correctAnswer: ans.answer, userAnswer: String(ua || "") }); } // A2 语言题实时迁移归因
     results.push({ id: qid, qtype: q.qtype, correct, score: scoreVal, marks: qMarks, earned: earnedMarks, chapter: ch, answer: ans.answer, explanation: ans.explanation || "", attemptId });
     if (gradeCross) { try { recordCrossKp(exam.id, qid, gradeCross, q.kp_id); } catch {} }
     const atts = Array.isArray(attachments[qid]) ? attachments[qid] : [];
