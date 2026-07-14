@@ -89,7 +89,8 @@
 - Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list` + `recipe_resegment_preview/apply`(**已 seed published=对全体用户开放**)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2 已做**:`recipeProgress` 阶段掌握度增益测量(`recipe_phase_state` 快照)+ `ai_choose` 自动选增益最高的方法(recipe_status 显示 effectiveness/bestMethod)。**MVP-3 已做**:`lib/recipeRemap.js` proposeResegment(diff 预览不改数据)+ applyResegment(checkpoint→建新结构→AI映射+embedding兜底→非破坏重指 kp_id→删旧→integrityFix)。回退复用 checkpoint。冲突/优先级:getActiveRecipe(scope>priority>recency)已解析配方层。
 
 ## i18n
-- `lib/translations.js` 8 个字典（ZH_EN/FR/ES/RU/AR/ID/TW/HK），源键=简体中文，8 个都要同步加键。TW/HK 可用 opencc（s2twp/s2hk）从简体键机械生成。
+- **【铁律】任何新功能、新按钮、新文案都必须做【全语言】**——不是只补英文。凡是 UI 上会显示给用户的字符串,都要在 `lib/translations.js` 的【全部 8 个字典】里同步加键(ZH 源键=简体中文;EN/FR/ES/RU/AR/ID + 繁体 TW/HK)。只加英文=不合格。加完用 grep 数一遍确认 8 个字典都有(别只print"已加"却没生效)。
+- `lib/translations.js` 8 个字典（ZH_EN/FR/ES/RU/AR/ID/TW/HK),源键=简体中文,8 个都要同步加键。TW/HK 可用 opencc(s2twp/s2hk)从简体键机械生成。批量加键时可按各字典独有的锚点值(如 `"重练到期错题": "<该语言值>",`)定位插入,注意繁体两个字典(TW/HK)可能锚点值相同,要处理重复。
 
 ## Judge0（Will 已买官方 per-use，实为 RapidAPI 计费）
 - 设置里：地址 `https://judge0-ce.p.rapidapi.com` + RapidAPI Key。已实测代码执行判分通（正确 4/4、错误按用例扣分）。
