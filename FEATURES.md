@@ -176,7 +176,7 @@
 - planner-for-planner:把用户自然语言的整套学习流程存成【多阶段配方】。表 `recipes`(spec_json:goal/phases[]/rules;priority;active;version)、`recipe_versions`(配方版本历史)。
 - 每 phase = `selector`(chapters/kp_ids/weak/all,圈定知识点) + `method`(practice/socratic/debate/explain_first/custom_mode/ai_choose) + `exit`(mastery_ge level ok|mastered / accuracy_ge / manual)。
 - `getActiveRecipe` 冲突解析:**scope 特异性(exam>global) > priority > recency**。`currentPhase` 按掌握度判定第一个未过阶段(阶段覆盖的知识点 ≥80% 达 exit 即过)。`methodForKp` 供 planner:今日任务(`/api/daily`)按当前阶段给每个知识点标 `method/methodTag/methodLabel/methodHref`,并返回 `recipe` 块(name/phase/method)。
-- 杀手 brick(未 seed published = **仅开发者**):`recipe_save`(AI 把大白话流程 + 考试章节 → spec 并激活)、`recipe_activate`、`recipe_status`、`recipe_list`。
+- 杀手 brick(**已发布·全体可用**):`recipe_save`(AI 把大白话流程 + 考试章节 → spec 并激活;**流程模糊/缺信息/自相矛盾时不猜——返回 needsClarification + 具体问题,杀手据此停下来追问主人,直到说清才生成**)、`recipe_activate`、`recipe_status`(含各方法 effectiveness)、`recipe_list`、`recipe_resegment_preview/apply`。
 - **MVP-2(已做):阶段效果测量 + ai_choose 自动择优**。`recipeProgress`:进入阶段时快照其知识点掌握度(`recipe_phase_state`),阶段过后算**方法无关的掌握度增益**(gain=现在平均 rank − 起点平均 rank);`method=ai_choose` 的阶段**自动解析成已完成阶段里增益最高的方法**(候选可指定)。`recipe_status` 显示各方法效果(effectiveness)+ 目前最优方法(bestMethod)。
 - **MVP-3(已做):结构重切 + diff 预览 + 作用域回退**(`lib/recipeRemap.js`)。`proposeResegment`:AI 把现有知识点按指令重新分组,给旧→新映射,**只预览**影响面(多少作答/错题/复习会迁移、孤儿点、不受影响的部分),暂存提案不改数据。`applyResegment`:先打 **checkpoint** → 建新结构 → 旧→新 id(先 AI 映射、再 embedding cosine≥0.5 兜底)→ **非破坏性重指** questions/attempts/insights 的 kp_id(原始行保留)→ 删旧点 → integrityFix。回退复用现有 checkpoint/rollback。杀手 brick `recipe_resegment_preview`(不改)/`recipe_resegment_apply`(改,dev)。
 - **冲突/优先级**:配方层已由 `getActiveRecipe` 解析(scope 特异性 > priority > recency,单一生效配方)。跨触发器细粒度优先级引擎留待后续。
