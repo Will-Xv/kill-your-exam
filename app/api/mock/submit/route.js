@@ -9,6 +9,7 @@ import { runRootCauseDiagnosis } from "@/lib/diagnose";
 
 export const maxDuration = 300;
 
+const STALE_MS = 8 * 60 * 1000; // 判题超过 8 分钟没结果视为卡死,允许重试触发
 const DEFAULT_MARKS = { single: 2, multi: 3, judge: 1, fill: 3, short: 10, perform: 20 };
 const norm = (s) => String(s || "").replace(/[\s,，、]/g, "").toUpperCase();
 
@@ -68,15 +69,20 @@ export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    const { mockId, answers, attachments = {} } = await req.json();
+    const { mockId, answers = {}, attachments = {} } = await req.json();
     const mock = db.prepare("SELECT * FROM mock_exams WHERE id=?").get(mockId);
     if (!mock || mock.exam_id !== exam?.id) return forbidden();
     if (mock.status === "done" && mock.score_json) { // 已判过:直接返回
       return Response.json({ status: "done", score: JSON.parse(mock.score_json), results: mock.results_json ? JSON.parse(mock.results_json) : [] });
     }
+    // 防重复:已经在判、且起点在 STALE_MS 内 → 不再另起一份后台判题(避免重复插 attempts / 双写竞争)。
+    const startedAt = mock.grade_started_at ? Date.parse(mock.grade_started_at + "Z") : 0;
+    const fresh = startedAt && (Date.now() - startedAt) < STALE_MS;
+    if (mock.status === "grading" && fresh) return Response.json({ status: "grading", mockId });
     const cfg = JSON.parse(mock.config_json); const ids = cfg.questionIds; const marksMap = cfg.marks || {};
-    // 标记为判题中 → 后台判题(Railway 常驻进程,后台 promise 可存活)→ 立即返回,不让用户干等。
-    db.prepare("UPDATE mock_exams SET status='grading' WHERE id=?").run(mockId);
+    // 标记为判题中 + 记录起点 → 后台判题(Railway 常驻进程,后台 promise 可存活)→ 立即返回,不让用户干等。
+    // (若上一次判题卡死超过 STALE_MS,这里会重新触发一份,自愈。)
+    db.prepare("UPDATE mock_exams SET status='grading', grade_started_at=datetime('now') WHERE id=?").run(mockId);
     Promise.resolve().then(() => gradeMock(user, exam, mockId, ids, marksMap, answers, attachments))
       .catch((e) => { try { db.prepare("UPDATE mock_exams SET status='failed' WHERE id=?").run(mockId); } catch {} });
     return Response.json({ status: "grading", mockId });

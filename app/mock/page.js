@@ -197,6 +197,7 @@ export default function Mock() {
     setBusy(false);
   }
   const pollRef = useRef(null);
+  useEffect(() => () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }, []); // 卸载时清掉轮询,避免在已卸载组件上 setState
   function pollGrading(id) {
     const mid = id || mockId;
     if (pollRef.current) return;
@@ -280,7 +281,7 @@ function stripLabel(op, i) {
               <p className="text-3xl mb-2">⚠️</p>
               <h2 className="font-bold text-lg">{t("判题出了点问题")}</h2>
               <p className="text-sm text-stone-500 mt-1">{t("成绩没能算出来,可以稍后重试。")}</p>
-              <button className="btn mt-3" onClick={() => { setGradeErr(false); setStage("grading"); pollGrading(); }}>{t("重试")}</button>
+              <button className="btn mt-3" onClick={async () => { setGradeErr(false); setStage("grading"); try { const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) }); if (d.status === "done" && d.score) { setScore(d.score); setResults(d.results || null); setStage("done"); return; } } catch {} pollGrading(); }}>{t("重试")}</button>
             </>
           ) : (
             <>
