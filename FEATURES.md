@@ -41,7 +41,7 @@
 - 个性化知识地图，按掌握度着色（mastered/ok/weak/unlearned）+ 资料覆盖点（🟢🟡⚪）。`knowledge_points`（含 parent_id 章节、sort、root_cause）。
 - **掌握度=理解而非对错**：`masteryMatrix(examId)` 共享 `attemptVal(a)` 把作答/简答推理/讨论/标记折算成证据，**近期加权**；`kpMasteryLevel`、`leafKpList`、`examSummary`（weak/rootCauseKps）。
 - **跨知识点推断** `recordCrossKp`：在别的题/讨论里体现出对某点的理解→点绿、误解→点红，写 `insights` 表。
-- **重建树** `app/api/kp/rebuild`：保留策略——keep(按合并作答时间线重放遗忘曲线 `recomputeReviewFromAttempts` 语义迁移旧记录)/summarize(浓缩成观察)/wipe。
+- **重建树 + 语义状态重映射** `app/api/kp/rebuild` → `rebuildKnowledgeTree`（`lib/generators.js`）：重建前打 **checkpoint**；建新树后**用 embedding 把旧叶子知识点与新叶子做 cosine 匹配（≥0.5）**，得 `旧KP→新KP` 映射，把 `questions.kp_id / attempts.kp_id / insights.kp_id` **从旧点重映射到语义最近的新点**（未命中置 NULL）。保留策略：**keep**=迁移原始作答+观察到新点；**summarize**=AI 把每个旧点表现浓缩成一句挂到匹配的新点（删原始作答）；**none**=清空。→ **这就是"知识点语义映射/state remapping"的现成实现**，Recipe 结构重切直接复用它。
 - 讲解 `app/api/kp/explain`（来源徽章：基于资料 vs 模型知识；`explanations` 缓存）。**该从哪开始** `lib/startHere.js`+`app/api/diagnostic`：needTest(5/10/15分抽测)或 advise(指该补的章)，可接模拟考。
 
 ## 六、学习 / 练习（`app/practice` · `app/api/questions/*`）
