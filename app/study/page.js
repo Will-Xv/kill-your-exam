@@ -12,6 +12,11 @@ function StudyInner() {
   const [tree, setTree] = useState(null);
   const [levels, setLevels] = useState({});
   const [roots, setRoots] = useState({});
+  const [start, setStart] = useState(null);
+  const [startBusy, setStartBusy] = useState(false);
+  const [startMin, setStartMin] = useState(10);
+  const loadStart = (mins) => { setStartBusy(true); const m = mins || startMin; setStartMin(m); fetch("/api/diagnostic?minutes=" + m).then((r) => (r.ok ? r.json() : null)).then(setStart).catch(() => {}).finally(() => setStartBusy(false)); };
+  useEffect(() => { loadStart(10); }, []);
   const [levelCounts, setLevelCounts] = useState({});
   const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
@@ -85,6 +90,32 @@ function StudyInner() {
           <div key={k}><div className={`mx-auto h-3 w-3 rounded-full ${LVDOT[k]} mb-1`} /><b>{levelCounts[k] || 0}</b> {LVLABEL[k]}</div>
         ))}
       </div>
+      {start && (start.mode === "needTest" || start.mode === "advise") && (
+        <div className="card border-emerald-300 bg-emerald-50/50">
+          <h2 className="font-bold text-[#14532d]">🩺 {t("该从哪开始")}</h2>
+          {start.mode === "needTest" ? (
+            <div className="mt-1 text-sm">
+              <p className="text-xs text-stone-500">{t("还没什么做题数据——先花几分钟抽测一下底子,那些『没学』的点你可能早就会。")}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-stone-500">{t("我有:")}</span>
+                {[5, 10, 15].map((mn) => <button key={mn} onClick={() => loadStart(mn)} disabled={startBusy} className={`rounded-full px-2.5 py-0.5 ring-1 ${startMin === mn ? "bg-emerald-600 text-white ring-emerald-600" : "bg-white text-stone-600 ring-stone-300"}`}>{mn}{t("分钟")}</button>)}
+                {start.suggestMock && <a href="/mock" className="rounded-full bg-amber-100 px-2.5 py-0.5 text-amber-700 ring-1 ring-amber-300">🎯 {t("最全面:做一次模拟考")}</a>}
+              </div>
+              <p className="mt-2 text-xs font-semibold text-stone-600">{t("先测这几个点(约")}{start.minutes}{t("分钟)")}：</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {(start.sample || []).map((k) => <a key={k.kpId} href={`/practice?kp=${k.kpId}`} className="rounded-lg bg-white px-2 py-1 text-xs text-[#2f2413] ring-1 ring-emerald-200 hover:bg-emerald-50">{k.title.length > 26 ? k.title.slice(0, 26) + "…" : k.title}</a>)}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 space-y-2 text-sm">
+              {start.solid?.length > 0 && <div className="text-xs text-stone-600">✅ {t("已经比较稳(可略过/只巩固):")}<span className="font-medium">{start.solid.join("、")}</span></div>}
+              {start.start?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("建议从这里开始")}</div><div className="mt-1 space-y-1">{start.start.map((c, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium">{c.chapter}</span>{c.acc != null ? ` · ${t("正确率")}${c.acc}%` : ""} · {t("薄弱/未学")}{c.weak + c.unlearned}</div>)}</div></div>}
+              {start.firstAction && <a href={`/practice?kp=${start.firstAction.kpId}`} className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">▶ {t("第一步:")}{start.firstAction.title.slice(0, 30)}</a>}
+              {start.suggestMock && <a href="/mock" className="ml-2 text-xs text-amber-700 underline">{t("或直接做一次模拟考全面测")}</a>}
+            </div>
+          )}
+        </div>
+      )}
       {tree.map((ch) => (
         <div key={ch.id} className="card">
           <h2 className="font-bold mb-2 flex items-center gap-2">{ch.title}{ch.isSub && ch.fromExamName && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-300">📎 {ch.fromExamName}</span>}</h2>
