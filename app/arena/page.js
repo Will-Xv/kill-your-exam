@@ -25,7 +25,14 @@ export default function ArenaPage() {
   const [genBusy, setGenBusy] = useState(false);
   const boxRef = useRef(null);
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
-  const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => setCustom({ play: d.play || [], exam_form: d.exam_form || [] })).catch(() => {});
+  const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => {
+    setCustom({ play: d.play || [], exam_form: d.exam_form || [] });
+    try {
+      const lid = new URLSearchParams(window.location.search).get("launch");
+      if (lid && !launchedRef.current) { const all = [...(d.exam_form || []), ...(d.play || [])]; const m = all.find((x) => String(x.id) === String(lid)); if (m) { launchedRef.current = true; launchCustom(m); } }
+    } catch {}
+  }).catch(() => {});
+  const launchedRef = useRef(false);
   useEffect(() => { loadModes(); }, []);
 
   async function turn(history, l) {
@@ -52,7 +59,7 @@ export default function ArenaPage() {
   const launchCustom = (m) => { const l = { key: "custom:" + m.id, id: m.id, emoji: m.emoji, title: m.name, meterLabel: m.meter_label || "进度", down: m.meter_dir === "down", format: m.format, spec: m.spec, winDesc: m.win_desc }; if (m.format === "video") { setLaunch(l); } else { start(l); } };
   async function genModes() {
     setGenBusy(true);
-    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generate: true, count: 3 }) }); loadModes(); } catch {}
+    try { const r = await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generate: true, count: 3 }) }); loadModes(); if (r && r.created) alert(t("已生成为独立考核栏目(在首页/更多功能里):") + " " + r.created.map((m) => m.name).join("、")); } catch {}
     setGenBusy(false);
   }
   async function del(id) {
@@ -82,14 +89,6 @@ export default function ArenaPage() {
         ))}
       </div>
 
-      {custom.exam_form.length > 0 && (
-        <div>
-          <h2 className="mt-2 text-sm font-bold text-stone-600">🎯 {t("本考试的自定义考核")}</h2>
-          <div className="mt-1 grid gap-2 sm:grid-cols-3">
-            {custom.exam_form.map((m) => <CustomCard key={m.id} m={m} onStart={() => launchCustom(m)} onDel={() => del(m.id)} t={t} />)}
-          </div>
-        </div>
-      )}
       {custom.play.length > 0 && (
         <div>
           <h2 className="mt-2 text-sm font-bold text-stone-600">🎲 {t("自定义玩法")}</h2>
@@ -213,7 +212,7 @@ function Creator({ t, aiFetch, onCreated }) {
   async function create() {
     if (!name.trim() || !spec.trim()) return;
     setBusy(true);
-    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); onCreated(); } catch {}
+    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); if (kind === "exam_form") alert(t("已创建为一个独立考核栏目,在首页/更多功能里可找到。")); onCreated(); } catch {}
     setBusy(false);
   }
   return (
