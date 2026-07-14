@@ -58,8 +58,8 @@ export async function POST(req) {
         const exRow = db.prepare("SELECT id, name FROM exams WHERE id=?").get(examId);
         if (!exRow) return;
         const res = await assessMaterialTopic(exRow, { text: parsedText, buffer, mime, kind }, user.lang);
-        if (res && res.matches === false) db.prepare("UPDATE materials SET offtopic=1, offtopic_reason=? WHERE id=?").run(String(res.reason || "").slice(0, 300), materialId);
-        else db.prepare("UPDATE materials SET offtopic=0 WHERE id=?").run(materialId);
+        const flag = res && res.verdict === "mismatch" ? 1 : res && res.verdict === "unsure" ? 2 : 0; // 0=match 1=不符 2=不确定
+        db.prepare("UPDATE materials SET offtopic=?, offtopic_reason=? WHERE id=?").run(flag, String((res && res.reason) || "").slice(0, 300), materialId);
       } catch {}
     }).catch(() => {});
     return Response.json({ ok: true, materialId, chunks });
