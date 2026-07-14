@@ -120,6 +120,9 @@ export default function Mock() {
   const [err, setErr] = useState("");
   const [score, setScore] = useState(null);
   const [results, setResults] = useState(null);
+  const [mockDiag, setMockDiag] = useState(null);
+  const [mockRoot, setMockRoot] = useState(null);
+  const [gradeErr, setGradeErr] = useState(false);
   const [started, setStarted] = useState(0);
   const hydrated = useRef(false);
   const saveTimer = useRef(null);
@@ -127,7 +130,7 @@ export default function Mock() {
   useEffect(() => {
     (async () => {
       const s = await idbGet(KEY);
-      if (s && (s.stage === "running" || s.stage === "done") && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 7 * 24 * 3600 * 1000) {
+      if (s && (s.stage === "running" || s.stage === "done" || s.stage === "grading") && Array.isArray(s.qs) && s.qs.length && Date.now() - (s.ts || 0) < 7 * 24 * 3600 * 1000) {
         restoredAtts.current = s.atts || {};
         attachRef.current = { ...(s.atts || {}) };
         restoredDrafts.current = s.drafts || {};
@@ -135,6 +138,7 @@ export default function Mock() {
         setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0);
         if (s.stage === "done") { setScore(s.score || null); setResults(s.results || null); }
         setStage(s.stage);
+        if (s.stage === "grading") pollGrading(s.mockId);   // 关掉页面又回来:继续轮询判题结果
       }
       hydrated.current = true;
     })();
@@ -142,10 +146,21 @@ export default function Mock() {
 
   function persist() {
     if (!hydrated.current) return;
-    if ((stage === "running" || stage === "done") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, drafts: draftsRef.current, score, results, ts: Date.now() });
+    if ((stage === "running" || stage === "done" || stage === "grading") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, drafts: draftsRef.current, score, results, ts: Date.now() });
     else idbDel(KEY);
   }
   useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, score, results]); // eslint-disable-line
+  useEffect(() => {
+    if (stage !== "done") return;
+    fetch("/api/diagnostic").then((r) => (r.ok ? r.json() : null)).then(setMockDiag).catch(() => {});
+    let tries = 0;
+    const poll = () => fetch("/api/diagnose").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (d && d.diagnosis) setMockRoot(d.diagnosis);
+      else if (tries++ < 6) setTimeout(poll, 2500);
+    }).catch(() => {});
+    const tm = setTimeout(poll, 2500);
+    return () => clearTimeout(tm);
+  }, [stage]); // eslint-disable-line
   const [bpPeek, setBpPeek] = useState(null);
   useEffect(() => { fetch("/api/mock/blueprint?peek=1").then((r) => r.json()).then((d) => setBpPeek(d.blueprint || null)).catch(() => {}); }, []);
   const [bank, setBank] = useState(null);
@@ -175,10 +190,31 @@ export default function Mock() {
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) });
-      setScore(d.score); setResults(d.results || null); setStage("done");
+      if (d.status === "done" && d.score) { setScore(d.score); setResults(d.results || null); setStage("done"); }
+      else { setStage("grading"); pollGrading(); }   // 判题放后台,进入等待页(可离开)
       try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
     } catch {}
     setBusy(false);
+  }
+  const pollRef = useRef(null);
+  function pollGrading(id) {
+    const mid = id || mockId;
+    if (pollRef.current) return;
+    let tries = 0;
+    pollRef.current = setInterval(async () => {
+      tries++;
+      try {
+        const r = await fetch("/api/mock/status?mockId=" + mid, { cache: "no-store" });
+        const d = await r.json();
+        if (d.status === "done" && d.score) {
+          clearInterval(pollRef.current); pollRef.current = null;
+          setScore(d.score); setResults(d.results || null); setStage("done");
+        } else if (d.status === "failed") {
+          clearInterval(pollRef.current); pollRef.current = null; setGradeErr(true);
+        }
+      } catch {}
+      if (tries > 150 && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    }, 2000);
   }
   // 争论改判后:权威重算这场模拟考的成绩,刷新显示(并回写到历史记录)
   async function rescoreMock() {
@@ -235,6 +271,29 @@ function stripLabel(op, i) {
     </div>
   );
 
+  if (stage === "grading") {
+    return (
+      <div className="space-y-4 md:mt-14 pb-4">
+        <div className="card text-center">
+          {gradeErr ? (
+            <>
+              <p className="text-3xl mb-2">⚠️</p>
+              <h2 className="font-bold text-lg">{t("判题出了点问题")}</h2>
+              <p className="text-sm text-stone-500 mt-1">{t("成绩没能算出来,可以稍后重试。")}</p>
+              <button className="btn mt-3" onClick={() => { setGradeErr(false); setStage("grading"); pollGrading(); }}>{t("重试")}</button>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto my-2 h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
+              <h2 className="font-bold text-lg">{t("正在判题…")}</h2>
+              <p className="text-sm text-stone-500 mt-1">{t("含主观题AI阅卷,可能要一会儿。你可以先去干别的,判完自动出成绩。")}</p>
+            </>
+          )}
+        </div>
+        <a href="/" className="btn-ghost block text-center">{t("先回首页")}</a>
+      </div>
+    );
+  }
   if (stage === "done") {
     return (
       <div className="space-y-3 md:mt-14 pb-4">
@@ -255,6 +314,23 @@ function stripLabel(op, i) {
                 <div className="h-2 rounded-full bg-stone-100"><div className="h-2 rounded-full bg-amber-500" style={{ width: `${(s.got / s.total) * 100}%` }} /></div>
               </div>
             ))}
+          </div>
+        )}
+        {mockDiag && mockDiag.mode === "advise" && (mockDiag.start?.length > 0 || mockDiag.firstAction) && (
+          <div className="card border-emerald-300 bg-emerald-50/50">
+            <h2 className="font-bold text-[#14532d]">📊 {t("这次之后:该从哪补")}</h2>
+            {mockDiag.solid?.length > 0 && <div className="mt-1 text-xs text-stone-600">✅ {t("已经比较稳(可略过/只巩固):")}<span className="font-medium">{mockDiag.solid.join("、")}</span></div>}
+            {mockDiag.start?.length > 0 && <div className="mt-1 space-y-1">{mockDiag.start.map((c, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium">{c.chapter}</span>{c.acc != null ? ` · ${t("正确率")}${c.acc}%` : ""} · {t("薄弱/未学")}{c.weak + c.unlearned}</div>)}</div>}
+            {mockDiag.firstAction && <a href={`/practice?kp=${mockDiag.firstAction.kpId}`} className="mt-2 inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">▶ {t("第一步:")}{mockDiag.firstAction.title.slice(0, 30)}</a>}
+          </div>
+        )}
+        {mockRoot && (
+          <div className="card border-rose-300 bg-rose-50">
+            <h2 className="font-bold text-rose-800">🔍 {t("根因诊断")}</h2>
+            {mockRoot.summary && <p className="mt-1 text-sm font-semibold text-[#5a2d0c]">{mockRoot.summary}</p>}
+            {mockRoot.rootCauses?.length > 0 && <div className="mt-2 space-y-1">{mockRoot.rootCauses.map((r, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium">{(r.title || "").slice(0, 40)}</span>{r.why ? <span className="text-stone-500"> — {r.why.slice(0, 80)}</span> : ""}</div>)}</div>}
+            {mockRoot.avoidance?.avoiding && <div className="mt-2 rounded-xl bg-stone-100 px-3 py-1.5 text-xs text-stone-600">{mockRoot.avoidance.detail}</div>}
+            <a href="/study" className="mt-2 inline-block text-xs font-semibold text-rose-700 underline">{t("去看根因知识点")} →</a>
           </div>
         )}
         <h2 className="font-bold px-1 pt-2">{t("作答回顾")}</h2>

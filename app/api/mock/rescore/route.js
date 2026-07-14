@@ -35,6 +35,6 @@ export async function POST(req) {
     results.push({ id: a.qid, qtype: a.qtype, correct, score: scoreVal, marks: qMarks, earned, chapter: ch, answer: a.answer, explanation: a.explanation || "", attemptId: a.attemptId });
   }
   const score = { total, got, totalMarks: Math.round(totalMarks * 10) / 10, gotMarks: Math.round(gotMarks * 10) / 10, pct: totalMarks ? Math.round((gotMarks / totalMarks) * 100) : (total ? Math.round((got / total) * 100) : 0), byChapter };
-  db.prepare("UPDATE mock_exams SET score_json=?, answers_json=? WHERE id=?").run(JSON.stringify(score), JSON.stringify(answersOut), mockId);
+  db.prepare("UPDATE mock_exams SET score_json=?, answers_json=?, results_json=?, status='done' WHERE id=?").run(JSON.stringify(score), JSON.stringify(answersOut), JSON.stringify(results), mockId);
   return Response.json({ score, results });
 }
