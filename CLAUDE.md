@@ -6,6 +6,9 @@
 - **改今日任务=砖头 `customize_daily_plan`**(lib/bricks/dailyPlan.js,已发布):基础用 crossExamPlan(当前逻辑)+ 主人需求 + reviewPlan 自我审视 → AI 产出最终 items(kpId 只从 masteryMatrix 候选里选)→ 写 daily_plans(custom=1)。审视(plan_review 砖头)保留并在这里真正被用上;set_daily_plan 降级为「精确点名」。
 - 杀手侧同源:`plan_overview` 调 crossExamPlan(自动跟新逻辑);`set_daily_plan` item 格式一致。审视(reviewPlan)保留为透明度/可信度说明(dataBased/generic/overScheduled/trim/risks/summary/revisedMinutes),不再需要"手动采用"(已删按钮)。
 
+## 资料主题匹配检查(诚实性)
+- 上传后台跑 `assessMaterialTopic`(lib/materialMatch.js):文本材料用文字、PDF/图片用 readImage 一句话取主题,AI 判断是否属于本考试(exam.name+dossier)。明显别科目→materials.offtopic=1+reason。资料列表⚠️徽标;list_materials 给杀手;systemPrompt 规则:标⚠️的别照编、先提醒换对的资料。默认 matches=true(宁可不报不误报)。
+
 ## 汇报语言(Will 要求)
 
 ## 竞技场(lib/arena.js + app/arena/page.js)
