@@ -11,13 +11,14 @@ export async function GET(req) {
   else run = db.prepare(`SELECT * FROM chat_runs WHERE exam_id IN ${scopeSql([...(exam ? familyScope(exam.id) : []), -user.id])} AND status IN ('running','pending') ORDER BY id DESC LIMIT 1`).get();
   if (!run) return Response.json({ run: null });
   if (run.user_id !== user.id) return forbidden();
-  // 看门狗:某次运行若卡在 running 且已超过 3 分钟没有任何新进展(updated_at 不再刷新),判定挂死,标记出错让前端停转。
+  // 看门狗(仅清理孤儿运行,不限制任务时长):后台运行每 15s 有心跳刷新 updated_at,所以【再长的任务只要进程还活着就一直算在跑】。
+  // 只有当心跳也停了(进程崩溃/部署重启导致运行被丢弃)、updated_at 超过 120s 没动,才判定掉线、标记出错让前端停转。
   if (run.status === "running") {
     try {
       const staleSec = db.prepare("SELECT (julianday('now') - julianday(updated_at)) * 86400 AS s FROM chat_runs WHERE id=?").get(run.id)?.s;
-      if (staleSec != null && staleSec > 180) {
-        db.prepare("UPDATE chat_runs SET status='error', reply=?, updated_at=datetime('now') WHERE id=? AND status='running'").run("(处理超时了,请重试)", run.id);
-        run.status = "error"; run.reply = "(处理超时了,请重试)";
+      if (staleSec != null && staleSec > 120) {
+        db.prepare("UPDATE chat_runs SET status='error', reply=?, updated_at=datetime('now') WHERE id=? AND status='running'").run("(连接中断了,请重试)", run.id);
+        run.status = "error"; run.reply = "(连接中断了,请重试)";
       }
     } catch {}
   }
