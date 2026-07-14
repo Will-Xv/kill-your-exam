@@ -1,94 +1,143 @@
-# Kill Your Exam — 功能全貌与实现逻辑（单一事实来源）
+# Kill Your Exam — 完整功能与实现逻辑（单一事实来源 / SSOT）
 
-> 用途：完整记录**已上线、可用**的功能与其**实现逻辑**（文件/数据表/关键函数）。给人看，也作为长期记忆，防止因上下文丢失而忘记做过什么。
-> 线上：killyourexam.up.railway.app ｜ 技术栈：Next.js 15 App Router (JS) · better-sqlite3 · Gemini (`@google/genai`) · Railway 自动部署。
-> 主题：黑色幽默"杀手/追杀"——考试是猎物，AI 是你的私人杀手。默认英文界面，8 种语言（EN/FR/ES/RU/AR/ID/繁中TW/繁中HK，源键为简中）。
+> **用途**：完整、详细地记录**已上线可用**的每一项功能及其**实现逻辑**（页面路由 / API / lib 模块 / 数据表 / 关键函数）。既给人看，也作为长期记忆，防止上下文丢失后忘记做过什么。**每次新增/改动功能都要同步更新本文件、`CLAUDE.md`、`lib/appGuide.js`。**
+> **线上**：killyourexam.up.railway.app ｜ **栈**：Next.js 15 App Router (JS) · better-sqlite3(单文件 `/data`) · Gemini `@google/genai` · Railway 单容器 Docker 自动部署。
+> **主题**：黑色幽默"杀手/追杀"——考试是猎物，AI 是你的私人杀手。默认英文，8 语言（EN/FR/ES/RU/AR含RTL/ID/繁中TW/繁中HK，源键=简中）。
 
 ---
 
-## 0. 架构总览
-- **多模态一律走 Files API**：`lib/gemini.js` 的 `uploadMedia(buffer,mime,ext)` → `{fileUri,mimeType}`，parts 用 `{fileData:{fileUri,mimeType}}`。禁止 inline base64（请求硬上限 20MB）。materials 表缓存 `gemini_uri/gemini_name/gemini_expiry(~48h)`。
-- **RAG**：`lib/rag.js`（`retrieve/ragBlock/materialParts/mmOpts`）。讲解/出题/批改优先基于资料；模型记忆生成的内容打标记。
-- **掌握度**：`lib/mastery.js` 的 `masteryMatrix(examId)`（共享 `attemptVal` 把作答/讨论/标签折算成证据，近期加权）；`kpMasteryLevel`、`leafKpList`、`recordCrossKp`（跨知识点证据写 `insights` 表）、`updateReviewQueue`（1/3/7/15/30 天间隔重练）。
-- **砖头(bricks)**：`lib/bricks/*` 经 `lib/bricks/index.js` 注册，`lib/db.js` 的 `_bn` 数组 seed 为 published。杀手（chatAgent）把已发布砖头作为工具调用；`/api/bricks` 供调用。
-- **杀手认知**：`lib/appGuide.js`（`APP_GUIDE`/`APP_CAPABILITIES`，功能地图，杀手据此讲解）；`lib/chatAgent.js`（system prompt + functionDeclarations + 砖头工具）。**每次加功能都要同步更新 appGuide。**
-- **部署**：本地 `npm run build` 通过后再 push（build-gated）。原生依赖（需系统库，如 node-canvas）Railway 跑不了，用纯 JS（pdf-lib）。部署后用新标签页验证。
+## 一、设计原则
+1. **考试无关**：所有考试内容在数据库，代码零硬编码；新考试=新建工作台。
+2. **透明优先**：AI 每步声明知道/不知道/依据；模型记忆生成的内容打明显标记，宁可说"不确定"。
+3. **资料为地基（RAG）**：讲解/出题优先基于用户资料。
+4. **零学习成本**：打开就知道今天做什么；聊天是万能入口但非必经。
+5. **能力固定、编排可变**：底层是一套固定"原子能力/砖头"，界面与 workflow 可定制，但每个功能始终找得到。
+6. **可回退**：结构性改动前快照，可逐级 rollback。
 
-## 1. 建考试 / Onboarding
-- 新建向导选类型（school/cert/language/grad/other/study「只学习」/performance「艺术表演」）→ AI 联网搜考试 + **认知自评**（知道/不知道/风险）→ 补充资料（传文件 + 回答 AI 清单，可跳过）→ 生成知识点树 + 策略。`app/onboarding/*`、`app/api/onboarding/*`。
-- **语言类考试收集多语言背景**（母语/已会外语/目标语）：onboarding 表单 + 杀手 `exam_create` 砖头（`langNative/langKnown/langTarget`）写 `langbg:<uid>`。→ 供三语迁移。
-- 借用其它考试资料（embedding 相似度）。
+## 二、跨领域基础设施
+- **鉴权** `lib/auth.js` / `app/api/auth/*`：用户名+密码（sha256+salt）或 Google OAuth（`lib/googleAuth.js`）。首个注册账号=管理员；`sessions` 表、一年免登录 cookie；邀请码 `ACCESS_CODE`。开发者子账号有调试权。
+- **数据库** `lib/db.js`：better-sqlite3，`/data` 卷持久化。启动时跑一长串 `ALTER/CREATE` 幂等迁移。核心 helper：`getActiveExam`、`examScope/familyScope/scopeSql/inScope`（考试家族树作用域）、`getSetting/setSetting`、`getDocument/upsertDocument`。
+- **Gemini** `lib/gemini.js`：`generate`（支持 `jsonSchema`/`system`/`contents`/`useSearch`/`tools`）、`generateJson`（解析+1次重试+`repairJsonLatex`）、`generateText`、`searchWeb`(grounding 带来源)、`embed`/`cosine`、`readImage`、`attachParts`。密钥/模型在设置里（`gemini_api_key/gemini_model/gemini_embed_model`）。
+  - **★ Files API 铁律**：凡文件（图/PDF/音/视频）传 Gemini 一律走 `uploadMedia(buffer,mime,ext)`→`{fileUri,mimeType}`，parts 用 `{fileData:{fileUri,mimeType}}`。禁 inline base64（请求硬上限 20MB；PDF 走 Files API 可 50MB/1000 页）。存储型资料缓存 `materials.gemini_uri/gemini_name/gemini_expiry(~48h)` 复用。inline 仅作小文件上传失败兜底。
+- **RAG** `lib/rag.js`：`retrieve`（embedding 检索 chunks）、`ragBlock`、`materialParts`(异步，返回多模态 fileData parts，含 pdf)、`mmOpts`。`lib/webMedia.js` 把联网资料里的图/图表也存成图片资料。
+- **错误分类** `lib/errors.js`：`aiErrorResponse` 把 AI/API 错误分类，前端明确告诉用户"是 API 的问题、不是你操作错"。
+- **i18n** `lib/translations.js`：8 字典，源键=简中，`t()` 在 zh 原样返回。新键要同步加 8 个字典（TW/HK 可用 `lib/s2t.js` 或 opencc s2twp/s2hk 从简体机械转）。当前 8 语言各 1261 键、零缺失。
+- **地区/语言** `lib/geo.js`（IP→默认语言，服务器查询不受墙）。**推送** `lib/notify.js`/`lib/pushClient.js`/`app/api/push`（VAPID Web Push，分类偏好，iOS 加主屏提示）。
+- **定时器** `lib/cron.js`：Railway 常驻进程内 setInterval 跑 session/每日每周级触发器（`app/api/triggers/tick`）。
+- **客户端持久化**：IndexedDB `lib/idb.js`（大附件）、localStorage（草稿/布局草稿）。
+- **部署**：build-gated push（本地 `npm run build` 过才 push）；原生依赖（需系统库如 node-canvas）Railway 跑不了，用纯 JS（pdf-lib `lib/pdfSplit.js`）；`lib/media.js` 用 ffmpeg（视频抽帧/转码/节拍）。部署后用新标签页验证。
 
-## 2. 多模态资料库（RAG）
-- 传 PDF/Word/文本/图片/音频（拍照/拖拽/粘贴）+ 自由说明 + 收集清单。每个文件可原地查看。Chrome 采集扩展从已登录学习站采集（不碰密码）。图片/音频/PDF 由 Gemini 原生读。`app/materials/*`、`lib/rag.js`。
+## 三、建考试 / Onboarding（`app/onboarding` · `app/api/onboarding/*`）
+- 向导：选类型（school/cert/language/grad/other/study「只学习」/performance「艺术表演」）→ `assess` AI 联网搜考试 + **认知自评**（✅有把握/❓不确定/🚫需资料/⚠️风险 + 参考网页）→ 补充资料（传文件+回答 AI 清单，可跳过）→ `finalize` 生成知识点树+策略（`lib/provision.js` 后台建，`exam_gen_status` 查进度）。`draft` 断点续建。
+- **语言类考试收集多语言背景**（母语/已会外语/目标语）：onboarding 表单 + 杀手 `exam_create`（langNative/langKnown/langTarget）→ 写 `langbg:<uid>` → 供三语迁移。
+- 借用其它考试资料：`app/api/exam/related`（embedding 相似度）+ `exam/borrow`。
 
-## 3. 学习 / 练习
-- 分知识点 AI 讲解（来源徽章）。按薄弱点练、即时批改；简答 AI 打分给点评。**追问/争论**：只在你确有道理时改分。手写作答（触控/拍照 OCR）+ 草稿纸（AI 看不到，除非你发）。"不会做"按钮。`app/study/*`、`app/practice/*`、`app/api/questions/*`。
-- **学前从哪开始**（`lib/startHere.js` + `/api/diagnostic`）：needTest（按 5/10/15 分钟抽测）或 advise（指出该补的章）。
+## 四、多模态资料库 / RAG（`app/materials` · `app/api/materials/*`）
+- 传 PDF/Word(`mammoth`)/文本/图片/音频（拍照/拖拽/粘贴）；自由"其他说明"栏；资料收集清单（可问答填）。每个文件原地查看：图直显/音频播放/PDF 内嵌/文本提取（`materials/content`、`materials/raw`）。原件完整保存。
+- **超大 PDF**：`lib/pdfSplit.js` 抽页/拆 ≤18MB 片；扫描版走 Gemini 原生读。
+- **Chrome 采集扩展**（`extension/`）：从已登录学习站采内容（含图/音/PDF）进资料库，不碰密码；`app/api/ingest` + 采集令牌 `ingest_tokens`；Agent 模式可自动翻页采（只读、禁点提交/购买/删除）。`app/collector`。
 
-## 4. 表演/技能类考试（艺术）
-- 录音/录像作答，多模态按 rubric 评分；视频按帧采样(≤5fps)+音轨；给定音乐题对齐节拍；**舞蹈跟音乐题录制不开麦**（好让手机外放音乐）；表演回放永久存。`app/api/perform/*`、`lib/media.js`。
+## 五、知识点树 & 掌握度（`app/study`,`app/knowledge` · `lib/mastery.js`）
+- 个性化知识地图，按掌握度着色（mastered/ok/weak/unlearned）+ 资料覆盖点（🟢🟡⚪）。`knowledge_points`（含 parent_id 章节、sort、root_cause）。
+- **掌握度=理解而非对错**：`masteryMatrix(examId)` 共享 `attemptVal(a)` 把作答/简答推理/讨论/标记折算成证据，**近期加权**；`kpMasteryLevel`、`leafKpList`、`examSummary`（weak/rootCauseKps）。
+- **跨知识点推断** `recordCrossKp`：在别的题/讨论里体现出对某点的理解→点绿、误解→点红，写 `insights` 表。
+- **重建树** `app/api/kp/rebuild`：保留策略——keep(按合并作答时间线重放遗忘曲线 `recomputeReviewFromAttempts` 语义迁移旧记录)/summarize(浓缩成观察)/wipe。
+- 讲解 `app/api/kp/explain`（来源徽章：基于资料 vs 模型知识；`explanations` 缓存）。**该从哪开始** `lib/startHere.js`+`app/api/diagnostic`：needTest(5/10/15分抽测)或 advise(指该补的章)，可接模拟考。
 
-## 5. 模拟考（含**后台判题**）
-- AI 先出「考试蓝图」（该考哪些点、题型分值、总分、时长、题量依据可信度）再组卷；题库不足即时生成。`lib/blueprint.js`、`app/api/mock/*`。
-- **后台判题（本会话新增）**：交卷 `POST /api/mock/submit` 立即返回 `{status:"grading"}`（`mock_exams.status/grade_started_at`），`gradeMock()` 后台跑（含简答 AI 阅卷），判完写 `score_json/answers_json/results_json/status='done'` 并跑一次根因诊断。前端进"正在判题"页可离开，轮询 `/api/mock/status`。健壮性：防重复判题、卡死自愈（8 分钟）、重试重触发、卸载清轮询。
-- 题库/封闭题库/必考原题；开卷锁题库；做真题只用主人资料。
+## 六、学习 / 练习（`app/practice` · `app/api/questions/*`）
+- 按薄弱点出题（`lib/generators.js`：真题/网上题/AI 生成，来源标注；`gen_lessons` 出题经验）；即时批改。简答 AI 打分+点评（`answer` 路由，`crossKp` 跨点信号）。
+- **追问/争论** `questions/discuss`(+`finalize`)：只在你确有道理时改分；讨论中的理解/误区沉淀进掌握度。
+- **手写作答**（触控/手写板/鼠标，橡皮擦）或拍照上传，OCR 批改；每题**草稿纸**（AI 看不到，除非点「📝发草稿纸」）。**"不会做"**按钮（记 0 分不惩罚性拉低）。
+- **作答标记** `lib/attemptTags.js`：careless/guessed/slow（校准掌握度）+ 任意自定义标签（labels，±0.4 影响掌握度矩阵）。"题目有问题"反馈 `questions/report/flag`（AI 分析错因、确有问题才删题改进）。
+- **难度档** `lib/difficultyPref.js`（1易~3难，每考试）。
 
-## 6. 错题本 / 笔记本 / 你的全部杀技
-- 错题按 1/3/7/15/30 天重练（`review_queue`）。笔记本收藏题+随手记。"你的全部杀技"=跨所有考试的长期用户画像（`lib/overall.js`）。
+## 七、表演/技能类考试（艺术：表演/播音/舞蹈/声乐/口语/演讲）（`app/performances` · `app/api/perform/*`）
+- **录音/录像作答**，多模态按 rubric 评分。视频走 File API、按帧采样(≤5fps,720p)+抽音轨（`lib/media.js` ffmpeg），任意时长无大小/超时限制。给定音乐题对齐节拍（`detectBeats`）；`lib/music.js` 联网找免版权整曲。**舞蹈跟音乐题录制不开麦**（好让手机外放音乐，只按画面+所给音乐评分）。表演回放永久存 `performances`。艺术类考试**只出表演题**（要练笔试建议另建普通考试）。
 
-## 7. 跨考试规划 / 计划（`lib/planner.js`）
-- `crossExamPlan`：所有考试按 紧迫度×提分空间×遗忘 算优先级、分配今日分钟、给"今天最该做的一件事"。`weekPlan` 多天排期。`feasibility` 可行性检查（类5）+ 折中方案。
-- **计划自评 + 失败预案**（类15）：`lib/planReview.js` + `/api/plan-review`；每日保底（daily fallback）。
-- **计划版本对比（本会话新增，类4）**：`lib/planVersions.js` + `/api/plan-compare`。①**保守/激进双版本**（共用同一错题本，`planVariants`）②**本周 vs 上周**快照对比（`plan_snapshots`，每周 ISO 周键 upsert，diff 薄弱/未学/待复习）。UI 在 `/plan`，根因 KP 带 🔗 徽章优先排。
+## 八、模拟考（`app/mock` · `app/api/mock/*`）
+- **考试蓝图** `lib/blueprint.js`：AI 先规划该考哪些点、题型分值、总分、时长、**题量**（照真实题量，不再默认20）、结构依据可信度徽章（✅官方/📄推测/🔮预估）；按蓝图组卷、题库不足即时生成。`customize_mock_blueprint` 杀手可重排。
+- **题库/封闭题库/必考原题** `lib/questionBank.js`（`mock/bank`）：粘贴已知一定考的题（一字不改入库）、标"必出"（每次原样置卷首）、"封闭题库"开关（练习+模拟只从主人题里出、绝不生成）。做真题只用主人资料。
+- **★ 后台判题**（本会话）：交卷 `mock/submit` 立即返回 `{status:"grading"}`（`mock_exams.status/grade_started_at`），`gradeMock()` 后台跑（含简答 AI 阅卷、多模态附件），判完写 `score_json/answers_json/results_json/status='done'` 并跑一次跨章节根因诊断。前端进"正在判题"页（可离开），轮询 `mock/status`。健壮性：防重复判题、8 分钟卡死自愈、重试重触发、卸载清轮询。`mock/rescore`(争论改判重算)、`mock/history`、`mock/att`。
 
-## 8. 根因诊断（类11，`lib/diagnose.js`）
-- 找真正拖垮成绩的**根因知识点**、反复错误模式、是否逃避最难内容。累计使用时长满阈值（默认 2h，杀手可改，下限 1.5h）自动跑；也能立刻跑。标记 `knowledge_points.root_cause`、首页横幅、写长期记忆。**模拟考交卷后自动跑**。**根因 KP 自动进计划**（planner 优先排，本会话新增 A3）。砖头 `diagnose_root_cause/diagnose_config`。
+## 九、错题本 / 复习 / 笔记本
+- **错题本** `app/mistakes` · `review_queue`：错题按 1/3/7/15/30 天间隔重练（`updateReviewQueue`）；"我已理解"移出；`recomputeReviewFromAttempts` 按合并时间线重放。
+- **笔记本** `app/notes` · `notes`：收藏题（做题后「记笔记」）+ 随手记，可编辑删除，杀手 `list_notes` 可读。
+- **你的全部杀技** `app/profile` · `lib/overall.js`：跨所有考试的长期用户画像（单独永久文档），每门考试都读它，里程碑自动更新。
 
-## 9. 三语迁移追踪（类16，本会话新增，`lib/langTransfer.js`）
-- 语言类考试专属。语言背景（`langbg:<uid>`）→ 把错答归因成 **l1_negative（母语负迁移）/l2_negative（二外负迁移）/target_internal（目标语内部）/careless**，沉淀**三语对照表**（`lang_contrast`：母语直觉/已会外语/目标语/易踩的坑），学新点前**预测迁移陷阱**。
-- **实时归因（A2）**：语言题批改时（practice `answer` 路由 + mock gradeMock）对错答后台 `classifyTransferBg` 当场归因，`lang_transfer` 表 attempt_id UNIQUE 去重。
-- UI `/lang-transfer`（学习页语言类考试出入口卡）。砖头 `lang_background_set/lang_transfer_analyze/lang_transfer_predict`。
+## 十、跨考试规划 / 计划（`app/plan` · `lib/planner.js`）
+- `crossExamPlan`：所有顶层考试按 紧迫度(考期)×提分空间(薄弱/未学)×遗忘(到期复习) 算优先级、分配今日分钟、给"今天最该做的一件事"；根因 KP 优先排（🔗徽章）。`weekPlan` 多天排期。
+- **可行性检查（类5）** `feasibility`：需时 vs 可用时，>1.2 报警 + 折中方案（快速测/直接练/延长/冲刺）。
+- **计划自评+失败预案（类15）** `lib/planReview.js`+`plan-review`：AI 审视计划哪里可能错、砍低收益、附失败预案；每日保底（daily fallback）。
+- **计划版本对比（类4）** `lib/planVersions.js`+`plan-compare`：①**保守/激进双版本**（共用同一错题本，`planVariants`）②**本周 vs 上周**快照对比（`plan_snapshots` 每周 ISO 周键 upsert，diff 薄弱/未学/待复习）。
+- **今日任务** `app/api/daily` · `daily_plans`：重练到期错题 + 薄弱知识点 + 自由练习；上传/删资料自动重排；跨考试其它考试的今日分配也带回首页；根因/资料解析横幅；开实践模式带出实践任务。
 
-## 10. 竞技场·游戏化学习（类14，本会话新增，`lib/arena.js`）
-- 把错题/薄弱点变成**互动对战**来复习。预设：🗡️错题Boss战、⚖️知识点庭审、🎤辩论赛。素材=薄弱点或错题。引擎：`arenaTurn` 每回合返回叙事 + `@@STATE {meter,done,win}` + `@@KP [...]`（把看出的知识点 understanding/misconception 信号回流掌握度 `recordCrossKp`，误区点还把该点一道真题塞进错题本——A1）。`/arena`、`/api/arena`。
-- **排行榜 + 中世纪嘲讽大战**（早前已做）：做题数周榜/总榜，榜高者可嘲讽，实时弹窗+回怼。
+## 十一、根因诊断（类11 · `lib/diagnose.js` · `app/api/diagnose`）
+- 找真正拖垮成绩的**根因知识点**、反复错误模式、是否逃避最难内容。累计使用时长满阈值（默认 2h，杀手可改，下限 1.5h）`bumpUsageAndMaybeDiagnose` 自动跑；也能立刻跑。标 `knowledge_points.root_cause`、首页横幅、写长期记忆。**模拟考交卷后自动跑**。**根因 KP 自动进计划**（A3）。砖头 `diagnose_root_cause/diagnose_config`。
 
-## 11. 自定义 / AI 生成 **考核形式**（C1 + B，本会话新增，`lib/customModes.js`）
-- 复用竞技场互动引擎，允许**自定义或让 AI 创意生成**贴合内容的考核（如苏格拉底答辩、模拟王国、知行合一视频、濠梁之辩…）。表 `custom_modes`（kind=play 玩法 / exam_form 考核；format=interactive/video；meter_label/win_desc/meter_dir/spec）。
-- **AI 创意生成**：`generateModes` → `/api/arena/modes {generate}` + 砖头 `generate_custom_modes` + `/arena` 的「✨ 让 AI 出几个考核」。
-- **考核=独立栏目（按 Will 反馈）**：创建 exam_form 时自动建一个功能项（`saveCustomItem` id=`xform<id>`，href=`/arena?launch=<id>`）并放进**这门考试**的界面；**放到 nav/more/morefeatures/zone/hidden 由 AI/用户经 `where` 决定**（默认 morefeatures，别都堆导航栏）；**不塞进竞技场**（竞技场只留 play）。删除时移除该栏目。
-- **视频类考核（类4）**：format=video → 录/传视频，`/api/arena/video-grade` 经 File API 交 Gemini 多模态按 spec 评分并记成绩。
+## 十二、三语迁移追踪（类16 · 语言类考试 · `lib/langTransfer.js` · `app/lang-transfer`）
+- 语言背景（`langbg:<uid>`）→ 错答归因 **l1_negative(母语负迁移)/l2_negative(二外负迁移)/target_internal(目标语内部)/careless** → 三语对照表（`lang_contrast`：母语直觉/已会外语/目标语/易踩坑）→ 学新点前**预测迁移陷阱**。**实时归因（A2）**：语言题批改时（practice/mock）后台 `classifyTransferBg` 当场归因（`lang_transfer` attempt_id UNIQUE 去重）。砖头 `lang_background_set/lang_transfer_analyze/lang_transfer_predict`。
+
+## 十三、竞技场·游戏化学习（类14 · `lib/arena.js` · `app/arena` · `app/api/arena`）
+- 把错题/薄弱点变**互动对战**：🗡️错题Boss战 / ⚖️知识点庭审 / 🎤辩论赛 + 自定义 play 玩法。素材=薄弱点或错题。引擎 `arenaTurn` 每回合返回叙事 + `@@STATE{meter,done,win}` + `@@KP[...]`（看出的知识点 understanding/misconception 回流掌握度 `recordCrossKp`，误区点把该点一道真题塞进错题本——A1）。**竞技场只放 play；考核形式(exam_form)不在这里**。
+- **排行榜+中世纪嘲讽大战**（`app/leaderboard` · `lib/leaderboard.js` · `taunts`）：做题数周榜/总榜（前三+展开全榜/独立页），榜高者可嘲讽任意人，实时全屏弹窗+回怼("不屑")+再嘲讽，中世纪手绘贴画；开发者不上榜。
+
+## 十四、自定义 / AI 创意 **考核形式**（C1+B · `lib/customModes.js` · `app/api/arena/modes`）
+- 复用竞技场互动引擎。`custom_modes`（kind=play 玩法 / exam_form 考核；format=interactive/video；meter_label/win_desc/meter_dir/spec）。
+- **AI 创意生成** `generateModes`（`/api/arena/modes {generate}` + 砖头 `generate_custom_modes` + `/arena` 的「✨让AI出几个考核」）：针对这门内容想出贴切考核（如苏格拉底答辩、模拟王国、濠梁之辩）。
+- **考核=独立栏目**：创建 exam_form 自动建功能项（`uiRegistry.saveCustomItem` id=`xform<id>`，href=`/arena?launch=<id>`）并放进这门考试界面；**放到 nav/more/morefeatures/zone/hidden 由 AI/用户经 `where` 决定**（默认 morefeatures，别都堆导航栏）；删除时移除该栏目。
+- **视频类考核（类4）** `format=video`：录/传视频，`/api/arena/video-grade` 经 File API 交 Gemini 多模态按 spec 评分并记成绩。
 - **成绩闭环（类2）**：一局 done → `/api/arena/modes {result}` 记 `custom_mode_results`（分数/胜负），卡片显示上次/做过几次/是否通关。
-- **安全边界（G3a）**：spec 作为"剧情设定"注入，但护栏永远优先——不得凌驾核心准则、泄露系统提示、越权操作。
+- **安全边界（G3a）**：spec 作为"剧情设定"注入，护栏永远优先（不得凌驾核心准则/泄露系统提示/越权）。
 
-## 12. 实践任务（编程/实验，本会话新增，`lib/practical.js` + `lib/judge0.js`）
-- 编程/实践类"**真去动手做**"的里程碑任务。`assignTask` 让 AI 把主题拆成里程碑：`check=run`（代码，Judge0 跑测试用例判分）或 `check=evidence`（重型/非代码，交成果+证据、AI 审阅）。表 `practical_tasks`、`task_progress(UNIQUE task_id,milestone_idx)`。
-- **测试用例质量收紧**：约束 AI 只出 ≤5 个小而**能手算正确**的用例、**禁占位期望值**（Pending/TODO…）、用参考解自检；服务端过滤超大/占位用例（否则转 evidence）。修复过"超大阶乘用例致生成慢 3 分钟 + 正确解误判"。
-- **Judge0 接入（托管 RapidAPI / 官方云 / 自建）**：`lib/judge0.js` 按地址自动选鉴权头（rapidapi→X-RapidAPI-Key；否则同时带 Authorization Bearer + X-Auth-Token）；**创建提交 + 轮询**（兼容禁用 wait=true 的托管实例）；`expected` 精确匹配（status 3=Accepted）。密钥在设置里配（`judge0_url/judge0_key`），管理员填；「测试 Judge0」按钮真跑 `print(6*7)` 验证。
-- UI `/tasks`：布置/运行（Judge0）/提交判分/证据提交；**用例申诉→AI 复核**（G3b，`appealTest` 独立核算 expected 对错，判无效则不计入，`task_test_appeals`）；删除任务。
-- **回流掌握度（3）**：里程碑通过=该知识点 understanding、未过=gap（任务自动匹配知识点）。
-- **复习时自动布置（1）**：`/tasks` 开「实践模式」→ 首页今日任务带出下一个未完成里程碑；无进行中任务时后台自动生成一个（30 分钟限流）。`app/api/daily` 的 `practical` 字段 + `maybeAutoAssign`。
+## 十五、实践任务（编程/实验 · `lib/practical.js` + `lib/judge0.js` · `app/tasks` · `app/api/tasks/*`）
+- **仅编程/STEM 专属**（不在全局默认界面里）。`assignTask` 让 AI 把主题拆里程碑：`check=run`（代码，Judge0 跑测试用例）或 `check=evidence`（重型/非代码，交成果+证据 AI 审阅）。`practical_tasks`、`task_progress(UNIQUE)`。
+- **用例质量**：约束 AI 只出 ≤5 个小而能手算正确的用例、禁占位期望值、用参考解自检；服务端过滤超大/占位用例（否则转 evidence）。
+- **Judge0**：`lib/judge0.js` 按地址自动选鉴权（rapidapi→X-RapidAPI-Key；否则同时带 Authorization Bearer + X-Auth-Token）；**创建提交+轮询**（兼容禁用 wait 的托管实例）；`expected` 精确匹配（status 3=Accepted）。设置里 `judge0_url/judge0_key`（管理员填），「测试 Judge0」按钮真跑 `print(6*7)` 验证。
+- **用例申诉→AI 复核（G3b）** `appealTest`：独立核算 expected 对错，判无效则不计入（`task_test_appeals`）。删除任务；`run`(只运行)/`submit`(判分+存)/`detail`。
+- **回流掌握度（3）**：里程碑通过=understanding、未过=gap（任务自动匹配知识点）。
+- **复习自动布置（1）**：`/tasks` 开「实践模式」→ 首页今日任务带出下一个未完成里程碑；无进行中任务后台自动生成（30 分钟限流，`maybeAutoAssign`）；开启时自动把 tasks 栏目放进这门考试首页。
 
-## 13. 两层界面定制（本会话新增，`lib/uilab/*`）
-- **每门考试可独立改布局**（增删/隐藏/挪功能模块，nav/more/morefeatures/zone/hidden）——**所有用户**都能改自己每门考试（per-exam 覆盖，`ui_placement:<examId>`，优先于全局默认）。
-- **「发布为默认」仅开发者**（`/api/ui-items` scope=global 需 is_developer；per-exam scope=exam 对所有人开放；`canPublish` 门控发布按钮）。
-- **新功能自动补位**：`placementCore.normalizePlacement` 把注册表里有、但某布局里缺失的项按默认桶位补进来（修复"新功能在旧布局/按考试覆盖里看不到"）。
-- 杀手 `ui_*` 工具按考试改布局（`ui_move_item/ui_set_nav_dock/ui_home_layout_set/ui_set_killer_home/ui_migrate_ui/ui_undo` 对所有用户开放；`ui_create/remove/rename_feature` 因写全局注册表仍 dev-only）。杀手自己只有 dock/float 两态，绝不隐藏。
+## 十六、两层界面定制（`lib/uilab/*` · `lib/uiPlacement.js` · `app/api/ui-items`）
+- **每门考试可独立改布局**（增删/隐藏/挪功能，nav/more/morefeatures/zone/hidden）——**所有用户**都能改自己每门考试（per-exam 覆盖 `ui_placement:<examId>`，优先于全局默认）。**「发布为默认」仅开发者**（scope=global 需 is_developer；scope=exam 对所有人；`canPublish` 门控发布按钮）。
+- **新功能自动补位** `placementCore.normalizePlacement`：注册表里有、布局里缺失的项按默认/参考表桶位与**原有次序**补进来（遵守最小改动，不重排已有栏目）。
+- **自定义功能项** `lib/uiRegistry.js`（`ui_custom_items`/`feature_registry` 查重）。**首页布局** `lib/uiHomeLayout.js`（模板+杀手占哪格，`RouteShell` 合并内容区）。杀手 `ui_*` 工具按考试改（move/nav_dock/home_layout/killer_home/migrate/undo 对所有用户；create/remove/rename_feature 写全局注册表仍 dev-only）。杀手自身只有 dock/float，绝不隐藏。编辑器 `components/uilab/*`。
 
-## 14. 记忆透明 / 时间线（类20.2/12）
-- `/profile` 的记忆区（全局+按考试），可看杀手记了你什么、软删除可恢复、按科目分组的记忆时间线（valence 随时间变化）。`lib/memory.js`。
+## 十七、杀手 / Agent（`lib/chatAgent.js` · `app/chat` · `app/api/chat/*`）
+- 私人 AI 助手，用工具运筹整套学习闭环。**工具**（functionDeclarations，约 50 个）：读写文档、RAG、联网搜索(+ingest)、出题/建树/改蓝图、发文件、UI 定制、学习模式、跨考试规划、记忆、回档…… + **砖头**（已发布的对全体开放）。
+- **系统认知** `lib/appGuide.js`（`APP_GUIDE/APP_CAPABILITIES` 功能地图，杀手据此讲解/决策——**每加功能必更新**）。
+- **后台运行**（断连可续）`chat_runs`/`chat/run`/`chat/resume`，实时进程面板。**计划确认门**：复杂/破坏性请求先出可预览的有序计划，一键批准/修改再执行（`chat_pending`/`plan_json`）；简单请求跳过。危险写操作逐条征求同意（站内横幅或推送）。**对话摘要** `chat_summary`。**附件**走 Files API（`chat/file`）。
+- **砖头系统** `lib/bricks/*`（`registry`+`index`）：原子能力，`brick_flags` seed 为 published，`/api/bricks` 调用。目录见文末。
 
-## 15. 其它已做
-- 资料合并成学习地图（类9.1，`lib/studyMap.js`）；教材指针→真题解析（`lib/referenceResolve.js`，Files API 读扫描教材）；跨考试合并/拆分/完整性（`lib/bricks/mergeSplit`）；可编程学习模式 `save/activate_learning_mode`（含结构化自动触发器）；回档 checkpoint；意见反馈/Bug 反馈；数据导出；Google 登录。
+## 十八、可编程学习模式 + 自动触发器（`lib/learningModes.js` + `lib/triggers.js` · `learning_modes`）
+- **学习模式/配方**：用户用大白话定规则（"先讲5分钟→做题10分钟→复盘5分钟""数学先给题错了再反推概念"），存成命名、可激活、scope(exam/global) 的规则集，激活后注入杀手系统提示、杀手照做。`save/activate/delete/list_learning_mode`。
+- **结构化自动触发器**（第②步）`lib/triggers.js`：真实代码钩子读已激活模式的触发器，满足即执行确定性动作。event=answer（连错n/同点连错n/近期正确率低/掌握度低于档/每n题/自称懂却做错）或 session（每天首次/每周某天/到期复习≥n/闲置n天）；action=升降难度/锁难度/记观察/标复习/插复习队列/发提醒/下调自评信任。阈值全参数化、零回归。
+- **这是 ChatGPT 建议的"Workflow Recipe"最接近的现有底座**（见文末"下一阶段"）。
+
+## 十九、记忆透明 / 时间线（类20.2/12 · `lib/memory.js` · `app/api/memory`）
+- 事实级长期记忆（Episodic+Semantic）`memory_facts`：subject/kind/claim/valence/scope/weight，冲突并存、近期加权。`/profile` 记忆区（全局+按考试）：看杀手记了你什么、软删除可恢复、按科目分组的**记忆时间线**（valence 随时间 weak→neutral→strong 变化）。`addFact/list_memory/forget_fact`。
+
+## 二十、回档 / Checkpoint（`lib/checkpoint.js` · `app/checkpoints` · `checkpoints`）
+- 结构性/破坏性操作前快照受影响考试状态，可逐级还原；还原后可让 AI 吸取教训（`agent_lessons`）。`rollback/list_checkpoints/clear_checkpoints`。
+
+## 二十一、社交 / 反馈 / 管理 / 平台
+- **收件箱** `app/inbox` · `inbox`：更新公告、Bug 回复、信件/附件；未读角标。**推送**（见基础设施）。
+- **意见反馈**：右下悬浮按钮预填邮件。**Bug 反馈** `app/api/bug`：一键把整道题连媒体/录音/作答/AI判分(含失败)/讨论 + 设备诊断发给开发者；开发者可"亲自试做"复现并回传示范答案（`app/bugs`）。`feedback`/`bug_reports` 表。
+- **管理面板** `app/admin`：只看使用频率（做题数/活跃天/聊天数/最近活跃），**看不到任何人学习内容**；建开发者子账号。**开发者工具** `app/dev`（+`dev/bricks` 砖头目录、`dev/items` 栏目）。
+- **设置** `app/settings`：界面语言、我的档案（学校）、采集令牌、数据导出（全量 JSON `app/api/export`）、AI 密钥+模型（管理员）、Judge0（管理员）、「测试AI的API」「测试 Judge0」。**账号**：用户名密码 / Google 一键登录。**PWA**。首个账号=管理员。
+- **What's New / 引导** `lib/guide.js`（GUIDE_VERSION + WHATS_NEW）；`app/welcome` 首用引导；`app/privacy`。
 
 ---
 
-## 数据表速查（本会话新增/相关）
-`mock_exams`(+status,grade_started_at,results_json) · `knowledge_points`(+root_cause) · `materials`(+gemini_uri/name/expiry) · `lang_transfer` · `lang_contrast` · `plan_snapshots` · `practical_tasks` · `task_progress` · `task_test_appeals` · `custom_modes`(+format) · `custom_mode_results` · settings(`langbg:<uid>`,`judge0_url/key`,`practical_mode:<examId>`,`ui_placement:<examId>`,`ui_item_placement`,`ui_custom_items`)。
+## 数据表总览（44）
+users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results**（粗体=本轮新增）。
+
+## 砖头目录（37，已发布对全体开放）
+exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_aggregate/tree/promote_weak/provision/gen_status/merge/split/integrity_check · bank_list/set_closed/paste/add/set_must/delete · diagnose_root_cause/config · resolve_reference_list · plan_review/plan_compare · study_map · where_to_start · lang_background_set/lang_transfer_analyze/lang_transfer_predict · arena_play · create_custom_mode/list_custom_modes/generate_custom_modes · assign_practical_task/list_practical_tasks。
+
+---
 
 ## 尚未做 / 已知边界
-- 根因分析未接入平时小测（Will 当时未选）；无浏览器内 WASM 兜底（Will 不要）。
-- 实践任务回流掌握度依赖能匹配到知识点。
-- 自定义考核成绩只记录+显示，未编入 KP 掌握度。
-- 庄子样板（showcase 上）目前只有 AI 生成的三个考核 + 隐藏模拟考/屠杀准备，没有学习内容（知识树/资料）。
+- 根因分析未接入平时小测（当时未选）；无浏览器内 WASM 兜底（不要）。
+- 实践任务回流掌握度依赖能匹配到知识点；自定义考核成绩只记录+显示，未编入 KP 掌握度。
+- 学习模式/触发器工具目前 dev 门控（灰度）。
+- **下一阶段方向（ChatGPT 建议）：Workflow Recipe（planner-for-planner）** —— 让用户用自然语言定义一套**可保存/修改/复用/验证/回退**的 planner 行为规则（多阶段方法、学后测效果并据此改后续 planner、结构变更时旧错题/知识点/复习安全重映射、大改前 diff 影响范围、按作用域回退、规则冲突按 scope+优先级处理）。**现有底座**：`learning_modes`+`triggers`（规则持久化+行为改变+scope）、`checkpoints`（回退）、`planner`/`planVersions`（计划+版本对比）、`kp/rebuild` 保留策略（state remapping 雏形）。**缺口**：把它们统一到一个显式的、可视化 diff 的、带作用域优先级的 Recipe 层。
