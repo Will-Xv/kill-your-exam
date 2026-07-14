@@ -76,7 +76,7 @@ export default function ArenaPage() {
       <div className="mb-1 flex items-center gap-2 text-xs">
         <span className="text-stone-500">{t("素材:")}</span>
         {[["weak", t("薄弱知识点")], ["wrong", t("我的错题")]].map(([k, lb]) => (
-          <button key={k} onClick={() => setScope(k)} className={`rounded-full px-3 py-1 ring-1 ${scope === k ? "bg-[#2f2413] text-white ring-[#2f2413]" : "bg-white text-stone-600 ring-stone-300"}`}>{lb}</button>
+          <button key={k} onClick={() => setScope(k)} className={`rounded-full px-3 py-1 ring-1 transition ${scope === k ? "bg-amber-500 text-white ring-amber-500 font-bold shadow-md" : "bg-white/80 text-stone-500 ring-stone-300 hover:bg-white"}`}>{lb}</button>
         ))}
       </div>
       <div className="grid gap-3 sm:grid-cols-3">

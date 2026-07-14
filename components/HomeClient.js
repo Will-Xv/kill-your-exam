@@ -137,7 +137,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   return (
     <>
       <Tour />
-      <LayoutLab enabled={isDev}>
+      <LayoutLab enabled={true}>
       {nativeShown("leaderboard") && <Editable id="leaderboard"><Leaderboard initial={initialLeaderboard} /></Editable>}
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       {nativeShown("hero") && (

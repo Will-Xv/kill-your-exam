@@ -6,7 +6,7 @@ import { getExamLayout } from "@/lib/uiHomeLayout";
 export async function GET() {
   let layout = null, examLayout = null;
   try { const row = db.prepare("SELECT value FROM settings WHERE key='ui_default_layout'").get(); if (row && row.value) layout = JSON.parse(row.value); } catch {}
-  try { const u = await getSessionUser(); if (u && u.is_developer) { const ex = getActiveExam(u.id); if (ex) examLayout = getExamLayout(ex.id); } } catch {} // 仅开发者账号有 per-exam 布局
+  try { const u = await getSessionUser(); if (u) { const ex = getActiveExam(u.id); if (ex) examLayout = getExamLayout(ex.id); } } catch {} // 所有登录用户都有 per-exam 布局
   return Response.json({ layout, examLayout });
 }
 

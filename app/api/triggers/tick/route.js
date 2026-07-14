@@ -3,12 +3,11 @@ import { getActiveExam, getSetting, setSetting } from "@/lib/db";
 import { onSession } from "@/lib/triggers";
 import { ensureCron } from "@/lib/cron";
 
-// 打开应用时轻量打点:触发 session/每日/每周级触发器。仅开发者账号(灰度)。
+// 打开应用时轻量打点:触发 session/每日/每周级触发器。所有用户。
 export async function POST(req) {
   ensureCron(); // 确保进程内定时器已启动
   const u = await getSessionUser();
   if (!u) return unauthorized();
-  if (!u.is_developer) return Response.json({ ok: true, skipped: true });
   try { const body = await req.json().catch(() => ({})); const tz = body && body.tz; if (tz && /^[A-Za-z]+\/[A-Za-z_\/+-]+$/.test(String(tz))) setSetting("tz:" + u.id, String(tz).slice(0, 60)); } catch {}
   const ex = getActiveExam(u.id);
   if (!ex) return Response.json({ ok: true, noExam: true });

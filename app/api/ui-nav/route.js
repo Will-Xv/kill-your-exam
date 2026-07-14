@@ -2,11 +2,10 @@ import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
 import { getActiveExam } from "@/lib/db";
 import { setNavDock, setKillerHome } from "@/lib/uiPlacement";
 
-// 手动移动导航栏(停靠边)。现阶段仅开发者账号。复用 setNavDock,和杀手同一条路径(记历史、可撤销)。
+// 手动移动导航栏(停靠边)。所有登录用户可改自己考试的界面。复用 setNavDock,和杀手同一条路径(记历史、可撤销)。
 export async function POST(req) {
   const u = await getSessionUser();
   if (!u) return unauthorized();
-  if (!u.is_developer) return forbidden();
   const { edge, killerHome, breakpoint } = await req.json().catch(() => ({}));
   const ex = getActiveExam(u.id);
   if (!ex) return Response.json({ error: "没有激活的考试" }, { status: 400 });

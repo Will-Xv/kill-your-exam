@@ -3,6 +3,14 @@
 ## 杀手澄清优先(Will 要求)
 - 主人要求【模糊/缺信息/自相矛盾】(尤其定义配方/规划/工作流)时,杀手【不猜、不硬做】,先具体指出不清/矛盾处并追问,直到说清才动手(系统提示里的"能力边界·先说清楚再动手"已加此条)。`recipe_save` 会在流程不清时返回 needsClarification+问题,杀手据此追问。
 
+## 开发者=普通用户(Will 明确要求)
+- **开发者账号除了以下三项,和普通用户【一模一样】,所有功能对全体用户开放**:
+  1. **开发者工具**(`/api/bricks` 跑/发布砖头、Bug 里「亲自试做」`perform/grade` 的 devBugId 路径、`taunt` selftest 等自测入口)——仅开发者。
+  2. **Bug 反馈控制台**——仅开发者/管理员可见。
+  3. **发布为默认 UI**(全站默认布局 `ui_default_layout` / `ui_item_placement` 的 POST)——仅开发者。
+- 已对全体开放:杀手全部工具(记忆 list/forget、学习模式 save/list/activate/delete、plan_overview、UI 编辑 ui_create/remove/rename/move/home_layout 等**逐考试**层)、systemPrompt 里的记忆/学习模式/知识状态/界面定制段、触发器(`triggers/tick`+`cron`)、记忆 exam/global 分层、**逐考试** UI(`ui-nav` POST、`ui-layout` GET examLayout、`ui-items` exam 层)、`LayoutLab`(enabled=true)、清空自己的杀手对话(`/api/chat` DELETE + KillerChat 清空按钮)。
+- 判据:**逐考试/逐用户的定制=全体开放;全站默认发布+开发者工具+Bug 控制台=仅开发者。** `declsFor` 已无 devOnly 工具;前端 nav 的 `itemVisibleTo({isDeveloper})` 仍正确隐藏 dev 控制台/Bug 台入口。
+
 ## ★ 元规则(最重要):每次新增/改动功能,必须同步更新三处(Will 明确要求)
 1. **`CLAUDE.md`(本文件·长期记忆)** —— 更新下方「功能与模块索引」,防止因上下文丢失而忘记做过什么。
 2. **`FEATURES.md`(单一事实来源)** —— 补上功能与实现逻辑。
