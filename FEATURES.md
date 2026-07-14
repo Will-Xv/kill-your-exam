@@ -172,6 +172,13 @@
 - **公开采集 API** `/api/ingest`(X-Ingest-Token,非 session):浏览器扩展采集,文本≥50字、媒体 http(s)、≤25MB/项、≤60MB/次。**浏览器 Agent** `/api/agent/step`:只读+翻页,禁点提交/购买/删除/退出。
 - **记忆** `memory_facts`:冲突并存、半衰期 45 天、kind 权重;`difficultyHint` **硬难度档覆盖软记忆提示**。**整体画像**每 25 题自动刷新。**geo**:按 IP 定默认语言、CN 隐藏 Google。**推送**:VAPID 自动生成、分类偏好(pushUser 无视偏好/notifyUser 按类)。**导出**:全量个人数据 JSON(不含密码哈希)。**首个注册用户=管理员;管理员≠开发者**(AI 密钥配置=admin;dev 工具/砖头目录=developer)。会话 365 天;middleware 只查 cookie 存在性,真校验在 `getSessionUser`。
 
+## 二十三、学习配方 Workflow Recipe（MVP-1，dev 灰度 · `lib/recipes.js`）
+- planner-for-planner:把用户自然语言的整套学习流程存成【多阶段配方】。表 `recipes`(spec_json:goal/phases[]/rules;priority;active;version)、`recipe_versions`(配方版本历史)。
+- 每 phase = `selector`(chapters/kp_ids/weak/all,圈定知识点) + `method`(practice/socratic/debate/explain_first/custom_mode/ai_choose) + `exit`(mastery_ge level ok|mastered / accuracy_ge / manual)。
+- `getActiveRecipe` 冲突解析:**scope 特异性(exam>global) > priority > recency**。`currentPhase` 按掌握度判定第一个未过阶段(阶段覆盖的知识点 ≥80% 达 exit 即过)。`methodForKp` 供 planner:今日任务(`/api/daily`)按当前阶段给每个知识点标 `method/methodTag/methodLabel/methodHref`,并返回 `recipe` 块(name/phase/method)。
+- 杀手 brick(未 seed published = **仅开发者**):`recipe_save`(AI 把大白话流程 + 考试章节 → spec 并激活)、`recipe_activate`、`recipe_status`、`recipe_list`。
+- **未做(MVP-2/3)**:阶段后效果检测→自动改写后续、结构重切(复用 `rebuildKnowledgeTree` embedding 语义映射)+ 大改前 diff 预览 + 作用域回退、跨触发器冲突优先级引擎。设计:`docs/WORKFLOW_RECIPE_DESIGN.md`。
+
 ## 数据表总览（44）
 users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results**（粗体=本轮新增）。
 

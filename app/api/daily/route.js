@@ -5,6 +5,7 @@ import { crossExamPlan } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
+import { getActiveRecipe, currentPhase, methodForKp, methodLink } from "@/lib/recipes";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -65,6 +66,24 @@ export async function GET() {
     const pick = undone.find((it) => it.type === "review" && it.due > 0) || undone.find((it) => it.type === "kp") || undone[0];
     fallback = { item: pick, remaining: undone.length, done: enriched.length - undone.length, total: enriched.length };
   }
+  // Workflow Recipe(MVP-1):有激活的学习配方时,按【当前阶段】给今日的知识点任务标注该用什么方法学。
+  let recipe = null;
+  try {
+    const rc = getActiveRecipe(user.id, exam.id);
+    if (rc) {
+      const cur = currentPhase(rc, exam.id);
+      recipe = { name: rc.name, phase: cur ? cur.phase.name : null, phaseIndex: cur ? cur.index : 0, phaseTotal: cur ? cur.total : 0, method: cur && cur.phase.method ? cur.phase.method.type : null, allDone: cur ? !!cur.allDone : false };
+      let mmById = {}; try { const { masteryMatrix } = await import("@/lib/mastery"); for (const m of masteryMatrix(exam.id)) mmById[m.id] = m; } catch {}
+      for (const it of enriched) {
+        if (it.type === "kp" && it.kpId) {
+          const kpObj = mmById[it.kpId] || { id: it.kpId, chapter: it.chapter };
+          const m = methodForKp(user.id, exam.id, kpObj);
+          if (m) { const link = methodLink(m, it.kpId); it.method = m.method; it.methodTag = link.tag; it.methodLabel = link.label; it.methodHref = link.href; }
+        }
+      }
+    }
+  } catch {}
+
   // 复习自动布置实践任务(编程/实践类):开了实践模式就带出下一个未完成里程碑;没有进行中任务时后台自动生成一个。
   let practical = null;
   try {
@@ -74,5 +93,5 @@ export async function GET() {
       practical = nx ? { taskId: nx.taskId, title: nx.title, milestoneTitle: nx.milestoneTitle, idx: nx.idx, done: nx.doneCount, total: nx.total, href: "/tasks" } : (gen ? { generating: true, href: "/tasks" } : null);
     }
   } catch {}
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner, fallback, practical });
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner, fallback, practical, recipe });
 }
