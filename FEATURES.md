@@ -207,3 +207,10 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **配方作用域必问**:`recipe_save` 加 `scope`(无默认→不传就走 needsClarification 让杀手用大白话问主人"只这门考试还是以后所有考试长期通用");`save_learning_mode` 与 systemPrompt/appGuide 都加"作用域拿不准先问、别默认"规则。含章节名的分阶段流程一般只适合本考试,不含章节、按薄弱/全部选的通用方法才适合 global。
 - **i18n 铁律**:所有新功能/文案必须做【全 8 语言】,不能只补英文(已写进 CLAUDE.md)。本轮新增键已补齐 8 字典。
 - **数据表新增**:`attempts.dims_json`、`daily_plans.custom`(此前)、`materials.offtopic/offtopic_reason`(此前)。
+
+## 更新日志 · 2026-07-14(二)配方打磨 + 后台重建 + 微调快路径
+- **纯数字微调快路径** `tweak_daily_plan` 砖头(零 AI、就地改题数/轮数、保留其它步骤);planner 抽 `currentDailyItems` 与 /api/daily 同源。杀手报错不再吞异常:runLoop catch 打日志 + 按类型给可重试提示,前端显示真实原因。
+- **配方回退** `recipe_revert` + `revertRecipe`(回上一版、可再撤);**生效说明** `active_rules` + `activeRulesSummary`(列已激活配方/模式、冲突解析=本考试>全局>priority>最近)。
+- **知识树重建改后台** `startRebuild`:置 setup_state='generating' + 分离 promise,`/api/kp`+/study gate 住半成品(显示「重建中」),避免同步长跑逼近超时。
+- **配方可视化** `/api/recipe` + /plan「🧭 学习配方」卡(阶段/当前/版本历史/一键回退/生效规则)。
+- 新砖头 tweak_daily_plan / recipe_revert / active_rules 均 seed published。i18n 全 8 语言补齐。

@@ -22,6 +22,7 @@ function StudyInner() {
   const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
   const [exploreKp, setExploreKp] = useState(null); // topic-first 自由探索
+  const [generating, setGenerating] = useState(false); // 知识树后台重建中
   const [busy, setBusy] = useState(false);
   const [lt, setLt] = useState(null);
   useEffect(() => { fetch("/api/lang-transfer").then((r) => r.json()).then(setLt).catch(() => {}); }, []);
@@ -31,7 +32,7 @@ function StudyInner() {
   const modeParam = sp.get("mode");
   useEffect(() => {
     fetch("/api/kp").then((r) => r.json()).then((d) => {
-      setTree(d.tree);
+      setTree(d.tree); setGenerating(!!d.generating);
       if (kpParam) {
         for (const ch of d.tree) {
           const hit = ch.points.find((p) => p.id === Number(kpParam));
@@ -55,6 +56,7 @@ function StudyInner() {
     setBusy(false);
   }
 
+  if (generating) return <p className="mt-16 text-center text-amber-600 animate-pulse">🔧 {t("知识树重建中…完成后会自动出现,请稍候刷新")}</p>;
   if (!tree) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
   if (!tree.length) return <p className="mt-16 text-center text-stone-400">{t("还没有知识点树,请先完成")}<a href="/onboarding" className="underline">{t("考试设置")}</a>。</p>;
 

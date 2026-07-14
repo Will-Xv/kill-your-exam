@@ -41,7 +41,11 @@ export default function PlanPage() {
     if (sprint) q.set("mode", "sprint");
     fetch("/api/plan?" + q.toString()).then((r) => (r.ok ? r.json() : null)).then(setWeekData).catch(() => {});
   };
-  useEffect(() => { load(); }, []);
+  const [recipe, setRecipe] = useState(null);
+  const [recipeBusy, setRecipeBusy] = useState(false);
+  const loadRecipe = () => fetch("/api/recipe").then((r) => (r.ok ? r.json() : null)).then(setRecipe).catch(() => {});
+  const revertRecipeNow = () => { setRecipeBusy(true); fetch("/api/recipe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "revert" }) }).then((r) => r.json()).then(() => loadRecipe()).catch(() => {}).finally(() => setRecipeBusy(false)); };
+  useEffect(() => { load(); loadRecipe(); }, []);
   const exams = data?.exams || [];
   const pct = (e) => (e.kpTotal ? Math.round((e.mastered / e.kpTotal) * 100) : 0);
   const urgencyColor = (d) => d == null ? "text-[#8a7a54]" : d <= 3 ? "text-rose-600" : d <= 10 ? "text-amber-600" : "text-emerald-700";
@@ -49,6 +53,32 @@ export default function PlanPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-black text-[#2f2413]">🗺️ {t("总规划")}</h1>
+
+      {recipe && recipe.recipe && (
+        <div className="card border-indigo-200 bg-indigo-50/50">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="font-bold text-[#2f2413]">🧭 {t("学习配方")}:{recipe.recipe.name} <span className="text-xs font-normal text-stone-500">({recipe.recipe.scope === "global" ? t("全局") : t("本考试")} · v{recipe.recipe.version})</span></div>
+            <button onClick={revertRecipeNow} disabled={recipeBusy || (recipe.versions || []).length < 2} className="btn-ghost text-xs disabled:opacity-40" title={(recipe.versions || []).length < 2 ? t("没有更早的版本") : ""}>↩ {t("撤回上一次改动")}</button>
+          </div>
+          {recipe.recipe.phases?.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {recipe.recipe.phases.map((p) => (
+                <div key={p.i} className={`flex items-center gap-2 rounded-lg px-2 py-1 text-sm ${recipe.recipe.current && recipe.recipe.current.index === p.i ? "bg-indigo-100 font-semibold" : ""}`}>
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-indigo-500 text-[11px] text-white">{p.i + 1}</span>
+                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] text-indigo-700 ring-1 ring-indigo-200">{p.method}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {recipe.rules && (recipe.rules.modes?.length > 0 || recipe.rules.recipes?.length > 1) && recipe.rules.governing && (
+            <div className="mt-2 text-xs text-stone-500">{t("现在生效")}: <b>{recipe.rules.governing.name}</b> ({recipe.rules.governing.scope === "global" ? t("全局") : t("本考试")}) · {t("冲突时:本考试 > 全局 > 优先级 > 最近")}</div>
+          )}
+          {(recipe.versions || []).length > 0 && (
+            <div className="mt-2 text-[11px] text-stone-400">{t("版本历史")}: {recipe.versions.slice(0, 6).map((v) => "v" + v.version).join(" · ")}</div>
+          )}
+        </div>
+      )}
 
       {data?.topTask && (
         <div className="rounded-3xl border border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm">

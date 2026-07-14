@@ -6,6 +6,8 @@ export async function GET() {
   if (!user) return unauthorized();
   if (!exam) return Response.json({ tree: [] });
   const scope = examScope(exam.id);
+  // 后台重建中:gate 住半成品树,让学习页显示“重建中”而不是残缺结构
+  try { const gen = db.prepare(`SELECT 1 FROM exams WHERE id IN (${scope.map((n)=>Number(n)).filter(Number.isFinite).join(",")||"0"}) AND setup_state='generating' LIMIT 1`).get(); if (gen) return Response.json({ tree: [], generating: true }); } catch {}
   const agg = scope.length > 1;                 // 开了汇总复习且有子考试
   const chapters = [];
   for (const exId of scope) {

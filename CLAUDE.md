@@ -90,6 +90,13 @@
 - Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list` + `recipe_resegment_preview/apply`(**已 seed published=对全体用户开放**)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2 已做**:`recipeProgress` 阶段掌握度增益测量(`recipe_phase_state` 快照)+ `ai_choose` 自动选增益最高的方法(recipe_status 显示 effectiveness/bestMethod)。**MVP-3 已做**:`lib/recipeRemap.js` proposeResegment(diff 预览不改数据)+ applyResegment(checkpoint→建新结构→AI映射+embedding兜底→非破坏重指 kp_id→删旧→integrityFix)。回退复用 checkpoint。冲突/优先级:getActiveRecipe(scope>priority>recency)已解析配方层。
 
 
+## 配方打磨(2026-07:回退/生效说明/后台重建/可视化)
+- **一键回退** `recipe_revert` 砖头 + `revertRecipe`(lib/recipes.js):把当前生效配方回到上一版本(用 recipe_versions,回退也入栈可再撤)。/plan 配方卡有「↩ 撤回上一次改动」按钮(`/api/recipe` POST action=revert)。只回退配方内容,不动树/记录。
+- **现在哪条规则生效** `active_rules` 砖头 + `activeRulesSummary`:列出本考试可见的已激活配方+学习模式及作用域,冲突解析=本考试特异 > 全局 > priority > 最近;governing=现在主管这门考试的那条。/plan 卡片也显示。
+- **知识树重建改后台** `startRebuild`(lib/generators.js):build_knowledge_tree execTool 不再同步跑(避免拖到超时),改为置 setup_state='generating' + 分离 promise 跑 rebuildKnowledgeTree,完成/失败都清状态(失败留回档点)。`/api/kp` 与 /study 已 gate:generating 时返回 tree:[]+generating:true、学习页显示「知识树重建中…」不露半成品。KillerChat 原有 generating 横幅显示进度。
+- **配方可视化** `/api/recipe` GET(阶段+当前阶段+版本历史+生效规则)→ /plan 顶部「🧭 学习配方」卡:阶段列表(高亮当前)、方法标签、生效规则说明、版本历史、回退按钮。
+- 新砖头 `recipe_revert`/`active_rules`/`tweak_daily_plan` 均已 seed published。
+
 ## 杀手记忆系统 & 配方作用域(2026-07 梳理)
 - **三层记忆,每轮 systemPrompt 全量拼接(不是按需检索)**:①【整体画像/你的全部杀技】`getOverallDoc(user)` 跨所有考试的 Markdown 长档,`update_overall_profile` 覆盖写;②【长期记忆 memory_facts】情景+语义事实,每条有 scope(exam|global|null)+valence(立场)+weight(按新近半衰减),`memoryDigest(user,examId)` 取「本考试(scope=exam且exam_id=X)+全局(scope=global或null)」,冲突并存、以最新主导、可 list_memory/forget_fact 追溯;后台 `extractMemoryBg` 对话后自动抽取并分层 exam/global;③【已激活学习模式/配方】注入为「必须严格遵守」。另有 per-exam 的知识状态记忆曲线(knowledgeStateDigest 实时来自 attempts)、过往教训 lessons、教材定位、资料主题标记。
 - **配方/模式有两套**:①`save_learning_mode`(命名模式,scope=exam|global 由 AI 填,支持结构化 triggers 自动触发);②`recipe_save` 砖头(多阶段配方,selector/method/exit,planner 按当前阶段给方法)。`getActiveRecipe` 冲突解析=scope特异性(本考试>全局)>priority>recency。
