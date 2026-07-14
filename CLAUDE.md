@@ -12,7 +12,7 @@
 - 判据:**逐考试/逐用户的定制=全体开放;全站默认发布+开发者工具+Bug 控制台=仅开发者。** `declsFor` 已无 devOnly 工具;前端 nav 的 `itemVisibleTo({isDeveloper})` 仍正确隐藏 dev 控制台/Bug 台入口。
 
 ## 知识树/规划的行为契约(Will 反复踩坑)
-- **扫描版 PDF 摄取(重大踩坑)**:PDF 走 `pdf-parse` 纯文本抽取、【无 OCR】。扫描件常有一层"薄文字层"(页眉/页码/零星字)→ 抽出 2~4 块 → 以前 OCR 兜底只在 `chunks===0` 触发,于是【被漏掉】,50 页教材只入库 2 块、知识树/RAG 从没吃到教材正文,却显示"已入库(2)"像成功了。已改:`materials/upload` 按【每页文字量】判稀疏(pdfPages≥3 且 textLen<pdfPages*200)也触发 Gemini 原生读 PDF 的 OCR,OCR 出正文后【删掉垃圾薄块→重 indexMaterial→再 augmentKnowledgeTree】。OCR 调用提 maxOutputTokens=32768(大扫描件仍可能截断,>50MB 才按大小 splitPdf 分片)。图片上传本来就走 readImage OCR。
+- **PDF/图片摄取 = 一律 File API 多模态(Will 定,不 OCR/不抽文字)**:`parseUpload` 对 PDF 和图片【一律返回空文本、不抽字不 OCR】;原文件保存后靠 `materialParts`(File API,`fileData`)交给 Gemini 多模态直读。只有 docx/txt/md 等【原生数字文本】才抽字分块做 RAG 检索。因此 PDF/图片【没有 chunk、没有语义检索】,全靠把文件喂给模型——`materialParts` 默认 cap 20、建树 `buildKnowledgeTree` cap 60(把【全部】教材都喂进去,别再像以前 cap 6 那样漏掉)。代价:每次要带文件、成本更高、失去按知识点精准检索片段——这是 Will 明确接受的取舍。locate/引用真题靠 `referenceResolve` 的 File API 多模态兜底。
 - **动到已有进度的结构改动前,必须先用大白话问「保留补充 vs 重排映射」**:考试已有进度(做过题/掌握度/已有计划)时扩范围/重规划,杀手【每次都要】让主人二选一——①保留旧进度、只追加新章节(增量添加,不重复已有);②按新结构重排+语义映射旧进度(build_knowledge_tree retain=keep 自动迁移)。【绝不擅自决定,更不许旧的留着又重加一遍造成重复】。(踩坑:期中已有计划→规划到期末,杀手直接给了从头学的计划,旧进度没映射还重复了。)
 - 主人说【范围/目标】(如"规划到期末""复习整门课")= 清晰意图,别当"模糊"反复追问;若当前树没覆盖该范围,杀手【主动】扩建/重建(走确认弹窗,默认 retain=keep,不为 retain 单独盘问)。
 - **考试/节点名(期末/期中/quiz/final/某考试名)永远不是章节名、也不是知识点**:要把该范围里【还没建的真实内容单元】(如"多元函数最优化""二重积分")作为一个个【正常章节】补进去;【绝不】建一个叫考试名/节点名的章节。不知道范围含啥就查资料/联网搜 syllabus/问主人,别编。
