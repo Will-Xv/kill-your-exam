@@ -53,6 +53,20 @@ export default function PlanPage() {
         </div>
       )}
 
+      {(data?.warnings || []).length > 0 && (
+        <div className="card border-rose-300 bg-rose-50">
+          <h2 className="font-bold text-rose-800">⚠️ {t("时间可能不够")}</h2>
+          <div className="mt-1 space-y-2">
+            {data.warnings.map((w) => (
+              <div key={w.examId} className="text-sm text-[#5a2d0c]">
+                <span className="font-semibold">{w.name}</span>：{t("要过完薄弱/未学的内容约需")} {w.needHours}{t("小时")}，{w.daysLeft} {t("天里只有")} {w.availHours}{t("小时")}。
+                <div className="mt-0.5 text-xs text-stone-600">{t("折中方案:")}①{t("每天学到")} {w.suggestDailyMin} {t("分钟")}；②{w.suggestExtendDays > 0 ? t("或把考试日期后延约") + " " + w.suggestExtendDays + " " + t("天") : t("或砍掉非重点章节、只保最可能考的")}；③{t("或用冲刺模式只攻最薄弱的")}。</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-[#6b4a25]">{t("今天总可用")}</span>
         <input value={minutes} onChange={(e) => setMinutes(e.target.value.replace(/\D/g, ""))} placeholder={String(data?.totalMinutes || 90)} className="w-20 rounded-lg border border-[#e4d5af] bg-white px-2 py-1" inputMode="numeric" />
