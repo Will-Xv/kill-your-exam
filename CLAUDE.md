@@ -4,6 +4,7 @@
 
 ## 竞技场(lib/arena.js + app/arena/page.js)
 - 模式:boss/trial/debate/**socratic(苏格拉底式引导=启发式反问教用户想通一个知识点,meter=理解度,非对战)**。加模式=改 ARENA_MODES + systemFor + 前端 PRESETS。recipe 的 socratic 方法→/arena?mode=socratic。
+- 做题界面 Discuss(追问/争论)组件也支持 socratic 模式:顶部开关 discuss/苏格拉底引导,后端 /api/questions/discuss 按 mode 换系统提示(socratic=启发式反问教这道题,空历史自动抛开场问题),finalize 仍回流掌握度。Discuss 也支持 socratic。
 - 作答已复用练习那套:HandwritePad(手写/草稿)+DropZone+filesToAttachments(拍照/上传),附件走 attachParts 多模态;对局进度存 localStorage(只存文字)刷新可恢复;对手对话深色字。
 - 【一律用中文跟 Will 汇报】,任何情况下都用中文,别夹英文段落/标题。
 

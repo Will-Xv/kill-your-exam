@@ -13,6 +13,17 @@ export default function Discuss({ questionId, attemptId, userAnswer, onApplied }
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [gmode, setGmode] = useState("discuss"); // discuss | socratic
+  async function askSocraticOpening() {
+    setBusy(true);
+    try {
+      const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId, userAnswer: userAnswer || "", history: [], mode: "socratic" }) });
+      setHistory([{ role: "assistant", content: d.reply || "…" }]);
+    } catch {}
+    setBusy(false);
+  }
+  function openInMode(m) { setOpen(true); setGmode(m); if (m === "socratic" && history.length === 0) askSocraticOpening(); }
+  function switchMode(m) { if (m === gmode) return; setGmode(m); if (m === "socratic" && history.length === 0) askSocraticOpening(); }
 
   function fmtMastery(ups) {
     if (!Array.isArray(ups) || !ups.length) return "";
@@ -27,7 +38,7 @@ export default function Discuss({ questionId, attemptId, userAnswer, onApplied }
     const hist = [...history, { role: "user", content: msg }];
     setHistory(hist); setInput(""); setBusy(true);
     try {
-      const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId, userAnswer: userAnswer || "", history: hist }) });
+      const d = await aiFetch("/api/questions/discuss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId, userAnswer: userAnswer || "", history: hist, mode: gmode }) });
       setHistory([...hist, { role: "assistant", content: d.reply || "(未生成回复)" }]);
     } catch { setHistory(hist); }
     setBusy(false);
@@ -51,16 +62,21 @@ export default function Discuss({ questionId, attemptId, userAnswer, onApplied }
   }
 
   if (!open) return (
-    <div className="mt-2">
-      <button type="button" className="btn-ghost text-sm" onClick={() => setOpen(true)}>💬 {t("有疑问?追问/争论")}</button>
-      {note && <p className="text-sm mt-1 text-emerald-700">📊 <MD inline>{note}</MD></p>}
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <button type="button" className="btn-ghost text-sm" onClick={() => openInMode("discuss")}>💬 {t("有疑问?追问/争论")}</button>
+      <button type="button" className="btn-ghost text-sm" onClick={() => openInMode("socratic")}>🧭 {t("苏格拉底引导")}</button>
+      {note && <p className="w-full text-sm mt-1 text-emerald-700">📊 <MD inline>{note}</MD></p>}
     </div>
   );
 
   return (
     <div className="mt-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-600">💬 {t("就这道题追问 / 争论")}</span>
+        <div className="flex items-center gap-1">
+          {[["discuss", "💬 " + t("追问/争论")], ["socratic", "🧭 " + t("苏格拉底引导")]].map(([k, lb]) => (
+            <button key={k} type="button" onClick={() => switchMode(k)} className={`rounded-full px-2.5 py-0.5 text-xs ring-1 ${gmode === k ? "bg-amber-500 text-white ring-amber-500" : "bg-white text-slate-600 ring-slate-300"}`}>{lb}</button>
+          ))}
+        </div>
         <button type="button" className="btn-ghost text-xs" onClick={finish} disabled={busy}>{t("结束讨论")}</button>
       </div>
       <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
@@ -74,7 +90,7 @@ export default function Discuss({ questionId, attemptId, userAnswer, onApplied }
         {busy && <p className="text-xs text-slate-400">{t("思考中…")}</p>}
       </div>
       <div className="mt-2 space-y-2">
-        <textarea className="input w-full" rows={2} placeholder={t("例如:我觉得我这样答也对,因为…")} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+        <textarea className="input w-full" rows={2} placeholder={gmode === "socratic" ? t("顺着它的问题回答,不会就说不会…") : t("例如:我觉得我这样答也对,因为…")} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
         <button className="btn px-5 w-full sm:w-auto sm:ml-auto sm:block" onClick={send} disabled={busy || !input.trim()}>{t("发送")}</button>
       </div>
     </div>
