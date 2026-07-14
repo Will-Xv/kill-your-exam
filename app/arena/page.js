@@ -11,6 +11,7 @@ const PRESETS = [
   { key: "boss", emoji: "🗡️", title: "错题 Boss 战", desc: "把你的错题变成一只 Boss,答对造成伤害,把它砍到 0 血。", meterLabel: "Boss 血量", down: true },
   { key: "trial", emoji: "⚖️", title: "知识点庭审", desc: "一个你薄弱的概念受审,你当辩方,证明你真懂,对方律师会犀利盘问。", meterLabel: "庭审优势", down: false },
   { key: "debate", emoji: "🎤", title: "辩论赛", desc: "AI 站你对面,就一个观点针锋相对,用知识把它辩倒。", meterLabel: "你的占优", down: false },
+  { key: "socratic", emoji: "🧭", title: "苏格拉底式引导", desc: "AI 用启发式反问一步步带你把一个知识点想透——不是对战,是教你。", meterLabel: "理解度", down: false },
 ];
 
 export default function ArenaPage() {
