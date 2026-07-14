@@ -12,13 +12,14 @@
 ## 2. 复用现有底座（不重造）
 | Recipe 需要的能力 | 现有实现 | 差距 |
 |---|---|---|
-| 规则持久化 + 改规则改行为 + 作用域 | `learning_modes`(rules) + `triggers`(结构化触发器)，scope=exam/global，激活后注入杀手系统提示 | 单条规则集，无**多阶段**、无版本、无优先级冲突解析 |
+| 规则持久化 + 作用域 | `learning_modes`(rules) + `triggers`，scope=exam/global，激活后注入**杀手提示**(dev) | **单条规则集**;**planner 不读 modes**(只影响提示+triggers 的难度/复习);无**多阶段**、无版本、**无优先级冲突解析代码** |
 | 按作用域回退 | `checkpoints`(结构性操作前快照，逐级还原) | 未按"某次 workflow 修改"的**精确作用域**回退 |
 | 计划 + 版本对比 | `planner`(crossExamPlan/daily) + `planVersions`(本周vs上周、保守vs激进) | planner 不读 recipe；无 recipe 自身的版本历史 |
 | 结构变更时旧数据重映射 | `kp/rebuild` 保留策略(按合并时间线重放遗忘曲线) | 只在整树重建时；无"旧KP→新KP"通用**非破坏性**映射 |
 | 掌握度/诊断驱动 | `mastery`/`diagnose`/`startHere` | 未作为 recipe 的"效果检测"信号闭环回来改 recipe |
 
 **结论**：Recipe 层 ≈ 在 `learning_modes` 之上加【多阶段 + 效果检测→自动改写 + 结构重映射 + diff + 作用域回退 + 冲突优先级】，其余复用。
+> **全量审计更正**：现有 modes **并不驱动 planner 的分配数学**(planner.js 不 import modes)——modes 只经①杀手提示②诊断提示③triggers→难度档/复习 起作用。所以 Recipe 的"**planner 按阶段选方法**"是**真·新增**;"冲突优先级"现有代码里**完全没有**(各触发器独立触发、后写覆盖)。这两条是 MVP 的核心新工作,不是"完善已有"。state remapping / rollback 则是实打实复用。
 
 ## 3. 数据模型（提案）
 ### 3.1 Recipe 对象

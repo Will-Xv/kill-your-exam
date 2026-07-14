@@ -111,7 +111,8 @@
 ## 十八、可编程学习模式 + 自动触发器（`lib/learningModes.js` + `lib/triggers.js` · `learning_modes`）
 - **学习模式/配方**：用户用大白话定规则（"先讲5分钟→做题10分钟→复盘5分钟""数学先给题错了再反推概念"），存成命名、可激活、scope(exam/global) 的规则集，激活后注入杀手系统提示、杀手照做。`save/activate/delete/list_learning_mode`。
 - **结构化自动触发器**（第②步）`lib/triggers.js`：真实代码钩子读已激活模式的触发器，满足即执行确定性动作。event=answer（连错n/同点连错n/近期正确率低/掌握度低于档/每n题/自称懂却做错）或 session（每天首次/每周某天/到期复习≥n/闲置n天）；action=升降难度/锁难度/记观察/标复习/插复习队列/发提醒/下调自评信任。阈值全参数化、零回归。
-- **这是 ChatGPT 建议的"Workflow Recipe"最接近的现有底座**（见文末"下一阶段"）。
+- **重要更正（全量审计）**：**planner 不读 learning_modes**（`planner.js` 不 import modes/triggers）。模式影响行为的真实路径只有三条:①注入杀手系统提示(dev)②注入根因诊断提示③经 triggers 引擎改**难度档/复习队列**(`difficultyPref`)。**没有任何按 scope/优先级解冲突的代码**——多个激活触发器各自独立触发、动作按 clamp/后写覆盖;"更具体的规则优先"只存在于提示词。触发器/cron 在调用方 dev 门控。
+- **这是 Workflow Recipe 最接近的现有底座**（见文末"下一阶段"）。
 
 ## 十九、记忆透明 / 时间线（类20.2/12 · `lib/memory.js` · `app/api/memory`）
 - 事实级长期记忆（Episodic+Semantic）`memory_facts`：subject/kind/claim/valence/scope/weight，冲突并存、近期加权。`/profile` 记忆区（全局+按考试）：看杀手记了你什么、软删除可恢复、按科目分组的**记忆时间线**（valence 随时间 weak→neutral→strong 变化）。`addFact/list_memory/forget_fact`。
@@ -127,6 +128,49 @@
 - **What's New / 引导** `lib/guide.js`（GUIDE_VERSION + WHATS_NEW）；`app/welcome` 首用引导；`app/privacy`。
 
 ---
+
+## 二十二、实现精要 / 关键阈值 / 易错点（基于全量代码审计）
+
+### 作用域(务必区分)
+- **`examScope(examId)`**：考试本身;若 `exams.aggregate_children=1` 则含**全部后代**(BFS,guard 200)。用于**掌握度/练习/模拟/错题/题库**读取(不复制数据)。`inScope(active,target)=examScope(active).includes(target)`。
+- **`familyScope(examId)`**：先爬到**根**再收整棵树。用于**共享资料/chunks/RAG**(retrieve、materialParts、coverage、教材定位)。**两者不可混用。**
+- 软删考试 60 天后 `purgeExpiredExams` 硬清;软删用户 30 天;bug 30 天。无 FK,全靠手动级联删。
+
+### 掌握度算法(不是"对错率")`masteryMatrix`
+- `attemptVal(a)`:base=correct?1:0;`careless&错→0.6`;`guessed&对→0.5`;自定义 label effect up/down 各 ±0.4,clamp[0,1]。
+- 每条作答**时间衰减权重 `w=exp(-days/14)`**(τ=14天);**insights 也算证据**(权重 0.6、同衰减,understanding→1,gap/misconception→0)。**边界**:某点 0 作答时,gap 类 insight 被跳过(未练的点不会被别处误判点红,只能被 understanding 点绿)。
+- 档位:evidence=0→unlearned;`acc<0.6`→weak;`acc<0.85 或 evidence<3`→ok;否则 mastered。
+- **复习队列**:INTERVALS `[1,3,7,15,30]`;答对**首次不入队**(只有已有队列行才升级);答错入队(明天到期);`guessed` 标记会强制入队再测;升到超过最后一档=毕业(删行)。`resolved` 合成作答(错题本"已理解")被掌握度/统计排除。
+
+### Files API 阈值(默认路径,inline 仅兜底)
+- `uploadMedia`:写临时文件→上传→**每 2s 轮询 files.get,最多 90 次(~180s)**,须 ACTIVE。`readImage` inline 兜底阈值 **≤14MB(解码后)**;`attachParts` inline 兜底 **≤8MB(base64 字符串长度,≈6MB 实际)**、**最多 4 个附件**(两处阈值口径不一,已知小债)。materialFilePart 缓存 uri 47h。
+- RAG:retrieve 相似度 **>0.35**;coverage **covered>0.62/partial>0.5**;KP 重映射 cosine **≥0.5**;related-exam **>0.45**;exam_match_kps 默认 **0.82**。embed 维度 768。
+
+### 出题 / 模拟考
+- `generate` 有**低延迟策略**:池够直接返回;池不足先返回、后台补齐(`banking` 每 `exam:kp` 进程内锁);全空则先出 1~2 题、后台补;含**联网仿真**(searchWeb 出原创仿真题,**8s 超时竞速**,不抄真题原文,is_real=false);听力题挂已有音频或写 listenScript 走浏览器 TTS。closed_bank 只出 origin=fixed、绝不生成、且不排除已做题。
+- `DEFAULT_MARKS` 在 blueprint/mock route/submit/rescore **四处重复**(改一处不传导)。模拟考**后台判题** STALE 8min 自愈 + 防重;realOnly 模式随机抽 is_real。
+- fill 题**宽松包含匹配**;客观题去标点/大小写比较;short 题 **score≥60 算对**。
+
+### 表演题
+- 视频 **≤40s**:inline 5fps/720p 帧(`【Ns】`时间戳)+抽音轨(总预算 18MB);>40s/未知时长:`transcodeToMp4`+File API,`videoMetadata:{fps:5}` 让 Gemini 自采样(无长度限)。`detectBeats` 是自研 RMS 能量起拍检测(阈值 1.4×移动均值±20帧,BPM≈中位间隔,≤48拍),非真节拍器。未完成/离题**压到 0~35 分**。(注:`transcodeToMp4` 注释写 crf20 实为 **crf26**——文档级小 bug。)
+
+### 杀手 / 权限门控(不均匀,注意)
+- 工具 = 内置 functionDeclarations(过滤 devOnly)+ 已发布砖头。**dev-only 内置工具正好 10 个**:list_memory/forget_fact/save/list/activate/delete_learning_mode/plan_overview/ui_create/remove/rename_feature。**placement 类 ui 工具(move/undo/migrate/nav_dock/home_layout/killer_home/read)对所有用户声明**——与提示词"仅开发者"措辞不一致(已知不一致)。**砖头默认未发布=dev-only,publish 后全体可用**(`brick_flags`)。
+- `web_search_and_ingest` **故意不算写操作**(不弹允许框)——与系统提示"联网搜集需授权"矛盾(已知不一致)。
+- 写操作确认门 + 计划确认门(maybeComplex 正则/长度 → makePlan 3~8 步 → 批准/修改)。后台运行 `chat_runs` fire-and-forget,最多 12 轮工具循环。聊天历史**滚动摘要压缩**(留最近16、旧的后台并入 `chat_summary`)。清空对话 DELETE 仅 dev。
+- checkpoint 保留 **40 条 / 60 天**;`agent_lessons` **仅 rollback(dueTo=bug) 时**写入并注入提示。诊断间隔下限 **90min**(默认 2h),活动增量 clamp 15~300s。
+
+### 界面 `normalizePlacement`
+- 只把"注册表里有、布局里缺失"的项按 ref/默认桶位与**原有次序**补进来;**已存在(含用户主动隐藏)的项一律不动**;未知默认位置**跳过不硬塞**。不是重排。killer 只有 dock/float、绝不隐藏。exam-scope 布局对所有登录用户开放;发布全局默认仅 dev。
+
+### Judge0 / 实践任务
+- 鉴权:URL 含 rapidapi→X-RapidAPI-Key;否则**同时**带 `Authorization: Bearer` + `X-Auth-Token`。**创建提交(wait=false)+轮询 15×650ms**;`expected` 精确匹配 status3;**无 expected 时 WA(4) 也算 passed**(仅"跑通")。runTests 上限 12 例。用例生成有占位符/超大过滤(否则降级 evidence)。视频/exam_form 考核 **win=score≥80**;互动类用 AI 给的 done/win。实践模式开关**联动 tasks 栏目显隐**;自动布置 30min 限流、fire-and-forget。
+
+### 其它易漏功能
+- **augmentKnowledgeTree**:上传资料后**增量**加 ≤8 个新知识点(不删旧)。**carryOver/provision**:建子考试可 live(实时聚合,不复制)/summarize/partial(仅带错或没做过的)/copy_all;掌握度以 **insight 迁移**(非假作答)。**exam merge/split/integrity_check** 砖头:真"移动"数据(非复制)、事务化、有环检测。**exam_promote_weak**:抽薄弱/错题成"冲刺精选"。
+- **听力/配乐**:从 Internet Archive / LibriVox 找 CC/公版整曲(无 API key,尺寸 1~18MB),Gemini 亲耳听校正曲风。**扫描版 PDF**:上传后台 Gemini 原生读(≤50MB)或 `splitPdfBySize(45MB)` 分片再入库。
+- **公开采集 API** `/api/ingest`(X-Ingest-Token,非 session):浏览器扩展采集,文本≥50字、媒体 http(s)、≤25MB/项、≤60MB/次。**浏览器 Agent** `/api/agent/step`:只读+翻页,禁点提交/购买/删除/退出。
+- **记忆** `memory_facts`:冲突并存、半衰期 45 天、kind 权重;`difficultyHint` **硬难度档覆盖软记忆提示**。**整体画像**每 25 题自动刷新。**geo**:按 IP 定默认语言、CN 隐藏 Google。**推送**:VAPID 自动生成、分类偏好(pushUser 无视偏好/notifyUser 按类)。**导出**:全量个人数据 JSON(不含密码哈希)。**首个注册用户=管理员;管理员≠开发者**(AI 密钥配置=admin;dev 工具/砖头目录=developer)。会话 365 天;middleware 只查 cookie 存在性,真校验在 `getSessionUser`。
 
 ## 数据表总览（44）
 users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results**（粗体=本轮新增）。
