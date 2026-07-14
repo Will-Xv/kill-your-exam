@@ -62,10 +62,11 @@ export async function POST(req) {
   } catch (e) { return aiErrorResponse(e); }
 }
 
-// 清空当前家族的杀手对话(聊天记录/摘要/运行/生成的文件),用于全新开始/演示
+// 清空当前家族的杀手对话(聊天记录/摘要/运行/生成的文件),用于全新开始/演示。仅开发者(演示/自测用),普通用户不可清空。
 export async function DELETE() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
+  if (!user.is_developer) return forbidden(); // 硬门控:只有开发者账号能清空对话,普通用户(含让杀手绕道)一律拒绝
   const scope = scopeSql([...(exam ? familyScope(exam.id) : []), -user.id]); // 连同「无考试」哨兵对话一起清,和 GET 的范围一致
   try { db.prepare(`DELETE FROM chat_messages WHERE exam_id IN ${scope}`).run(); } catch {}
   try { db.prepare(`DELETE FROM chat_summary WHERE exam_id IN ${scope}`).run(); } catch {}
