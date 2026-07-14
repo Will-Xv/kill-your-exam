@@ -147,7 +147,7 @@ export default function ArenaPage() {
   ) : launch.format === "video" ? (
     <VideoAssess launch={launch} t={t} onBack={() => { setLaunch(null); loadModes(); }} />
   ) : (
-    <div className="flex min-h-0 flex-1 flex-col space-y-2">
+    <div className="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto">
       <div className="flex items-center justify-between">
         <button onClick={() => { setLaunch(null); loadModes(); }} className="text-sm text-stone-500">← {t("换玩法")}</button>
         <div className="font-bold">{launch.emoji} {launch.key.startsWith("custom:") ? launch.title : t(launch.title)}</div>
@@ -159,7 +159,7 @@ export default function ArenaPage() {
           <div className="h-2.5 rounded-full bg-stone-200"><div className={`h-2.5 rounded-full transition-all ${launch.down ? "bg-rose-500" : "bg-emerald-500"}`} style={{ width: `${Math.max(0, Math.min(100, meter))}%` }} /></div>
         </div>
       )}
-      <div ref={boxRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl bg-gradient-to-b from-stone-50 to-amber-50/40 p-3">
+      <div ref={boxRef} className="flex-1 min-h-[38vh] space-y-3 overflow-y-auto rounded-2xl bg-gradient-to-b from-stone-50 to-amber-50/40 p-3">
         {msgs.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : ""}>
             <div className={`inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-[#2f2413] text-white" : "bg-white text-stone-800 ring-1 ring-stone-200"}`}>
