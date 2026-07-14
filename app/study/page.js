@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import SourceBadge from "@/components/SourceBadge";
+import ExploreSession from "@/components/ExploreSession";
 
 function StudyInner() {
   const t = useT();
@@ -20,18 +21,21 @@ function StudyInner() {
   const [levelCounts, setLevelCounts] = useState({});
   const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
+  const [exploreKp, setExploreKp] = useState(null); // topic-first 自由探索
   const [busy, setBusy] = useState(false);
   const [lt, setLt] = useState(null);
   useEffect(() => { fetch("/api/lang-transfer").then((r) => r.json()).then(setLt).catch(() => {}); }, []);
 
-  const kpParam = useSearchParams().get("kp");
+  const sp = useSearchParams();
+  const kpParam = sp.get("kp");
+  const modeParam = sp.get("mode");
   useEffect(() => {
     fetch("/api/kp").then((r) => r.json()).then((d) => {
       setTree(d.tree);
       if (kpParam) {
         for (const ch of d.tree) {
           const hit = ch.points.find((p) => p.id === Number(kpParam));
-          if (hit) { open(hit); break; }
+          if (hit) { if (modeParam === "explore") setExploreKp(hit); else open(hit); break; }
         }
       }
     });
@@ -54,6 +58,10 @@ function StudyInner() {
   if (!tree) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
   if (!tree.length) return <p className="mt-16 text-center text-stone-400">{t("还没有知识点树,请先完成")}<a href="/onboarding" className="underline">{t("考试设置")}</a>。</p>;
 
+  if (exploreKp) {
+    return <ExploreSession kp={exploreKp} onBack={() => setExploreKp(null)} />;
+  }
+
   if (current) {
     const e = current.explanation;
     return (
@@ -71,6 +79,7 @@ function StudyInner() {
         {e && (
           <div className="flex gap-2">
             <a className="btn flex-1" href={`/practice?kp=${current.kp.id}&fresh=1`}>{t("✍️ 练几道题检验一下")}</a>
+            <button className="btn-ghost" onClick={() => setExploreKp(current.kp)}>{t("🔍 自由探索")}</button>
             <button className="btn-ghost" onClick={() => open(current.kp, true)} disabled={busy}>{t("重新讲解")}</button>
           </div>
         )}

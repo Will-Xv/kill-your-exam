@@ -111,6 +111,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     : it.type === "practice" ? `/practice?kp=${it.kpId}&fresh=1`
     : it.type === "debate" ? `/arena?mode=debate&kp=${it.kpId}`
     : it.type === "socratic" ? `/arena?mode=socratic&kp=${it.kpId}`
+    : it.type === "explore" ? `/study?kp=${it.kpId}&mode=explore`
     : it.type === "kp" ? `/study?kp=${it.kpId}`
     : "/practice?fresh=1");
   const labelFor = (it) =>
@@ -118,6 +119,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     it.type === "practice" ? `✍️ ${t("练习:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
     it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` (${it.n}${t("轮")})` : ""}` :
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
+    it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
     it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
     `${t("自由练习")} (${it.count}/${it.target})`;
 

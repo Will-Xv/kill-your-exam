@@ -34,7 +34,7 @@ export async function GET() {
   const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id=? AND mode!='resolved' AND date(created_at,'localtime')=date('now','localtime')`).get(exam.id).n;
   const enriched = items.map((it) => {
     if (it.type === "review") return { ...it, due, done: due === 0 };
-    if (["kp", "practice", "debate", "socratic"].includes(it.type) && it.kpId) {
+    if (["kp", "practice", "debate", "socratic", "explore"].includes(it.type) && it.kpId) {
       const n = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE kp_id=? AND date(created_at,'localtime')=date('now','localtime')`).get(it.kpId).n;
       const ins = db.prepare(`SELECT COUNT(*) n FROM insights WHERE kp_id=? AND date(created_at,'localtime')=date('now','localtime')`).get(it.kpId).n;
       return { ...it, done: (n + ins) > 0 };
