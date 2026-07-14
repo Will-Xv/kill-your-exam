@@ -23,6 +23,7 @@ export default function Onboarding() {
   const [examType, setExamType] = useState("");
   const [school, setSchool] = useState("");
   const [notes, setNotes] = useState("");
+  const [langBg, setLangBg] = useState({ native: "", known: "", target: "" });
   const [examId, setExamId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [busyText, setBusyText] = useState("");
@@ -65,7 +66,11 @@ export default function Onboarding() {
     try {
       const d = await aiFetch("/api/onboarding/create", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ examId, name, examDate, dailyMinutes, examType, school, notes }) });
-      setExamId(d.examId); setStep(3);
+      setExamId(d.examId);
+      if (examType === "language" && (langBg.native || langBg.known || langBg.target)) {
+        try { await fetch("/api/lang-transfer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "background", background: { native: langBg.native, known: langBg.known.split(/[,，、]/).map((x) => x.trim()).filter(Boolean), target: langBg.target || name } }) }); } catch {}
+      }
+      setStep(3);
     } catch {}
     setBusy(false);
   }
@@ -179,6 +184,17 @@ export default function Onboarding() {
           {examType === "school" && (
             <div><label className="text-sm text-slate-500">{t("学校/课程信息(会存进你的档案,随时可改)")}</label>
               <input className="input mt-1" value={school} onChange={(e) => setSchool(e.target.value)} placeholder={t("例如:XX大学 数据结构 期末考")} /></div>
+          )}
+          {examType === "language" && (
+            <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3">
+              <label className="text-sm font-medium text-sky-800">🌐 {t("你的语言背景(用于三语迁移追踪)")}</label>
+              <p className="text-xs text-slate-500 mb-2">{t("填了我就能判断你的错误来自母语还是别的外语的迁移,并建三语对照表。也可以之后再填。")}</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <input className="input" value={langBg.native} onChange={(e) => setLangBg({ ...langBg, native: e.target.value })} placeholder={t("母语,如 中文")} />
+                <input className="input" value={langBg.known} onChange={(e) => setLangBg({ ...langBg, known: e.target.value })} placeholder={t("已会外语,如 英语、法语")} />
+                <input className="input" value={langBg.target} onChange={(e) => setLangBg({ ...langBg, target: e.target.value })} placeholder={t("正在学(目标语)")} />
+              </div>
+            </div>
           )}
           <div><label className="text-sm text-slate-500">{t("考试日期(不确定可以先空着)")}</label>
             <input className="input mt-1" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} /></div>
