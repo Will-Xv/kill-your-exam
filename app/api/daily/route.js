@@ -19,7 +19,7 @@ export async function GET() {
     const rank = { weak: 0, unlearned: 1, ok: 2, mastered: 3 };
     const cover = { covered: 0, partial: 1, none: 2 };
     const picks = matrix
-      .sort((a, b) => rank[a.level] - rank[b.level] || cover[a.coverage] - cover[b.coverage] || a.attempts - b.attempts)
+      .sort((a, b) => (b.rootCause ? 1 : 0) - (a.rootCause ? 1 : 0) || rank[a.level] - rank[b.level] || cover[a.coverage] - cover[b.coverage] || a.attempts - b.attempts) // 与总规划一致:根因知识点优先
       .slice(0, 2)
       .map((k) => ({ type: "kp", kpId: k.id, title: k.title, chapter: k.chapter }));
     const items = [{ type: "review" }, ...picks, { type: "free", target: 10 }];
