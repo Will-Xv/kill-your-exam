@@ -20,7 +20,7 @@ export async function POST(req) {
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no_exam" }, { status: 400 });
     const b = await req.json();
-    if (b.setMode !== undefined) return Response.json({ ok: true, practicalMode: setPracticalMode(exam.id, !!b.setMode) });
+    if (b.setMode !== undefined) return Response.json({ ok: true, practicalMode: setPracticalMode(exam.id, user.id, !!b.setMode) });
     if (b.delete) {
       const tk = getTask(Number(b.delete));
       if (!tk || !inScope(exam.id, tk.exam_id)) return Response.json({ ok: false });
