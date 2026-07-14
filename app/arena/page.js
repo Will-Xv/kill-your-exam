@@ -34,7 +34,11 @@ export default function ArenaPage() {
       const next = [...history, { role: "assistant", content: r.reply || "…" }];
       setMsgs(next);
       if (r.state && typeof r.state.meter === "number") setMeter(r.state.meter);
-      if (r.state && r.state.done) setDone({ win: !!r.state.win });
+      if (r.state && r.state.done) {
+        setDone({ win: !!r.state.win });
+        const lk = (l || launch).key;
+        if (lk && lk.startsWith("custom:")) { try { fetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ result: true, modeId: Number(lk.slice(7)), meter: typeof r.state.meter === "number" ? r.state.meter : null, win: !!r.state.win }) }); } catch {} }
+      }
     } catch {}
     setBusy(false);
   }
@@ -141,6 +145,7 @@ function CustomCard({ m, onStart, onDel, t }) {
           <div className="text-2xl">{m.emoji}</div>
           <div className="mt-1 font-bold">{m.name}</div>
           {m.win_desc && <div className="mt-0.5 text-xs text-stone-500 line-clamp-2">{m.win_desc}</div>}
+          {m.attempts > 0 && <div className="mt-1 text-[11px] text-stone-500">{t("上次")}: {m.lastWin ? "🏆" : ""}{m.lastScore != null ? m.lastScore + t("分") : "-"} · {t("做过")}{m.attempts}{t("次")}{m.everWon ? " · " + t("曾通关") : ""}</div>}
         </button>
         <button onClick={onDel} title={t("删除")} className="text-xs text-stone-400 hover:text-rose-500">✕</button>
       </div>

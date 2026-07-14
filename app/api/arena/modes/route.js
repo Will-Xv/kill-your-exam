@@ -1,6 +1,7 @@
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { createMode, listModes, deleteMode } from "@/lib/customModes";
+import { createMode, listModes, deleteMode, recordResult, getMode } from "@/lib/customModes";
+import { inScope } from "@/lib/db";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -16,6 +17,11 @@ export async function POST(req) {
     if (!exam) return Response.json({ error: "no_exam" }, { status: 400 });
     const b = await req.json();
     if (b.delete) { return Response.json({ ok: deleteMode(user, b.delete) }); }
+    if (b.result && b.modeId) {
+      const m = getMode(b.modeId);
+      if (!m || !inScope(exam.id, m.exam_id)) return Response.json({ ok: false });
+      return Response.json(recordResult(user, m, { meter: Number(b.meter), win: !!b.win }));
+    }
     const r = createMode(user, exam, {
       kind: b.kind, name: b.name, emoji: b.emoji, spec: b.spec,
       meterLabel: b.meterLabel, winDesc: b.winDesc, meterStart: b.meterStart, meterDir: b.meterDir,
