@@ -160,7 +160,7 @@ export default function ArenaPage() {
         </div>
       ) : (
         <div className="flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm" />
+          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-3 py-2 text-sm" />
           <button onClick={send} disabled={busy || !input.trim()} className="btn px-4">{t("发送")}</button>
         </div>
       )}
@@ -251,11 +251,11 @@ function Creator({ t, aiFetch, onCreated }) {
           ))}
         </div>
       )}
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("名字,如 苏格拉底答辩 / 模拟王国")} className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
-      <textarea value={spec} onChange={(e) => setSpec(e.target.value)} rows={4} placeholder={t("用大白话写清楚:这个玩法/考核怎么进行、怎么算赢或满分。例:你要接住我抛出的所有质疑,并反过来把我问倒才算满分。")} className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("名字,如 苏格拉底答辩 / 模拟王国")} className="w-full rounded-lg border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-2 py-1.5 text-sm" />
+      <textarea value={spec} onChange={(e) => setSpec(e.target.value)} rows={4} placeholder={t("用大白话写清楚:这个玩法/考核怎么进行、怎么算赢或满分。例:你要接住我抛出的所有质疑,并反过来把我问倒才算满分。")} className="w-full rounded-lg border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-2 py-1.5 text-sm" />
       <div className="grid gap-2 sm:grid-cols-2">
-        <input value={meterLabel} onChange={(e) => setMeterLabel(e.target.value)} placeholder={t("计分条含义,如 说服力/王国存续度")} className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
-        <input value={winDesc} onChange={(e) => setWinDesc(e.target.value)} placeholder={t("达成/满分条件(可选)")} className="rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
+        <input value={meterLabel} onChange={(e) => setMeterLabel(e.target.value)} placeholder={t("计分条含义,如 说服力/王国存续度")} className="rounded-lg border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-2 py-1.5 text-sm" />
+        <input value={winDesc} onChange={(e) => setWinDesc(e.target.value)} placeholder={t("达成/满分条件(可选)")} className="rounded-lg border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-2 py-1.5 text-sm" />
       </div>
       <div className="flex items-center gap-2 text-xs">
         <span className="text-stone-500">{t("计分条")}:</span>
