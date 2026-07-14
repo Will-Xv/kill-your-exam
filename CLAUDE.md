@@ -1,8 +1,9 @@
 # Kill Your Exam — 项目约定 / 长期记忆
 
-## 今日任务 vs 总规划(统一 + 审视闭环)
-- 两者同一套优先级:薄弱点【根因优先】(daily 与 planner buildTasks 一致)、自由练习【封顶≈15分/一组】(不再把剩余时间全塞进去)。今日任务=当前家族focused清单(缓存 daily_plans,重建树后自动清);总规划=跨考试时间分配。
-- **审视是可执行的**:`reviewPlan` 现在还输出 `revisedMinutes`(现实建议时长);/plan 页「审视这个计划」后可「按审视优化并采用」或直接「采用到今日任务」→ `POST /api/plan/apply` 把该考试(家族根)的 planner 任务写进 daily_plans,让时间分配/自我审视真正驱动今日任务(以前只展示、不落地)。
+## 今日任务 vs 总规划(单一数据源·自动同步)
+- **今日任务直接从 `crossExamPlan`(planner)实时生成**(app/api/daily:找当前考试的家族根那份 tasks→转 daily items;不缓存自动计划),所以和 /plan「总规划」【永远一致】、生成时就内建好逻辑,无需手动采用。只有 killer 自定义(set_daily_plan)才落 daily_plans 并优先;refresh_daily_plan 清掉自定义→回到自动。
+- **好逻辑内建在 planner**:薄弱点=薄弱+未学、根因优先(summarizeExam 用 masteryMatrix,和 daily 同一套);自由练习封顶≈15分/一组(不再把剩余时间全塞进去);buildTasks 每门取 2 点。
+- 杀手侧同源:`plan_overview` 调 crossExamPlan(自动跟新逻辑);`set_daily_plan` item 格式一致。审视(reviewPlan)保留为透明度/可信度说明(dataBased/generic/overScheduled/trim/risks/summary/revisedMinutes),不再需要"手动采用"(已删按钮)。
 
 ## 汇报语言(Will 要求)
 

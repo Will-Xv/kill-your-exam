@@ -12,12 +12,6 @@ export default function PlanPage() {
   const [sprint, setSprint] = useState(false);
   const [review, setReview] = useState(null);
   const [reviewBusy, setReviewBusy] = useState(false);
-  const [applyMsg, setApplyMsg] = useState("");
-  const applyPlan = (mins) => {
-    setApplyMsg("");
-    fetch("/api/plan/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ minutes: mins ? Number(mins) : (minutes ? Number(minutes) : undefined), mode: sprint ? "sprint" : undefined }) })
-      .then((r) => (r.ok ? r.json() : null)).then((d) => setApplyMsg(d && d.ok ? t("已采用为今日任务 ✓ 回首页查看") : t("采用失败,稍后再试"))).catch(() => setApplyMsg(t("采用失败,稍后再试")));
-  };
   const runReview = () => {
     setReviewBusy(true); setReview(null);
     const q = new URLSearchParams(); if (minutes) q.set("minutes", minutes); if (sprint) q.set("mode", "sprint");
@@ -94,8 +88,6 @@ export default function PlanPage() {
         <label className="ml-2 flex items-center gap-1"><input type="checkbox" checked={sprint} onChange={(e) => setSprint(e.target.checked)} /> {t("临考冲刺模式")}</label>
         <button className="btn px-3 py-1.5" onClick={() => load(minutes, sprint)}>{t("重新规划")}</button>
         <button className="btn-ghost px-3 py-1.5" disabled={reviewBusy} onClick={runReview}>{reviewBusy ? t("审视中…") : "🔍 " + t("审视这个计划")}</button>
-        <button className="btn px-3 py-1.5" onClick={() => applyPlan()}>🗓️ {t("采用到今日任务")}</button>
-        {applyMsg && <span className="text-xs font-medium text-emerald-700">{applyMsg}</span>}
       </div>
       {review && (review.review || review.err) && (
         <div className="card border-amber-300 bg-amber-50/60">
@@ -103,7 +95,6 @@ export default function PlanPage() {
           {review.err ? <p className="mt-1 text-sm text-stone-500">{t("审视失败,稍后再试。")}</p> : (() => { const v = review.review; return (
             <div className="mt-2 space-y-2 text-sm">
               {v.summary && <div className="rounded-xl bg-white/70 px-3 py-2 font-semibold text-[#5a2d0c]">{v.summary}</div>}
-              {v.revisedMinutes ? <button onClick={() => { setMinutes(String(v.revisedMinutes)); load(v.revisedMinutes, sprint); applyPlan(v.revisedMinutes); }} className="btn px-3 py-1.5 text-sm">🔧 {t("按审视优化并采用为今日任务")}（{v.revisedMinutes} {t("分钟")}）</button> : null}
               {v.overScheduled?.over && <div className="rounded-xl bg-rose-50 px-3 py-2 text-rose-800">⏳ {t("排超了")}{review.plannedMinutes ? `（${t("排了")}${review.plannedMinutes}${t("分钟")}／${t("可用")}${review.availableMinutes}${t("分钟")}）` : ""}：{v.overScheduled.detail}</div>}
               {v.trim?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-amber-700">{t("建议砍掉(低收益)")}</div>{v.trim.map((x, i) => <div key={i} className="mt-1 rounded-xl bg-white/70 px-3 py-1.5"><span className="font-medium">{x.task}</span>{x.why ? <span className="text-stone-500"> — {x.why}</span> : ""}</div>)}</div>}
               {v.generic?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-stone-500">{t("只是通用建议(非你的数据)")}</div><ul className="mt-1 list-disc pl-5 text-stone-600">{v.generic.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}

@@ -12,21 +12,23 @@ export async function GET() {
   if (!user) return unauthorized();
   if (!exam) return Response.json({ plan: null });
   const today = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD 本地
-  let plan = db.prepare("SELECT * FROM daily_plans WHERE exam_id=? AND date=?").get(exam.id, today);
-  if (!plan) {
-    // 生成今日计划:优先薄弱/未学知识点(有资料覆盖的优先)
-    const matrix = masteryMatrix(exam.id);
-    const rank = { weak: 0, unlearned: 1, ok: 2, mastered: 3 };
-    const cover = { covered: 0, partial: 1, none: 2 };
-    const picks = matrix
-      .sort((a, b) => (b.rootCause ? 1 : 0) - (a.rootCause ? 1 : 0) || rank[a.level] - rank[b.level] || cover[a.coverage] - cover[b.coverage] || a.attempts - b.attempts) // 与总规划一致:根因知识点优先
-      .slice(0, 2)
-      .map((k) => ({ type: "kp", kpId: k.id, title: k.title, chapter: k.chapter }));
-    const items = [{ type: "review" }, ...picks, { type: "free", target: 10 }];
-    db.prepare("INSERT INTO daily_plans(exam_id,date,items_json,completed) VALUES(?,?,?,0)").run(exam.id, today, JSON.stringify(items));
-    plan = db.prepare("SELECT * FROM daily_plans WHERE exam_id=? AND date=?").get(exam.id, today);
+  // 单一数据源:今日任务直接从【跨考试规划器】为当前考试(家族根)实时生成——好逻辑(根因优先 / 含薄弱+未学 / 自由练习封顶 / 按时间分配)在生成时就内建,和「总规划」永远一致。自动计划不落缓存,保证时时同步;只有 killer 自定义的计划(set_daily_plan)才落 daily_plans 并优先。
+  const custom = db.prepare("SELECT * FROM daily_plans WHERE exam_id=? AND date=?").get(exam.id, today);
+  let items;
+  if (custom) {
+    items = JSON.parse(custom.items_json);
+  } else {
+    let it = [];
+    try {
+      const cp = crossExamPlan(user.id, {});
+      const rootId = rootExamId(exam.id);
+      const e = (cp.exams || []).find((x) => Number(x.id) === Number(rootId)) || (cp.exams || []).find((x) => Number(x.id) === Number(exam.id));
+      it = (e && e.tasks ? e.tasks : []).map((tk) => tk.type === "review" ? { type: "review" } : tk.type === "kp" ? { type: "kp", kpId: tk.kpId, title: tk.title } : { type: "free", target: 10 });
+    } catch {}
+    if (!it.some((x) => x.type === "review")) it.unshift({ type: "review" });
+    if (!it.length) it = [{ type: "review" }, { type: "free", target: 10 }];
+    items = it;
   }
-  const items = JSON.parse(plan.items_json);
   // done 状态由真实数据动态计算,不依赖打卡
   const due = dueReviewCount(exam.id);
   const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id=? AND mode!='resolved' AND date(created_at,'localtime')=date('now','localtime')`).get(exam.id).n;
