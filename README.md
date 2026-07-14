@@ -44,6 +44,25 @@ The default UI language is English, with a playful "assassin / murder plan" them
 - **Question count follows the real exam** (not a fixed 20); a **structure-source confidence** badge (official / inferred / estimated).
 - **Real-paper mode** (only your provided materials); persistent state across refresh; history; post-submission discuss that re-grades and recomputes the total.
 - **User question bank / closed bank**: paste known/guaranteed questions in verbatim, mark some "always include", or lock practice + mock to only your provided questions.
+- **Background grading**: submitting returns instantly — grading (incl. AI-graded short answers) runs in the background; you can leave the screen and the score appears automatically, then a cross-topic root-cause diagnosis runs. Self-healing against stuck/duplicate grading.
+
+### Root-cause diagnosis
+- Finds the **root-cause knowledge points** that drag down your score, recurring error patterns, and whether you're avoiding the hardest material. Runs automatically after enough cumulative usage (default 2h, killer-adjustable, 1.5h floor) and after every mock; marks root-cause points on the mastery matrix and feeds them to the top of your plan.
+
+### Cross-language transfer tracking (language exams)
+- Set your language background (native / known / target — collected at setup or by the killer). Wrong answers are attributed to **L1 negative transfer / L2 negative transfer / target-internal / careless**, distilled into a **three-language contrast table**, with pre-study prediction of transfer pitfalls. Attribution runs live at grading time.
+
+### Arena — gamified study modes
+- Turn your mistakes/weak spots into interactive battles: **wrong-answer boss fight**, **concept on trial**, **debate**. Each turn narrates and quietly feeds mastery (understanding greens a point, a misconception reddens it and queues one of that point's real questions into your mistake book).
+
+### Custom & AI-generated assessments
+- Beyond standard questions, an exam can have **custom assessment forms** — authored by you/the killer, or **creatively invented by the AI** for the subject (e.g. Socratic defense, kingdom-governance simulation, a "unity of knowing and doing" **video** assessment graded multimodally). Each assessment becomes **its own home entry** (not buried in the Arena), records a score/result, and its rules run inside a safety frame.
+
+### Practical tasks (real coding / experiments)
+- For programming/practical study, the AI assigns **milestone tasks you actually do**. Runnable code milestones are **auto-graded via Judge0** (test cases, exact-output match; write your solution, Run, submit); heavy/non-code milestones (e.g. training a model) take a deliverable + AI review. You can **appeal a test case** (the AI independently re-checks whether the expected output is correct). Turn on "practical mode" and today's tasks surface your next milestone / auto-generate one. (Judge0 endpoint + key configured by an admin in Settings.)
+
+### Per-exam UI (two layers)
+- **Every user can restructure each exam's own layout** (add/remove/hide/move feature modules across nav / more / home cards / big module / hidden). **Publishing a global default is developer-only.** Newly added features auto-surface in older layouts.
 
 ### The Killer (agentic chat)
 - Your private assistant that operates the study loop with tools (read/write docs, RAG, web search, generate questions, build tree, send files, customize the blueprint, drive the capture extension, …).
@@ -60,7 +79,7 @@ The default UI language is English, with a playful "assassin / murder plan" them
 - A floating feedback button (prefilled email).
 
 ### Platform
-- **7 UI languages** (Simplified Chinese, English, French, Spanish, Russian, Arabic w/ RTL, Indonesian) + Traditional Chinese (TW/HK); all new features localized.
+- **8 UI languages** (Simplified Chinese, English, French, Spanish, Russian, Arabic w/ RTL, Indonesian, Traditional Chinese TW & HK) — fully localized, all dictionaries at parity.
 - Daily task home, wrong-question book with spaced repetition (1/3/7/15/30 days), notebook, "all your killing skills" cross-exam profile, pre-exam prep.
 - PWA; data export; admin panel (usage frequency only, never learning content); developer sub-accounts with debug tools and quick account switching.
 
@@ -82,6 +101,7 @@ The default UI language is English, with a playful "assassin / murder plan" them
 4. Set variables: `ACCESS_CODE` (registration invite code) and `PORT=3000`.
 5. Settings → Networking → Generate Domain.
 6. Open the URL → register the first account (becomes admin) → paste your Gemini API key in Settings → test connection → set up an exam.
+7. *(Optional)* For runnable code grading in Practical Tasks, add a **Judge0** endpoint + key in Settings (e.g. Judge0 CE on RapidAPI, or a self-hosted instance).
 
 ## Local development
 ```bash
@@ -105,11 +125,18 @@ lib/generators.js         Knowledge-tree build/rebuild + question generation
 lib/blueprint.js          Mock blueprint + paper composition
 lib/chatAgent.js          The Killer: tools, planner, background run loop
 lib/media.js              ffmpeg: frame extraction, audio/mp3 transcode, beat detection
-lib/bricks/               Isolated composable "bricks" (e.g. cross-exam management)
-lib/translations.js       i18n dictionaries
+lib/planner.js            Cross-exam planning; lib/planVersions.js  conservative/aggressive + week-over-week
+lib/diagnose.js           Root-cause diagnosis; lib/langTransfer.js  three-language transfer (language exams)
+lib/arena.js              Gamified/interactive modes; lib/customModes.js  custom & AI-generated assessments
+lib/practical.js          Practical (coding/experiment) tasks; lib/judge0.js  Judge0 code execution
+lib/uilab/                Two-layer per-exam UI placement (per-exam for all users; global publish dev-only)
+lib/bricks/               Isolated composable "bricks" (killer tools)
+lib/appGuide.js           The killer's feature map (update on every feature change)
+lib/translations.js       i18n dictionaries (8 languages, at parity)
+FEATURES.md               Full feature + implementation reference (single source of truth)
 ```
 
 ## Vision (in progress)
-Turning the app from a single study tool into a **configurable learning-agent platform**: choose or let the AI design a workflow to match your plan (study-only, practice-only, discuss-only, homework help, Socratic tutoring, closed question banks, cross-exam sub-tasks…), with a customizable UI where no function is ever lost, domain-isolated agents, previewable plans, and one-click revert. The ultimate goal: anyone facing any learning goal gets an AI that truly understands them and helps their way — killing an exam is only the start.
+The app is well on its way from a single study tool to a **configurable learning-agent platform** — much of this is now live (per-exam customizable UI, custom & AI-designed assessments, real practical/coding tasks, cross-exam planning): choose or let the AI design a workflow to match your plan (study-only, practice-only, discuss-only, homework help, Socratic tutoring, closed question banks, cross-exam sub-tasks…), with a customizable UI where no function is ever lost, domain-isolated agents, previewable plans, and one-click revert. The ultimate goal: anyone facing any learning goal gets an AI that truly understands them and helps their way — killing an exam is only the start.
 
 Maintainer: Will &lt;xuy413682@gmail.com&gt;
