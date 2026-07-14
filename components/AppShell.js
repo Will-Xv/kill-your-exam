@@ -16,7 +16,7 @@ import * as placement from "@/lib/uilab/placement";
 import RouteShell from "@/components/uilab/RouteShell";
 
 // 营销/登录类公开页不套应用外壳
-const BARE = ["/login", "/welcome", "/privacy"];
+const BARE = ["/login", "/welcome", "/privacy", "/arena"];
 
 export default function AppShell({ children, initialLayout = null }) {
   const path = usePathname();

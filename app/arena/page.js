@@ -47,15 +47,16 @@ export default function ArenaPage() {
         setLaunch(sv.launch); setMsgs(sv.msgs);
         if (typeof sv.meter === "number") setMeter(sv.meter);
         if (sv.done) setDone(sv.done);
+        if (typeof sv.input === "string") setInput(sv.input);
       }
     } catch {}
   }, []);
   useEffect(() => {
     try {
-      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs: msgs.map((m) => ({ role: m.role, content: m.content })), meter, done }));
+      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs: msgs.map((m) => ({ role: m.role, content: m.content })), meter, done, input }));
       else if (!launch) localStorage.removeItem("kye_arena");
     } catch {}
-  }, [launch, msgs, meter, done]);
+  }, [launch, msgs, meter, done, input]);
   const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => {
     setCustom({ play: d.play || [], exam_form: d.exam_form || [] });
     try {
@@ -106,8 +107,8 @@ export default function ArenaPage() {
     try { await fetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); loadModes(); } catch {}
   }
 
-  if (!launch) return (
-    <div className="space-y-4">
+  const body = !launch ? (
+    <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pr-1">
       <div>
         <h1 className="text-2xl font-black">🎮 {t("竞技场")}</h1>
         <p className="text-sm text-stone-500">{t("把枯燥的复习变成对战。选一种玩法开始:")}</p>
@@ -143,12 +144,10 @@ export default function ArenaPage() {
       </div>
       {creatorOpen && <Creator t={t} aiFetch={aiFetch} onCreated={() => { setCreatorOpen(false); loadModes(); }} />}
     </div>
-  );
-
-  if (launch.format === "video") return <VideoAssess launch={launch} t={t} onBack={() => { setLaunch(null); loadModes(); }} />;
-
-  return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col space-y-2">
+  ) : launch.format === "video" ? (
+    <VideoAssess launch={launch} t={t} onBack={() => { setLaunch(null); loadModes(); }} />
+  ) : (
+    <div className="flex min-h-0 flex-1 flex-col space-y-2">
       <div className="flex items-center justify-between">
         <button onClick={() => { setLaunch(null); loadModes(); }} className="text-sm text-stone-500">← {t("换玩法")}</button>
         <div className="font-bold">{launch.emoji} {launch.key.startsWith("custom:") ? launch.title : t(launch.title)}</div>
@@ -195,6 +194,16 @@ export default function ArenaPage() {
         </div>
       )}
     </div>
+  );
+
+  return (
+    <>
+      <div className="app-bg" />
+      <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-3xl flex-col px-4 pb-4 pt-3">
+        <div className="mb-2 shrink-0"><a href="/" className="text-sm text-stone-400 hover:text-amber-500">← {t("返回首页")}</a></div>
+        {body}
+      </div>
+    </>
   );
 }
 
