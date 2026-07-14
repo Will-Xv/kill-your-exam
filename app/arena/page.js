@@ -22,6 +22,7 @@ export default function ArenaPage() {
   const [input, setInput] = useState("");
   const [custom, setCustom] = useState({ play: [], exam_form: [] });
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [genBusy, setGenBusy] = useState(false);
   const boxRef = useRef(null);
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
   const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => setCustom({ play: d.play || [], exam_form: d.exam_form || [] })).catch(() => {});
@@ -49,6 +50,11 @@ export default function ArenaPage() {
     setMsgs(h); setInput(""); turn(h);
   }
   const launchCustom = (m) => { const l = { key: "custom:" + m.id, id: m.id, emoji: m.emoji, title: m.name, meterLabel: m.meter_label || "进度", down: m.meter_dir === "down", format: m.format, spec: m.spec, winDesc: m.win_desc }; if (m.format === "video") { setLaunch(l); } else { start(l); } };
+  async function genModes() {
+    setGenBusy(true);
+    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generate: true, count: 3 }) }); loadModes(); } catch {}
+    setGenBusy(false);
+  }
   async function del(id) {
     if (!confirm(t("删除这个自定义模式?"))) return;
     try { await fetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); loadModes(); } catch {}
@@ -93,7 +99,10 @@ export default function ArenaPage() {
         </div>
       )}
 
-      <button onClick={() => setCreatorOpen((v) => !v)} className="text-sm text-indigo-600">{creatorOpen ? t("收起") : "➕ " + t("自定义一个玩法/考核")}</button>
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <button onClick={genModes} disabled={genBusy} className="btn px-3 py-1.5 text-sm">{genBusy ? t("AI 出题中…") : "✨ " + t("让 AI 出几个考核")}</button>
+        <button onClick={() => setCreatorOpen((v) => !v)} className="text-sm text-indigo-600">{creatorOpen ? t("收起") : "➕ " + t("自己写一个玩法/考核")}</button>
+      </div>
       {creatorOpen && <Creator t={t} aiFetch={aiFetch} onCreated={() => { setCreatorOpen(false); loadModes(); }} />}
     </div>
   );

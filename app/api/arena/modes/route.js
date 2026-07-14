@@ -1,6 +1,6 @@
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { createMode, listModes, deleteMode, recordResult, getMode } from "@/lib/customModes";
+import { createMode, listModes, deleteMode, recordResult, getMode, generateModes } from "@/lib/customModes";
 import { inScope } from "@/lib/db";
 
 export async function GET() {
@@ -17,6 +17,7 @@ export async function POST(req) {
     if (!exam) return Response.json({ error: "no_exam" }, { status: 400 });
     const b = await req.json();
     if (b.delete) { return Response.json({ ok: deleteMode(user, b.delete) }); }
+    if (b.generate) { return Response.json(await generateModes(user, exam, { count: Math.min(5, Math.max(1, Number(b.count) || 3)) })); }
     if (b.result && b.modeId) {
       const m = getMode(b.modeId);
       if (!m || !inScope(exam.id, m.exam_id)) return Response.json({ ok: false });
