@@ -106,9 +106,18 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     t("自由练习一组");
   const firstUndone = items.find((it) => !it.done);
   const allDone = items.length && !firstUndone;
-  const linkFor = (it) => (it.methodHref ? it.methodHref : it.type === "review" ? "/practice?mode=review" : it.type === "kp" ? `/study?kp=${it.kpId}` : "/practice?fresh=1");
+  const linkFor = (it) => (it.methodHref ? it.methodHref
+    : it.type === "review" ? "/practice?mode=review"
+    : it.type === "practice" ? `/practice?kp=${it.kpId}&fresh=1`
+    : it.type === "debate" ? `/arena?mode=debate&kp=${it.kpId}`
+    : it.type === "socratic" ? `/arena?mode=socratic&kp=${it.kpId}`
+    : it.type === "kp" ? `/study?kp=${it.kpId}`
+    : "/practice?fresh=1");
   const labelFor = (it) =>
     it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
+    it.type === "practice" ? `✍️ ${t("练习:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
+    it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` (${it.n}${t("轮")})` : ""}` :
+    it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
     `${t("自由练习")} (${it.count}/${it.target})`;
 

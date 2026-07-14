@@ -38,7 +38,7 @@ export default function ArenaPage() {
   // 竞技场进度在刷新后保留:恢复上次未结束的对局(video 形式除外)
   useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).get("launch")) return; // 有显式 launch 参数时以它为准,不恢复
+      const _q = new URLSearchParams(window.location.search); if (_q.get("launch") || _q.get("mode")) return; // 有显式 launch/mode 参数时以它为准,不恢复
       const raw = localStorage.getItem("kye_arena");
       if (!raw) return;
       const sv = JSON.parse(raw);
@@ -60,8 +60,11 @@ export default function ArenaPage() {
   const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => {
     setCustom({ play: d.play || [], exam_form: d.exam_form || [] });
     try {
-      const lid = new URLSearchParams(window.location.search).get("launch");
+      const q = new URLSearchParams(window.location.search);
+      const lid = q.get("launch");
       if (lid && !launchedRef.current) { const all = [...(d.exam_form || []), ...(d.play || [])]; const m = all.find((x) => String(x.id) === String(lid)); if (m) { launchedRef.current = true; launchCustom(m); } }
+      const mid = q.get("mode");
+      if (mid && !launchedRef.current) { const p = PRESETS.find((x) => x.key === mid); if (p) { launchedRef.current = true; start(p); } }
     } catch {}
   }).catch(() => {});
   const launchedRef = useRef(false);
