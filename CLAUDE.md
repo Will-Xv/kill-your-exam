@@ -17,6 +17,9 @@
   - 单门考试重建=`rebuildKnowledgeTree(exam,lang,mode,opts)`(lib/generators.js):mode=keep(先删旧点建新点,再用 embedding 把旧 attempts/insights【语义映射】到最相近新点 cosine≥0.5=②)/ summarize(旧表现浓缩成观察挂新点、清原始记录)/ none(清记录干净重来=③)。杀手工具 build_knowledge_tree 的 retain 即它。
   - 跨考试/家族=lib/bricks/crossExam.js:`exam_provision`(role=mother 的 carryMode=live/summarize/partial/copy_all 决定旧内容怎么处理)、`exam_set_aggregate`(母考试实时汇总整棵子树、不复制)、`exam_set_parent`、`exam_copy_kps`/`exam_copy_questions`、`exam_promote_weak`(冲刺精选集)。
   - **家族防重复设计(已实现)**:carryMode=live→只开汇总不复制;summarize/partial/copy_all→复制内容并【关掉汇总】避免重复。
+  - **家族=一棵树(Will 的设计原则,别忘)**:一个家族本来就该只有【一棵】知识树;把考试并进家族时应【合并树】,而不是 aggregate 出多棵并列树。现成实现 `exam_merge`(lib/bricks/mergeSplit.js):把一门考试整体并入另一门——移动 KP/题/作答/掌握度/讲解/资料/错题/笔记,按【章节名+知识点标题】去重(目标同名点吸收来源的题/作答,kp_id 重映射;没有的整点搬),软删源、源的子考试改挂 target,事务化保引用完整。配套:`exam_split`(拆分移动)、`exam_integrity_check`(孤儿/归属/环 体检+fix)、`exam_match_kps`(语义相似匹配,阈值默认0.82)。
+  - **aggregate vs merge**:`exam_set_aggregate`=展示期实时合并【多棵】树、不动数据(名称/语言不一致时不会自动去重→重复,本次踩坑);`exam_merge`=物理并成【一棵】去重树。exam_merge 去重是【精确同名】,跨语言(中/英不同名)不会合并,需要时先 `exam_match_kps` 语义匹配再处理。
+  - **选项②要连题库题一起搬**(Will 提醒):语义映射不能只迁做题记录、要把题库里相关的题也智能挑/迁过去——单门 build_knowledge_tree(retain=keep) 自动重指;跨考试用 exam_copy_kps→exam_copy_questions(withAttempts 连作答、重算遗忘曲线)、exam_promote_weak 只挑薄弱错题。
   - **本次重复真因**:期中+期末是一个家族,期末【既开汇总(把期中并进来)又把早期章节建进了自己的树】→ /api/kp 按 examScope 聚合家族、把早期内容显示两遍。不是生成 bug、不是残留,是【汇总+自建】双份。家族范围重叠怎么组织,该【杀手问主人】,不该开发者代问。
 - 主人说【范围/目标】(如"规划到期末""复习整门课")= 清晰意图,别当"模糊"反复追问;若当前树没覆盖该范围,杀手【主动】扩建/重建(走确认弹窗,默认 retain=keep,不为 retain 单独盘问)。
 - **考试/节点名(期末/期中/quiz/final/某考试名)永远不是章节名、也不是知识点**:要把该范围里【还没建的真实内容单元】(如"多元函数最优化""二重积分")作为一个个【正常章节】补进去;【绝不】建一个叫考试名/节点名的章节。不知道范围含啥就查资料/联网搜 syllabus/问主人,别编。
