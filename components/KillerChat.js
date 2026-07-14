@@ -34,12 +34,13 @@ export default function KillerChat() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [me, setMe] = useState(null);
   const pollRef = useRef(null);
+  const elapsedBaseRef = useRef({ serverSec: 0, at: Date.now() }); // 计时基准来自服务端 run 实际开始时间,刷新页面也不清零
   const bottom = useRef(null);
   const taRef = useRef(null);
 
   useEffect(() => { fetch("/api/chat").then((r) => r.json()).then((d) => setMessages(d.messages || [])); }, []);
   useEffect(() => { fetch("/api/me").then((r) => r.ok ? r.json() : null).then((d) => setMe(d?.user)).catch(() => {}); }, []);
-  useEffect(() => { if (!busy) { setElapsed(0); return; } const t0 = Date.now(); const iv = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 1000); return () => clearInterval(iv); }, [busy]);
+  useEffect(() => { if (!busy) { setElapsed(0); return; } const tick = () => { const b = elapsedBaseRef.current; setElapsed(Math.max(0, Math.round(b.serverSec + (Date.now() - b.at) / 1000))); }; tick(); const iv = setInterval(tick, 1000); return () => clearInterval(iv); }, [busy]);
   useEffect(() => {
     // 断线重连:若后台还有一次未完成的运行,继续跟它的进度(离线期间它照跑)
     fetch("/api/chat/run").then((r) => r.json()).then((d) => { if (d.run && (d.run.status === "running" || d.run.status === "pending")) startPolling(d.run.id); }).catch(() => {});
@@ -61,12 +62,13 @@ export default function KillerChat() {
       const d = await fetch(`/api/chat/run?id=${runId}`).then((r) => r.json());
       const run = d.run; if (!run) return;
       setSteps(run.steps || []);
+      if ((run.status === "running" || run.status === "pending") && typeof run.elapsedSec === "number") elapsedBaseRef.current = { serverSec: run.elapsedSec, at: Date.now() };
       if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
       else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, kind: run.pendingKind, plan: run.plan, actions: run.actions || [], approve }); }
       else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: "(出错了,请重试)" }]); }
     } catch {}
   }
-  function startPolling(runId) { setBusy(true); stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }
+  function startPolling(runId) { setBusy(true); elapsedBaseRef.current = { serverSec: 0, at: Date.now() }; stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }
 
   function autoGrow(el) {
     if (!el) return;
