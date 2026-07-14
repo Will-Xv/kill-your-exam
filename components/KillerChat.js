@@ -65,7 +65,7 @@ export default function KillerChat() {
       if ((run.status === "running" || run.status === "pending") && typeof run.elapsedSec === "number") elapsedBaseRef.current = { serverSec: run.elapsedSec, at: Date.now() };
       if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
       else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, kind: run.pendingKind, plan: run.plan, actions: run.actions || [], approve }); }
-      else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: "(出错了,请重试)" }]); }
+      else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: run.reply || "(出错了,请重试)" }]); }
     } catch {}
   }
   function startPolling(runId) { setBusy(true); elapsedBaseRef.current = { serverSec: 0, at: Date.now() }; stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }

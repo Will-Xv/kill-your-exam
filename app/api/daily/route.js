@@ -1,7 +1,7 @@
 import db, { rootExamId, familyScope } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
-import { crossExamPlan } from "@/lib/planner";
+import { crossExamPlan, currentDailyItems } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
@@ -13,22 +13,7 @@ export async function GET() {
   if (!exam) return Response.json({ plan: null });
   const today = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD 本地
   // 单一数据源:今日任务直接从【跨考试规划器】为当前考试(家族根)实时生成——好逻辑(根因优先 / 含薄弱+未学 / 自由练习封顶 / 按时间分配)在生成时就内建,和「总规划」永远一致。自动计划不落缓存,保证时时同步;只有 killer 自定义的计划(set_daily_plan)才落 daily_plans 并优先。
-  const custom = db.prepare("SELECT * FROM daily_plans WHERE exam_id=? AND date=? AND custom=1").get(exam.id, today);
-  let items;
-  if (custom) {
-    items = JSON.parse(custom.items_json);
-  } else {
-    let it = [];
-    try {
-      const cp = crossExamPlan(user.id, {});
-      const rootId = rootExamId(exam.id);
-      const e = (cp.exams || []).find((x) => Number(x.id) === Number(rootId)) || (cp.exams || []).find((x) => Number(x.id) === Number(exam.id));
-      it = (e && e.tasks ? e.tasks : []).map((tk) => tk.type === "review" ? { type: "review" } : tk.type === "kp" ? { type: "kp", kpId: tk.kpId, title: tk.title } : { type: "free", target: 10 });
-    } catch {}
-    if (!it.some((x) => x.type === "review")) it.unshift({ type: "review" });
-    if (!it.length) it = [{ type: "review" }, { type: "free", target: 10 }];
-    items = it;
-  }
+  const { items } = currentDailyItems(user.id, exam);
   // done 状态由真实数据动态计算,不依赖打卡
   const due = dueReviewCount(exam.id);
   const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id=? AND mode!='resolved' AND date(created_at,'localtime')=date('now','localtime')`).get(exam.id).n;

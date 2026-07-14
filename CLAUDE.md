@@ -3,6 +3,7 @@
 ## 今日任务 vs 总规划(单一数据源·自动同步)
 - **今日任务直接从 `crossExamPlan`(planner)实时生成**(app/api/daily:找当前考试的家族根那份 tasks→转 daily items;不缓存自动计划),所以和 /plan「总规划」【永远一致】、生成时就内建好逻辑,无需手动采用。只有 killer 自定义(set_daily_plan)才落 daily_plans 并优先;refresh_daily_plan 清掉自定义→回到自动。
 - **好逻辑内建在 planner**:薄弱点=薄弱+未学、根因优先(summarizeExam 用 masteryMatrix,和 daily 同一套);自由练习封顶≈15分/一组(不再把剩余时间全塞进去);buildTasks 每门取 2 点。
+- **纯数字微调=`tweak_daily_plan`(快路径,零 AI)**:「自由练习改5题」「问答改2题、辩论改1轮」这类只改题数/轮数——`lib/bricks/dailyPlan.js` 就地改 `currentDailyItems`(planner 共享助手,/api/daily 同源)里对应字段,不重挑知识点、不重排、不跑 AI,落 custom=1。已发布。killer 对纯数字优先用它(customize 太重会重排、慢)。
 - **改今日任务=砖头 `customize_daily_plan`**(lib/bricks/dailyPlan.js,已发布):基础用 crossExamPlan(当前逻辑)+ 主人需求 + reviewPlan 自我审视 → AI 产出最终 items(kpId 只从 masteryMatrix 候选里选)→ 写 daily_plans(custom=1)。审视(plan_review 砖头)保留并在这里真正被用上;set_daily_plan 降级为「精确点名」。
   - **当日有序仪式(gap#1)**:主人若要「先做N道问答→围绕X辩论M轮→对不会的做苏格拉底→排进复习」这类【有顺序的多步流程】,砖头产出【有序 steps】,item.type 扩展为 `practice/debate/socratic/kp(study)/review/free`(带 kpId/n)。首页 HomeClient linkFor/labelFor 识别:practice→`/practice?kp=X&fresh=1`、debate→`/arena?mode=debate&kp=X`、socratic→`/arena?mode=socratic&kp=X`;竞技场页读 `?mode=`(boss/trial/debate/socratic 预设)自动开局。done 追踪:practice/debate/socratic 按当天该 kp 的 attempts+insights>0。**自动今日任务(/api/daily 从 crossExamPlan)完全不变**,只有主人主动要仪式才出现新步骤。
 - 杀手侧同源:`plan_overview` 调 crossExamPlan(自动跟新逻辑);`set_daily_plan` item 格式一致。审视(reviewPlan)保留为透明度/可信度说明(dataBased/generic/overScheduled/trim/risks/summary/revisedMinutes),不再需要"手动采用"(已删按钮)。
