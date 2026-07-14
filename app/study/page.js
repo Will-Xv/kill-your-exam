@@ -61,7 +61,7 @@ function StudyInner() {
         <button className="text-sm text-stone-500" onClick={() => setCurrent(null)}>{t("← 返回知识点列表")}</button>
         <div className="card">
           <div className="flex items-start justify-between gap-2 flex-wrap">
-            <h1 className="text-lg font-bold">{current.kp.title}</h1>
+            <h1 className="text-lg font-bold"><MD inline>{current.kp.title}</MD></h1>
             {e && <SourceBadge sourceType={e.source_type} refs={e.source_refs} />}
           </div>
           {!e ? <p className="mt-4 text-stone-400 animate-pulse">{t("AI 正在准备讲解…")}</p> : (
@@ -130,11 +130,11 @@ function StudyInner() {
       )}
       {tree.map((ch) => (
         <div key={ch.id} className="card">
-          <h2 className="font-bold mb-2 flex items-center gap-2">{ch.title}{ch.isSub && ch.fromExamName && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-300">📎 {ch.fromExamName}</span>}</h2>
+          <h2 className="font-bold mb-2 flex items-center gap-2"><MD inline>{ch.title}</MD>{ch.isSub && ch.fromExamName && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-300">📎 {ch.fromExamName}</span>}</h2>
           <div className="space-y-1">
             {ch.points.map((p) => (
               <button key={p.id} onClick={() => open(p)} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-50">
-                <span className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${LVDOT[levels[p.id] || "unlearned"]}`} />{p.title} <span className="text-xs">{COVER[p.coverage]}</span>{roots[p.id] && <span title={t("根因知识点:它薄弱会拖垮一片其它内容")} className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 ring-1 ring-rose-300">🔗 {t("根因")}</span>}</span>
+                <span className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${LVDOT[levels[p.id] || "unlearned"]}`} /><MD inline>{p.title}</MD> <span className="text-xs">{COVER[p.coverage]}</span>{roots[p.id] && <span title={t("根因知识点:它薄弱会拖垮一片其它内容")} className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 ring-1 ring-rose-300">🔗 {t("根因")}</span>}</span>
                 <span className="text-xs text-slate-400 shrink-0 ml-2">{p.attempts > 0 ? `${p.correct}/${p.attempts}` : t("未练")}</span>
               </button>
             ))}

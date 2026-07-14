@@ -25,6 +25,7 @@ export default function KillerChat() {
   const [input, setInput] = useState("");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [pending, setPending] = useState(null); // { token, kind, plan, actions, approve:{idx:bool} }
   const [planFeedback, setPlanFeedback] = useState("");
   const [bjobs, setBjobs] = useState([]);
@@ -38,6 +39,7 @@ export default function KillerChat() {
 
   useEffect(() => { fetch("/api/chat").then((r) => r.json()).then((d) => setMessages(d.messages || [])); }, []);
   useEffect(() => { fetch("/api/me").then((r) => r.ok ? r.json() : null).then((d) => setMe(d?.user)).catch(() => {}); }, []);
+  useEffect(() => { if (!busy) { setElapsed(0); return; } const t0 = Date.now(); const iv = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 1000); return () => clearInterval(iv); }, [busy]);
   useEffect(() => {
     // 断线重连:若后台还有一次未完成的运行,继续跟它的进度(离线期间它照跑)
     fetch("/api/chat/run").then((r) => r.json()).then((d) => { if (d.run && (d.run.status === "running" || d.run.status === "pending")) startPolling(d.run.id); }).catch(() => {});
@@ -207,6 +209,7 @@ export default function KillerChat() {
                 : <div className="space-y-1">{vis.slice(-10).map((x, i, a) => (
                     <div key={i} className={i === a.length - 1 ? "text-slate-700 animate-pulse" : "opacity-60"}>{label(x)}</div>
                   ))}</div>}
+              {elapsed > 2 && <div className="text-[11px] text-slate-400 pt-0.5">{t("已用")} {elapsed}s{elapsed > 40 ? " · " + t("大改动/查资料可能较久,别急") : ""}</div>}
             </div>
           );
         })()}
