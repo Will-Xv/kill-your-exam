@@ -35,7 +35,7 @@
 - 模拟考**后台判题**：`/api/mock/submit` 立即返回 grading，`gradeMock` 后台跑，`/api/mock/status` 轮询（`mock_exams.status/grade_started_at/results_json`）。
 - 两层界面：`lib/uilab/*` + `/api/ui-items`。**每门考试可独立改布局（所有用户）**；**发布为默认仅开发者**；`normalizePlacement` 让新功能在旧布局里自动补位。
 
-- Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list`(未 seed published=仅dev)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2/3(效果自适应/结构重切+diff+作用域回退)未做,结构重切复用 `rebuildKnowledgeTree` embedding 语义映射。**
+- Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list`(未 seed published=仅dev)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2 已做**:`recipeProgress` 阶段掌握度增益测量(`recipe_phase_state` 快照)+ `ai_choose` 自动选增益最高的方法(recipe_status 显示 effectiveness/bestMethod)。**MVP-3(结构重切+diff+作用域回退)未做,结构重切复用 `rebuildKnowledgeTree` embedding 语义映射。**
 
 ## i18n
 - `lib/translations.js` 8 个字典（ZH_EN/FR/ES/RU/AR/ID/TW/HK），源键=简体中文，8 个都要同步加键。TW/HK 可用 opencc（s2twp/s2hk）从简体键机械生成。
