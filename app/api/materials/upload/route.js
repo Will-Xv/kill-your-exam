@@ -6,6 +6,7 @@ import { augmentKnowledgeTree } from "@/lib/generators";
 import { aiErrorResponse } from "@/lib/errors";
 import { saveMat, delMat, guessMime, kindOf } from "@/lib/files";
 import { autoResolveOnUpload } from "@/lib/referenceResolve";
+import { assessMaterialTopic } from "@/lib/materialMatch";
 
 export const maxDuration = 300;
 
@@ -34,10 +35,11 @@ export async function POST(req) {
 
     // 文本可提取的仍然入库(用于检索);图片顺带 OCR;音频不强制提取
     // 只有【原生数字文本】(docx/txt/md)才抽文字分块入库;PDF/图片一律不抽文字(parseUpload 返回空),靠 File API 多模态直读。
-    let chunks = 0;
+    let chunks = 0, parsedText = "";
     if (kind !== "audio") {
       try {
         const { text } = await parseUpload(file.name, buffer, mime);
+        parsedText = text || "";
         if (text && text.trim().length >= 30) chunks = await indexMaterial(materialId, examId, text, file.name.replace(/\.\w+$/, ""));
       } catch (e) {
         if (e?.isAiError) throw e; // API/额度类错误照常提示
@@ -50,6 +52,16 @@ export async function POST(req) {
     Promise.resolve().then(() => autoResolveOnUpload(user, examId, materialId)).catch(() => {});
     // 扫描版 PDF(pdf-parse 抽不出文字)→ 后台交给 Gemini 原生读:转写文字 + 描述示意图,保留页码,入库供检索。
     // >18MB(Gemini 单次上限)→ 用 pdf-lib 按大小拆成小片,逐片读、拼起来,再大的书也能读。
+    // 诚实性:后台判断这份资料是否跟本考试主题匹配;明显不符就打标(资料列表显示⚠️,杀手也会看到),不阻塞上传。
+    Promise.resolve().then(async () => {
+      try {
+        const exRow = db.prepare("SELECT id, name FROM exams WHERE id=?").get(examId);
+        if (!exRow) return;
+        const res = await assessMaterialTopic(exRow, { text: parsedText, buffer, mime, kind }, user.lang);
+        if (res && res.matches === false) db.prepare("UPDATE materials SET offtopic=1, offtopic_reason=? WHERE id=?").run(String(res.reason || "").slice(0, 300), materialId);
+        else db.prepare("UPDATE materials SET offtopic=0 WHERE id=?").run(materialId);
+      } catch {}
+    }).catch(() => {});
     return Response.json({ ok: true, materialId, chunks });
   } catch (e) {
     const msg = String(e?.message || e).slice(0, 300);

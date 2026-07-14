@@ -123,6 +123,7 @@ export default function Materials() {
                   {m.status === "processing" && t("⏳ 处理中")}
                   {m.status === "failed" && <span className="text-red-600">✗ {m.error}</span>}
                 </p>
+                {m.offtopic ? <p className="mt-0.5 text-xs text-rose-600">⚠️ {t("这份资料似乎跟本考试主题不符")}{m.offtopic_reason ? "：" + m.offtopic_reason : ""}</p> : null}
               </button>
               <div className="flex shrink-0 items-center gap-2">
                 {m.status === "ready" && m.kind !== "image" && m.kind !== "audio" && (
