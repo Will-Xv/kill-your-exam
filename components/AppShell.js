@@ -29,7 +29,7 @@ export default function AppShell({ children, initialLayout = null }) {
   // 开发者在首页开启布局(编辑中或已套用某套布局)时,主内容改为全宽画布 —— 不再被「给杀手让出右边一条」限制,
   // 内容与杀手可自由摆放(上下、任意位置)。内容本身不自动放宽,仍保持原来的宽度,只是可被拖到任何地方。
   // 杀手在做题/模拟/聊天页与公开页不出现;其余页面:电脑端右侧常驻面板,手机端浮动小圆按钮
-  const hideKiller = path.startsWith("/practice") || path.startsWith("/mock") || path === "/chat" || path.startsWith("/onboarding");
+  const hideKiller = path.startsWith("/practice") || path.startsWith("/mock") || path.startsWith("/arena") || path === "/chat" || path.startsWith("/onboarding");
   const showKiller = !hideKiller;
   const onHome = path === "/";
   const applied = lab.contentToRender() || (!S.editing && initialLayout && initialLayout.v === 2 ? initialLayout : null); // 优先用 store;首帧(fetch 未回)用 SSR 传入的已发布布局
