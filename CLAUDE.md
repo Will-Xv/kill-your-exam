@@ -11,6 +11,13 @@
 - 已对全体开放:杀手全部工具(记忆 list/forget、学习模式 save/list/activate/delete、plan_overview、UI 编辑 ui_create/remove/rename/move/home_layout 等**逐考试**层)、systemPrompt 里的记忆/学习模式/知识状态/界面定制段、触发器(`triggers/tick`+`cron`)、记忆 exam/global 分层、**逐考试** UI(`ui-nav` POST、`ui-layout` GET examLayout、`ui-items` exam 层)、`LayoutLab`(enabled=true)。
 - 判据:**逐考试/逐用户的定制=全体开放;全站默认发布+开发者工具+Bug 控制台=仅开发者。** `declsFor` 已无 devOnly 工具;前端 nav 的 `itemVisibleTo({isDeveloper})` 仍正确隐藏 dev 控制台/Bug 台入口。
 
+## 知识树/规划的行为契约(Will 反复踩坑)
+- 主人说【范围/目标】(如"规划到期末""复习整门课")= 清晰意图,别当"模糊"反复追问;若当前树没覆盖该范围,杀手【主动】扩建/重建(走确认弹窗,默认 retain=keep,不为 retain 单独盘问)。
+- **"期末/Final" 不是章节名、不是知识点**:要把期末考纲里【还没建的真实内容单元】(如"多元函数最优化""二重积分")作为一个个【正常章节】补进去;【绝不】建一个叫"期末/Final/考试名"的章节。不知道考纲就查资料/联网搜 syllabus/问主人,别编。
+- `timeBudgetMin` 只给【真正的聚焦小测】(压成"以考试名命名的单章");整门课/期中/期末【绝不传】——传了就会重现"加一个叫期末的单元"这个 bug。
+- **知识点标题必须简短**(中文4~14字/英文2~6词),标题里【禁止】长句解释/冒号/公式/LaTeX(否则 study 页把裸 `\nabla` 显示成源码)。KP 讲解正文走 `<MD>`(KaTeX)渲染,标题是纯文本不渲染。
+- 空回合(无工具调用+无文本)自动重试一次;仍空按 finishReason 给可读提示(MAX_TOKENS→提示"继续")。
+
 ## ★ 元规则(最重要):每次新增/改动功能,必须同步更新三处(Will 明确要求)
 1. **`CLAUDE.md`(本文件·长期记忆)** —— 更新下方「功能与模块索引」,防止因上下文丢失而忘记做过什么。
 2. **`FEATURES.md`(单一事实来源)** —— 补上功能与实现逻辑。
