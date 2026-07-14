@@ -58,7 +58,7 @@ export async function POST(req) {
         const exRow = db.prepare("SELECT id, name FROM exams WHERE id=?").get(examId);
         if (!exRow) return;
         const res = await assessMaterialTopic(exRow, { text: parsedText, buffer, mime, kind }, user.lang);
-        const flag = res && res.verdict === "mismatch" ? 1 : res && res.verdict === "unsure" ? 2 : 0; // 0=match 1=不符 2=不确定
+        const flag = res && res.verdict === "mismatch" ? 1 : res && res.verdict === "unsure" ? 2 : res && res.verdict === "partial" ? 3 : 0; // 0=match 1=不符 2=不确定 3=超范围/部分
         db.prepare("UPDATE materials SET offtopic=?, offtopic_reason=? WHERE id=?").run(flag, String((res && res.reason) || "").slice(0, 300), materialId);
       } catch {}
     }).catch(() => {});

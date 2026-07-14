@@ -7,7 +7,7 @@
 - 杀手侧同源:`plan_overview` 调 crossExamPlan(自动跟新逻辑);`set_daily_plan` item 格式一致。审视(reviewPlan)保留为透明度/可信度说明(dataBased/generic/overScheduled/trim/risks/summary/revisedMinutes),不再需要"手动采用"(已删按钮)。
 
 ## 资料主题匹配检查(诚实性)
-- 上传后台跑 `assessMaterialTopic`(lib/materialMatch.js):文本材料用文字、PDF/图片用 readImage 一句话取主题,AI 判断是否属于本考试(exam.name+dossier)。三态 verdict:match / mismatch(offtopic=1,⚠️,别照编、提醒换对的) / **unsure(offtopic=2,❓)**。【拿不准=unsure、要标记,不再默认 match;拿不到内容/判定出错也归 unsure】。systemPrompt:⚠️别照编;❓用前先问主人『这份是不是这门考试的资料』。list_materials 两态都显示。
+- 上传后台跑 `assessMaterialTopic`(lib/materialMatch.js):文本材料用文字、PDF/图片用 readImage 一句话取主题,AI 判断是否属于本考试(exam.name+dossier)。四态 verdict:match / mismatch(offtopic=1,⚠️,别照编、提醒换对的) / unsure(offtopic=2,❓) / **partial(offtopic=3,📚,同学科但资料范围超出本考试,如只考U1却传了U1-3的书→问主人哪部分算范围、别把超范围的建进树/出题)**。【拿不准=unsure、要标记,不再默认 match;拿不到内容/判定出错也归 unsure】。systemPrompt:⚠️别照编;❓用前先问是不是这门考试的资料;📚先问哪些单元/部分算范围。list_materials 各态都显示。
 
 ## 汇报语言(Will 要求)
 
