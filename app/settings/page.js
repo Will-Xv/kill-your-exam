@@ -108,22 +108,23 @@ export default function Settings() {
           <label className="text-sm text-stone-500">{t("模型名称")}</label>
           <input className="input mt-1" value={model} onChange={(e) => setModel(e.target.value)} />
         </div>
+        <div className="flex items-center gap-2">
+          <button className="btn" onClick={save} disabled={busy}>{t("保存")}</button>
+          <button className="btn-ghost" onClick={test} disabled={busy || !info.hasKey}>{t("测试AI的API")}</button>
+          {msg && <span className="text-sm text-amber-700">{msg}</span>}
+        </div>
         <div className="border-t border-stone-100 pt-3">
           <label className="text-sm font-medium text-stone-600">{t("代码执行(Judge0,用于实践任务判分)")}</label>
           <p className="text-xs text-stone-400 mt-0.5">{t("填了才能真正运行学生代码判分。可用 RapidAPI 上的 Judge0 CE,或自托管实例。留空则实践任务只用证据+AI审阅。")}</p>
           <input className="input mt-1" placeholder="https://judge0-ce.p.rapidapi.com" value={j0url} onChange={(e) => setJ0url(e.target.value)} />
           <input className="input mt-1" type="password" placeholder={info.judge0HasKey ? t("已配置 Judge0 密钥,粘贴可替换(留空不变)") : t("粘贴 Judge0 API 密钥(RapidAPI Key 或自托管 Token)")} value={j0key} onChange={(e) => setJ0key(e.target.value)} />
           <div className="mt-1 flex items-center gap-2">
+            <button className="btn text-sm py-1" onClick={save} disabled={busy}>{t("保存")}</button>
             <button className="btn-ghost text-sm py-1" onClick={testJudge0} disabled={!info.judge0HasKey && !j0url}>{t("测试 Judge0")}</button>
             {j0msg && <span className="text-xs text-stone-600">{j0msg}</span>}
           </div>
           <p className="text-[11px] text-stone-400 mt-0.5">{t("先保存,再测试(会真跑一段代码验证地址/密钥/鉴权是否通)。")}</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn" onClick={save} disabled={busy}>{t("保存")}</button>
-          <button className="btn-ghost" onClick={test} disabled={busy || !info.hasKey}>{t("测试连接")}</button>
-        </div>
-        {msg && <p className="text-sm text-amber-700">{msg}</p>}
       </div>}
       <div className="card space-y-2">
         <h2 className="font-semibold">🏫 {t("我的档案")}</h2>
