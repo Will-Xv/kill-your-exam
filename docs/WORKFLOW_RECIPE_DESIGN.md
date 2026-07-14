@@ -1,6 +1,6 @@
 # Workflow Recipe —— 设计文档（planner-for-planner）
 
-> 状态：**设计草案，尚未实现**。目的：把现有的强功能统一到一个用户可控的 workflow 层之下。评审通过后再分阶段实现。
+> 状态：**MVP-1/2/3 已实现(dev 灰度)**。本文件保留原始设计;实现见 `lib/recipes.js`(MVP-1/2)、`lib/recipeRemap.js`(MVP-3)、`lib/bricks/recipe.js`。目的：把现有的强功能统一到一个用户可控的 workflow 层之下。评审通过后再分阶段实现。
 > 一句话：让用户用**自然语言**定义一套**可保存 / 修改 / 复用 / 验证 / 回退**的 planner 行为规则，而不只是接受 AI 生成的一次性计划。
 
 ---

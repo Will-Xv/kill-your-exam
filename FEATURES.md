@@ -178,7 +178,8 @@
 - `getActiveRecipe` 冲突解析:**scope 特异性(exam>global) > priority > recency**。`currentPhase` 按掌握度判定第一个未过阶段(阶段覆盖的知识点 ≥80% 达 exit 即过)。`methodForKp` 供 planner:今日任务(`/api/daily`)按当前阶段给每个知识点标 `method/methodTag/methodLabel/methodHref`,并返回 `recipe` 块(name/phase/method)。
 - 杀手 brick(未 seed published = **仅开发者**):`recipe_save`(AI 把大白话流程 + 考试章节 → spec 并激活)、`recipe_activate`、`recipe_status`、`recipe_list`。
 - **MVP-2(已做):阶段效果测量 + ai_choose 自动择优**。`recipeProgress`:进入阶段时快照其知识点掌握度(`recipe_phase_state`),阶段过后算**方法无关的掌握度增益**(gain=现在平均 rank − 起点平均 rank);`method=ai_choose` 的阶段**自动解析成已完成阶段里增益最高的方法**(候选可指定)。`recipe_status` 显示各方法效果(effectiveness)+ 目前最优方法(bestMethod)。
-- **未做(MVP-3)**:结构重切(复用 `rebuildKnowledgeTree` embedding 语义映射)+ 大改前 diff 预览 + 作用域回退、跨触发器冲突优先级引擎。设计:`docs/WORKFLOW_RECIPE_DESIGN.md`。
+- **MVP-3(已做):结构重切 + diff 预览 + 作用域回退**(`lib/recipeRemap.js`)。`proposeResegment`:AI 把现有知识点按指令重新分组,给旧→新映射,**只预览**影响面(多少作答/错题/复习会迁移、孤儿点、不受影响的部分),暂存提案不改数据。`applyResegment`:先打 **checkpoint** → 建新结构 → 旧→新 id(先 AI 映射、再 embedding cosine≥0.5 兜底)→ **非破坏性重指** questions/attempts/insights 的 kp_id(原始行保留)→ 删旧点 → integrityFix。回退复用现有 checkpoint/rollback。杀手 brick `recipe_resegment_preview`(不改)/`recipe_resegment_apply`(改,dev)。
+- **冲突/优先级**:配方层已由 `getActiveRecipe` 解析(scope 特异性 > priority > recency,单一生效配方)。跨触发器细粒度优先级引擎留待后续。
 
 ## 数据表总览（44）
 users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results**（粗体=本轮新增）。
