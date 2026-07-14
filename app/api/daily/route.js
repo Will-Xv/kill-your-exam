@@ -13,7 +13,7 @@ export async function GET() {
   if (!exam) return Response.json({ plan: null });
   const today = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD 本地
   // 单一数据源:今日任务直接从【跨考试规划器】为当前考试(家族根)实时生成——好逻辑(根因优先 / 含薄弱+未学 / 自由练习封顶 / 按时间分配)在生成时就内建,和「总规划」永远一致。自动计划不落缓存,保证时时同步;只有 killer 自定义的计划(set_daily_plan)才落 daily_plans 并优先。
-  const custom = db.prepare("SELECT * FROM daily_plans WHERE exam_id=? AND date=?").get(exam.id, today);
+  const custom = db.prepare("SELECT * FROM daily_plans WHERE exam_id=? AND date=? AND custom=1").get(exam.id, today);
   let items;
   if (custom) {
     items = JSON.parse(custom.items_json);
