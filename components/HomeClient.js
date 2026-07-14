@@ -300,6 +300,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             🛟 {t("今天真没时间?至少做这一件保底,其余明天顺延:")}<span className="font-semibold">{labelFor(daily.fallback.item)}</span>
           </Link>
         )}
+        {daily?.practical && (
+          <Link href="/tasks" className="mt-2 block rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-800 ring-1 ring-teal-200 hover:brightness-95">
+            🛠️ {daily.practical.generating ? t("正在给你布置一个实践任务…") : <>{t("实践任务:")}<span className="font-semibold">{daily.practical.title}</span>{daily.practical.milestoneTitle ? " · " + daily.practical.milestoneTitle : ""}{daily.practical.total ? ` (${daily.practical.done}/${daily.practical.total})` : ""}</>}
+          </Link>
+        )}
       </div>
       </Editable>
       )}

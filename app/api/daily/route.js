@@ -4,6 +4,7 @@ import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
+import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -64,5 +65,14 @@ export async function GET() {
     const pick = undone.find((it) => it.type === "review" && it.due > 0) || undone.find((it) => it.type === "kp") || undone[0];
     fallback = { item: pick, remaining: undone.length, done: enriched.length - undone.length, total: enriched.length };
   }
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner, fallback });
+  // 复习自动布置实践任务(编程/实践类):开了实践模式就带出下一个未完成里程碑;没有进行中任务时后台自动生成一个。
+  let practical = null;
+  try {
+    if (getPracticalMode(exam.id)) {
+      const gen = maybeAutoAssign(user, exam);
+      const nx = nextIncomplete(exam);
+      practical = nx ? { taskId: nx.taskId, title: nx.title, milestoneTitle: nx.milestoneTitle, idx: nx.idx, done: nx.doneCount, total: nx.total, href: "/tasks" } : (gen ? { generating: true, href: "/tasks" } : null);
+    }
+  } catch {}
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner, fallback, practical });
 }

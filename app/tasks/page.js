@@ -8,12 +8,13 @@ export default function TasksPage() {
   const aiFetch = useAiFetch();
   const [list, setList] = useState(null);
   const [judge0, setJudge0] = useState(false);
+  const [pmode, setPmode] = useState(false);
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [task, setTask] = useState(null);
 
-  const load = () => fetch("/api/tasks").then((r) => r.json()).then((d) => { setList(d.tasks || []); setJudge0(!!d.judge0); }).catch(() => setList([]));
+  const load = () => fetch("/api/tasks").then((r) => r.json()).then((d) => { setList(d.tasks || []); setJudge0(!!d.judge0); setPmode(!!d.practicalMode); }).catch(() => setList([]));
   useEffect(() => { load(); }, []);
   const openTask = (id) => { setOpenId(id); setTask(null); fetch("/api/tasks/detail?id=" + id).then((r) => r.json()).then((d) => { setTask(d.task); setJudge0(!!d.judge0); }).catch(() => {}); };
 
@@ -21,6 +22,10 @@ export default function TasksPage() {
     e.stopPropagation();
     if (!confirm(t("删除这个实践任务?"))) return;
     try { await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); load(); } catch {}
+  }
+  async function togglePmode() {
+    const nv = !pmode; setPmode(nv);
+    try { await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ setMode: nv }) }); } catch {}
   }
   async function assign() {
     setBusy(true);
@@ -38,6 +43,10 @@ export default function TasksPage() {
         <p className="text-sm text-stone-500">{t("真去动手做——写代码、做实验。AI 拆成里程碑,能跑的代码自动判,重型的交成果+AI审阅。")}</p>
       </div>
       {!judge0 && <div className="card border-amber-300 bg-amber-50/60 text-xs text-amber-800">{t("提示:代码运行判分需要管理员在「设置」里配置 Judge0 密钥;未配置时代码里程碑无法自动运行,但证据类里程碑仍可提交、AI 审阅。")}</div>}
+      <label className="card flex items-center justify-between cursor-pointer">
+        <span className="text-sm"><span className="font-medium">{t("复习时自动布置实践任务")}</span><span className="block text-xs text-stone-500">{t("开启后,首页今日任务会带出下一个未完成里程碑;没有进行中任务时自动给你出一个。")}</span></span>
+        <input type="checkbox" checked={pmode} onChange={togglePmode} className="h-5 w-5 accent-teal-600" />
+      </label>
       <div className="card">
         <label className="text-sm font-medium">{t("布置一个实践任务")}</label>
         <div className="mt-1 flex gap-2">
