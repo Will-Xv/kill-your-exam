@@ -84,8 +84,10 @@ export default function ItemLibrary({ onClose }) {
               <button onClick={() => setBp("desktop")} style={{ ...btn, borderRadius: 0, background: bp === "desktop" ? "#2f2413" : "#fff", color: bp === "desktop" ? "#f6efdd" : "#3d2b10" }}>{t("电脑")}</button>
               <button onClick={() => setBp("mobile")} style={{ ...btn, borderRadius: 0, background: bp === "mobile" ? "#2f2413" : "#fff", color: bp === "mobile" ? "#f6efdd" : "#3d2b10" }}>{t("手机")}</button>
             </div>
-            <button onClick={() => { if (window.confirm(t("发布为默认?所有用户的功能位置都会按这个。"))) placement.publish(); }} style={{ ...btn, background: "#9e140c", color: "#fff" }}>🌐 {t("发布")}</button>
-            {S.publishedDefault && <button onClick={() => { if (window.confirm(t("取消发布?所有用户恢复默认。"))) placement.unpublish(); }} style={{ ...btn, background: "#fff", color: "#9e140c", border: "1px solid #e4d5af" }}>{t("取消发布")}</button>}
+            <button onClick={() => { placement.applyToExam(); onClose(); }} style={{ ...btn, background: "#2f7a3d", color: "#fff" }}>✓ {t("应用到当前考试")}</button>
+            {S.examPlacement && <button onClick={() => { if (window.confirm(t("重置本考试布局?回到默认布局。"))) placement.resetExam(); }} style={{ ...btn, background: "#fff", color: "#3d2b10", border: "1px solid #e4d5af" }}>{t("重置本考试")}</button>}
+            {S.canPublish && <button onClick={() => { if (window.confirm(t("发布为默认?所有用户的功能位置都会按这个。"))) placement.publish(); }} style={{ ...btn, background: "#9e140c", color: "#fff" }}>🌐 {t("发布为默认")}</button>}
+            {S.canPublish && S.publishedDefault && <button onClick={() => { if (window.confirm(t("取消发布?所有用户恢复默认。"))) placement.unpublish(); }} style={{ ...btn, background: "#fff", color: "#9e140c", border: "1px solid #e4d5af" }}>{t("取消发布")}</button>}
             <button onClick={() => { placement.resetWorking(); }} style={{ ...btn, background: "#fff", color: "#3d2b10", border: "1px solid #e4d5af" }}>{t("重置")}</button>
             <button onClick={onClose} style={{ ...btn, background: "#2f2413", color: "#f6efdd" }}>{t("关闭")}</button>
           </div>
@@ -106,7 +108,7 @@ export default function ItemLibrary({ onClose }) {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 10, fontSize: 11, color: "#8a7a54" }}>{t("在板子里排好后,点「发布」才会生效(所有用户+你自己);没发布不影响你现在的界面。「电脑/手机」可分别摆放。")}</div>
+        <div style={{ marginTop: 10, fontSize: 11, color: "#8a7a54" }}>{t("排好后:点「应用到当前考试」只改这一门考试的布局(每门考试可不同);「发布为默认」是把它设成所有用户的默认(仅开发者可见)。「电脑/手机」可分别摆放。")}</div>
       </div>
     </div>,
     document.body

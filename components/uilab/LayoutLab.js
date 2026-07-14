@@ -265,6 +265,8 @@ function KillerHomeControl() {
   );
 }
 function Toolbar({ S }) {
+  const _plc = placement.useItems();
+  const canPub = !!_plc.canPublish;
   const t = useT();
   const active = lab.activePreset();
   const editing = S.editing;
@@ -322,8 +324,8 @@ function Toolbar({ S }) {
           <button className={btn + " bg-[#2f2413] text-[#f6efdd] hover:opacity-90"} onClick={() => setItemLibOpen(true)}>🧩 {t("栏目分配")}</button>
           {active && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.revertActive()} title={t("回到原始首页")}>↩ {t("撤回")}</button>}
           {!active && S.lastReverted && S.presets.some((p) => p.id === S.lastReverted) && <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => lab.reapplyReverted()} title={t("重新套用刚撤回的布局")}>↪ {t("恢复布局")}</button>}
-          {active && <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>}
-          {S.publishedDefault && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => { if (window.confirm(t("取消发布默认布局?所有用户会恢复原始首页。"))) lab.unpublishDefault(); }}>{t("取消发布")}</button>}
+          {active && canPub && <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>}
+          {canPub && S.publishedDefault && <button className={btn + " bg-[#f6efdc] text-[#9e140c] ring-1 ring-[#e4d5af] hover:brightness-95"} onClick={() => { if (window.confirm(t("取消发布默认布局?所有用户会恢复原始首页。"))) lab.unpublishDefault(); }}>{t("取消发布")}</button>}
         </div>
       ) : (
         <div className="flex max-w-[94vw] flex-wrap items-center gap-1.5 rounded-2xl border border-[#e4d5af] bg-[#f6efdc] p-2 shadow-xl">
@@ -333,7 +335,7 @@ function Toolbar({ S }) {
           <button className={ghost} onClick={() => lab.resetNatural()} title={t("恢复到默认排版")}>⟲ {t("恢复默认")}</button>
           <button className={btn + " bg-[#2f2413] text-[#f6efdd]"} onClick={() => { const n = window.prompt(t("给这套布局起个名字:"), active ? active.name : t("我的布局")); if (n && n.trim()) lab.savePreset(n.trim()); }}>💾 {t("另存为")}</button>
           {active && <button className={btn + " bg-[#3d2b10] text-[#f6efdd]"} onClick={() => lab.overwriteActive()} title={t("覆盖保存到:") + active.name}>💾 {t("覆盖")}「{active.name}」</button>}
-          <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>
+          {canPub && <button className={btn + " bg-[#9e140c] text-white hover:opacity-90"} onClick={() => { if (window.confirm(t("发布为默认后,所有用户的首页都会用这套布局。确定发布?"))) lab.publishDefault(); }}>🌐 {t("发布为默认")}</button>}
           <button className={btn + " bg-[#f6efdc] text-[#3d2b10] ring-1 ring-[#e4d5af]"} onClick={() => { if (window.confirm(t("储存并覆盖当前页面?\n\n「确定」= 保存本次修改并覆盖当前生效的布局。\n「取消」= 不保存。"))) { lab.saveOverwriteCurrent(); } else if (window.confirm(t("不保存,直接退出编辑吗?\n(「取消」可继续编辑)"))) { lab.exitEdit(); } }}>✓ {t("完成")}</button>
         </div>
       )}
