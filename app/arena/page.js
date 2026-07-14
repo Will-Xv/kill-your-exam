@@ -48,7 +48,7 @@ export default function ArenaPage() {
     const h = [...msgs, { role: "user", content: input.trim() }];
     setMsgs(h); setInput(""); turn(h);
   }
-  const launchCustom = (m) => start({ key: "custom:" + m.id, emoji: m.emoji, title: m.name, meterLabel: m.meter_label || "进度", down: m.meter_dir === "down" });
+  const launchCustom = (m) => { const l = { key: "custom:" + m.id, id: m.id, emoji: m.emoji, title: m.name, meterLabel: m.meter_label || "进度", down: m.meter_dir === "down", format: m.format, spec: m.spec, winDesc: m.win_desc }; if (m.format === "video") { setLaunch(l); } else { start(l); } };
   async function del(id) {
     if (!confirm(t("删除这个自定义模式?"))) return;
     try { await fetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); loadModes(); } catch {}
@@ -97,6 +97,8 @@ export default function ArenaPage() {
       {creatorOpen && <Creator t={t} aiFetch={aiFetch} onCreated={() => { setCreatorOpen(false); loadModes(); }} />}
     </div>
   );
+
+  if (launch.format === "video") return <VideoAssess launch={launch} t={t} onBack={() => { setLaunch(null); loadModes(); }} />;
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col space-y-2">
@@ -153,8 +155,46 @@ function CustomCard({ m, onStart, onDel, t }) {
   );
 }
 
+function VideoAssess({ launch, t, onBack }) {
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState(null);
+  async function submit() {
+    if (!file) return;
+    setBusy(true); setRes(null);
+    try {
+      const fd = new FormData(); fd.append("modeId", String(launch.id)); fd.append("video", file);
+      const r = await fetch("/api/arena/video-grade", { method: "POST", body: fd }).then((x) => x.json());
+      if (r.error) setRes({ err: r.error }); else setRes(r);
+    } catch { setRes({ err: "failed" }); }
+    setBusy(false);
+  }
+  return (
+    <div className="space-y-3">
+      <button onClick={onBack} className="text-sm text-stone-500">← {t("换玩法")}</button>
+      <div className="card">
+        <h1 className="text-xl font-black">{launch.emoji} {launch.title}</h1>
+        {launch.winDesc && <p className="mt-1 text-sm text-stone-600">🎯 {launch.winDesc}</p>}
+        {launch.spec && <p className="mt-1 whitespace-pre-wrap text-xs text-stone-500">{launch.spec}</p>}
+      </div>
+      <div className="card">
+        <p className="text-sm font-medium">{t("录一段视频,提交后 AI 按要求评分")}</p>
+        <input type="file" accept="video/*" capture="environment" onChange={(e) => setFile(e.target.files && e.target.files[0])} className="mt-2 block w-full text-sm" />
+        <button onClick={submit} disabled={busy || !file} className="btn mt-2 px-4 py-1.5 text-sm">{busy ? t("评分中(读取视频需要一会儿)…") : t("提交视频判分")}</button>
+        {res && (res.err ? <p className="mt-2 text-xs text-rose-600">{t("提交失败,请重试")}</p> : (
+          <div className={`mt-3 rounded-xl px-3 py-2 ${res.win ? "bg-emerald-50" : "bg-stone-50"}`}>
+            <div className="text-lg font-bold">{res.win ? "🏆 " : ""}{res.score} {t("分")}</div>
+            <p className="mt-1 text-sm text-stone-600">{res.feedback}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Creator({ t, aiFetch, onCreated }) {
   const [kind, setKind] = useState("play");
+  const [format, setFormat] = useState("interactive");
   const [name, setName] = useState("");
   const [spec, setSpec] = useState("");
   const [meterLabel, setMeterLabel] = useState("");
@@ -164,7 +204,7 @@ function Creator({ t, aiFetch, onCreated }) {
   async function create() {
     if (!name.trim() || !spec.trim()) return;
     setBusy(true);
-    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir }) }); onCreated(); } catch {}
+    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); onCreated(); } catch {}
     setBusy(false);
   }
   return (
@@ -174,6 +214,14 @@ function Creator({ t, aiFetch, onCreated }) {
           <button key={k} onClick={() => setKind(k)} className={`rounded-full px-3 py-1 ring-1 ${kind === k ? "bg-indigo-600 text-white ring-indigo-600" : "bg-white text-stone-600 ring-stone-300"}`}>{lb}</button>
         ))}
       </div>
+      {kind === "exam_form" && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-stone-500">{t("形式")}:</span>
+          {[["interactive", t("互动对话")], ["video", t("视频作答")]].map(([k, lb]) => (
+            <button key={k} onClick={() => setFormat(k)} className={`rounded-full px-2.5 py-0.5 ring-1 ${format === k ? "bg-stone-700 text-white ring-stone-700" : "bg-white text-stone-600 ring-stone-300"}`}>{lb}</button>
+          ))}
+        </div>
+      )}
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("名字,如 苏格拉底答辩 / 模拟王国")} className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
       <textarea value={spec} onChange={(e) => setSpec(e.target.value)} rows={4} placeholder={t("用大白话写清楚:这个玩法/考核怎么进行、怎么算赢或满分。例:你要接住我抛出的所有质疑,并反过来把我问倒才算满分。")} className="w-full rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
       <div className="grid gap-2 sm:grid-cols-2">
