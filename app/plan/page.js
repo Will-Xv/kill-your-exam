@@ -27,6 +27,10 @@ export default function PlanPage() {
   const [weekOpen, setWeekOpen] = useState(false);
   const [weekCaps, setWeekCaps] = useState(["60","60","60","60","60","60","60"]);
   const [weekData, setWeekData] = useState(null);
+  const [cmp, setCmp] = useState(null);
+  const [cmpOpen, setCmpOpen] = useState(false);
+  const [variant, setVariant] = useState("conservative");
+  const loadCmp = () => { setCmpOpen(true); if (cmp) return; fetch("/api/plan-compare").then((r) => (r.ok ? r.json() : null)).then((d) => setCmp(d || { err: 1 })).catch(() => setCmp({ err: 1 })); };
   const WD = [t("周日"), t("周一"), t("周二"), t("周三"), t("周四"), t("周五"), t("周六")];
   const dayLabel = (i) => { const d = new Date(); d.setDate(d.getDate() + i); return WD[d.getDay()]; };
   const setCap = (i, v) => setWeekCaps((cs) => cs.map((x, j) => (j === i ? v.replace(/\D/g, "") : x)));
@@ -141,6 +145,55 @@ export default function PlanPage() {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-[#2f2413]">📊 {t("计划版本对比")}</h2>
+          <button onClick={() => (cmpOpen ? setCmpOpen(false) : loadCmp())} className="text-xs text-[#8a7a54] underline">{cmpOpen ? t("收起") : t("展开")}</button>
+        </div>
+        {cmpOpen && !cmp && <p className="mt-2 text-xs text-[#8a7a54]">{t("加载中…")}</p>}
+        {cmpOpen && cmp && (
+          <div className="mt-2 space-y-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="text-sm font-semibold text-[#2f2413]">{t("保守 vs 激进(今天)")}</span>
+                <div className="flex rounded-full bg-[#f3ecda] p-0.5 text-xs">
+                  <button onClick={() => setVariant("conservative")} className={`rounded-full px-2.5 py-0.5 ${variant === "conservative" ? "bg-emerald-600 text-white" : "text-stone-600"}`}>🛡️ {t("保守")}</button>
+                  <button onClick={() => setVariant("aggressive")} className={`rounded-full px-2.5 py-0.5 ${variant === "aggressive" ? "bg-rose-600 text-white" : "text-stone-600"}`}>🔥 {t("激进")}</button>
+                </div>
+              </div>
+              {cmp.variants && cmp.variants[variant] ? (
+                <div className="space-y-2">
+                  <div className="text-xs text-[#8a7a54]">{variant === "conservative" ? t("先清到期+稳固少量薄弱,不铺新内容——稳。") : t("多攻薄弱+铺未学新章节+加练——赶进度。")} · {t("今天覆盖")} {cmp.variants[variant].pointsToday} {t("个点")}</div>
+                  {cmp.variants[variant].exams.filter((e) => (e.tasks || []).length).map((e) => (
+                    <div key={e.id} className="rounded-2xl bg-white/60 px-3 py-2 ring-1 ring-[#e4d5af]">
+                      <div className="flex justify-between text-sm font-semibold text-[#2f2413]"><span>{e.name}</span><span className="text-xs text-[#8a7a54]">{e.allocMinutes}{t("分钟")}</span></div>
+                      <div className="mt-1 space-y-0.5">{e.tasks.map((tk, ti) => <a key={ti} href={tk.href} className="flex justify-between text-xs text-[#2f2413] hover:underline"><span className="truncate pr-2">{tk.title || tk.label}</span><span className="shrink-0 text-[#8a7a54]">{tk.minutes}{t("分钟")}</span></a>)}</div>
+                    </div>
+                  ))}
+                  {cmp.variants.sharedNote && <div className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-800">🔗 {cmp.variants.sharedNote}</div>}
+                </div>
+              ) : <p className="text-xs text-[#8a7a54]">{t("暂无数据。")}</p>}
+            </div>
+            <div className="border-t border-[#e4d5af] pt-3">
+              <div className="text-sm font-semibold text-[#2f2413]">{t("本周 vs 上周")}</div>
+              {cmp.lastWeek ? (
+                <div className="mt-1 space-y-1.5 text-xs">
+                  <div className="flex flex-wrap gap-1.5">
+                    {[["薄弱", cmp.diff.weak], ["未学", cmp.diff.unlearned], ["待复习", cmp.diff.due]].map(([lb, dv]) => (
+                      <span key={lb} className={`rounded-full px-2 py-0.5 ring-1 ${dv < 0 ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : dv > 0 ? "bg-rose-50 text-rose-700 ring-rose-200" : "bg-stone-50 text-stone-500 ring-stone-200"}`}>{t(lb)} {dv > 0 ? "+" + dv : dv}</span>
+                    ))}
+                  </div>
+                  {(cmp.perExam || []).filter((e) => !e.isNew && (e.weakDelta || e.unlearnedDelta)).map((e, i) => (
+                    <div key={i} className="text-[#5a4a2a]">{e.name}：{e.weakDelta != null && e.weakDelta !== 0 ? `${t("薄弱")}${e.weakDelta > 0 ? "+" + e.weakDelta : e.weakDelta}` : ""} {e.unlearnedDelta != null && e.unlearnedDelta !== 0 ? `${t("未学")}${e.unlearnedDelta > 0 ? "+" + e.unlearnedDelta : e.unlearnedDelta}` : ""}</div>
+                  ))}
+                  <div className="text-[#8a7a54]">{t("对比自")} {cmp.lastWeek.weekKey}</div>
+                </div>
+              ) : <p className="mt-1 text-xs text-[#8a7a54]">{t("还没有上一周的快照——这周先记下,下周就能看到本周 vs 上周的变化了。")}</p>}
+            </div>
+          </div>
         )}
       </div>
 
