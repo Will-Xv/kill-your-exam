@@ -21,6 +21,8 @@ function StudyInner() {
   const [insights, setInsights] = useState([]);
   const [current, setCurrent] = useState(null); // {kp, explanation}
   const [busy, setBusy] = useState(false);
+  const [lt, setLt] = useState(null);
+  useEffect(() => { fetch("/api/lang-transfer").then((r) => r.json()).then(setLt).catch(() => {}); }, []);
 
   const kpParam = useSearchParams().get("kp");
   useEffect(() => {
@@ -115,6 +117,16 @@ function StudyInner() {
             </div>
           )}
         </div>
+      )}
+      {lt && lt.isLanguage && (
+        <a href="/lang-transfer" className="card block border-sky-300 bg-sky-50/50 hover:bg-sky-50">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-sky-800">🌐 {t("三语迁移追踪")}</h2>
+            <span className="text-xs text-sky-600">{t("查看/更新")} →</span>
+          </div>
+          <p className="mt-1 text-xs text-stone-600">{lt.background?.target || lt.background?.native ? `${lt.background.native || "?"} · ${(lt.background.known||[]).join("/") || "—"} → ${lt.background.target || lt.examName}` : t("先设置你的语言背景,我来追踪母语/外语的正负迁移。")}</p>
+          {lt.total > 0 && <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">{Object.entries(lt.counts).filter(([,n])=>n>0).map(([k,n])=><span key={k} className="rounded-full bg-white px-2 py-0.5 text-sky-700 ring-1 ring-sky-200">{({l1_negative:t("母语负迁移"),l2_negative:t("二外负迁移"),target_internal:t("目标语内部"),careless:t("粗心")})[k]||k}:{n}</span>)}<span className="rounded-full bg-white px-2 py-0.5 text-stone-500 ring-1 ring-stone-200">{t("对照表")} {lt.contrast?.length||0}</span></div>}
+        </a>
       )}
       {tree.map((ch) => (
         <div key={ch.id} className="card">
