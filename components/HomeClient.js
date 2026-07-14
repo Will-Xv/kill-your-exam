@@ -120,6 +120,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     { href: "/notes", icon: "📓", title: t("笔记本"), desc: t("收藏的题+随手笔记"), grad: "from-sky-400 to-blue-500", tint: "hover:border-sky-300 hover:shadow-sky-500/15", ig: "from-sky-50 to-blue-50" },
     { href: "/performances", icon: "🎬", title: t("表演回放"), desc: t("回看录像+AI点评,可重做"), grad: "from-fuchsia-400 to-purple-500", tint: "hover:border-fuchsia-300 hover:shadow-fuchsia-500/15", ig: "from-fuchsia-50 to-purple-50" },
     { href: "/arena", icon: "🎮", title: t("竞技场"), desc: t("错题Boss战/庭审/辩论赛"), grad: "from-indigo-400 to-violet-500", tint: "hover:border-indigo-300 hover:shadow-indigo-500/15", ig: "from-indigo-50 to-violet-50" },
+    { href: "/tasks", icon: "🛠️", title: t("实践任务"), desc: t("编程/实验:动手做+判分"), grad: "from-teal-400 to-cyan-500", tint: "hover:border-teal-300 hover:shadow-teal-500/15", ig: "from-teal-50 to-cyan-50" },
     { href: "/inbox", icon: "📬", title: t("收件箱"), desc: t("更新公告与信件"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },
     { href: "/profile", icon: "🧭", title: t("你的全部杀技"), desc: t("跨考试的你"), grad: "from-violet-400 to-purple-500", tint: "hover:border-violet-300 hover:shadow-violet-500/15", ig: "from-violet-50 to-purple-50" }
   ];
