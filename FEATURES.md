@@ -196,3 +196,14 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
   - 跨触发器细粒度优先级引擎未做(配方层冲突已由 `getActiveRecipe`(scope>priority>recency) 解析);
   - 科研复现 / AI4Science / 实验模拟等场景的 workflow 迁移尚未开始(学习只是低成本 sandbox);
   - Recipe 专属可视化编辑页 / 可视化 diff 仍可打磨(目前经杀手对话 + 今日任务体现)。
+
+---
+
+## 更新日志 · 2026-07-14(workflow 编排能力 + 记忆注入 + 作用域必问)
+- **当日有序仪式(gap#1)**:今日任务 item.type 扩展为 `practice/debate/socratic/explore/kp/review/free`(带 kpId/n)。`customize_daily_plan` 砖头可产出【有序 steps】(主人说"先做N道问答→辩论M轮→苏格拉底→复习"),首页 HomeClient linkFor/labelFor 逐个渲染并直达(practice→`/practice?kp`、debate/socratic→`/arena?mode=…&kp`、explore→`/study?kp&mode=explore`);竞技场页读 `?mode=`(boss/trial/debate/socratic)自动开局。done 追踪按当天该 kp 的 attempts+insights。**自动今日任务(/api/daily 从 crossExamPlan)完全不变**,只有主人主动要仪式才出现新步骤。
+- **topic-first 自由探索(gap#2,真·新学法)**:`app/api/kp/explore`(轮,回复末隐藏 `@@DEPTH:shallow|medium|deep` 驱动深度条)+ `/finalize`(recordCrossKp 沉淀理解/误区)。围绕一个知识点让考生主动发问,AI 判断懂多深:浅→苏格拉底反问、深→挑战题。组件 `components/ExploreSession.js`;学习页 `?kp=X&mode=explore` 或讲解页「🔍 自由探索」进入;作为今日任务步骤 type=explore + Recipe 方法 `explore`。
+- **表演/口语类按维度驱动下一次(gap#4)**:`perform/grade` 让 AI 为每个 rubric 维度单独打 0~100 分(schema.dimensions),存 `attempts.dims_json`;PerformTask 结果页画每维度进度条。`lib/performDims.js`(`weakestPerformDims`/`weakDimHint`)聚合弱维度(<70);`generateQuestionsForKp` 表演类命题时注入 weakDimBlock → 下次命题+rubric 重点攻弱维度。
+- **学习者历史注入(所有学习/自定义功能)**:`lib/learnerContext.js` 的 `learnerKpContext(kpId)`(掌握度+最近做过的题对错+之前讨论/观察沉淀)、`learnerExamContext(examId)`(家族薄弱点+最近误区/理解)。已注入:topic-first 探索、苏格拉底与追问讨论(discuss route)、知识点讲解(kp/explain)、竞技场全部模式+自定义玩法(arena.js)。让 AI 因材施教、不从零开始。
+- **配方作用域必问**:`recipe_save` 加 `scope`(无默认→不传就走 needsClarification 让杀手用大白话问主人"只这门考试还是以后所有考试长期通用");`save_learning_mode` 与 systemPrompt/appGuide 都加"作用域拿不准先问、别默认"规则。含章节名的分阶段流程一般只适合本考试,不含章节、按薄弱/全部选的通用方法才适合 global。
+- **i18n 铁律**:所有新功能/文案必须做【全 8 语言】,不能只补英文(已写进 CLAUDE.md)。本轮新增键已补齐 8 字典。
+- **数据表新增**:`attempts.dims_json`、`daily_plans.custom`(此前)、`materials.offtopic/offtopic_reason`(此前)。
