@@ -105,14 +105,14 @@ function StudyInner() {
               </div>
               <p className="mt-2 text-xs font-semibold text-stone-600">{t("先测这几个点(约")}{start.minutes}{t("分钟)")}：</p>
               <div className="mt-1 flex flex-wrap gap-1.5">
-                {(start.sample || []).map((k) => <a key={k.kpId} href={`/practice?kp=${k.kpId}`} className="rounded-lg bg-white px-2 py-1 text-xs text-[#2f2413] ring-1 ring-emerald-200 hover:bg-emerald-50">{k.title.length > 26 ? k.title.slice(0, 26) + "…" : k.title}</a>)}
+                {(start.sample || []).map((k) => <a key={k.kpId} href={`/practice?kp=${k.kpId}`} className="rounded-lg bg-white px-2 py-1 text-xs text-[#2f2413] ring-1 ring-emerald-200 hover:bg-emerald-50"><MD inline>{k.title.length > 26 ? k.title.slice(0, 26) + "…" : k.title}</MD></a>)}
               </div>
             </div>
           ) : (
             <div className="mt-1 space-y-2 text-sm">
               {start.solid?.length > 0 && <div className="text-xs text-stone-600">✅ {t("已经比较稳(可略过/只巩固):")}<span className="font-medium">{start.solid.join("、")}</span></div>}
               {start.start?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("建议从这里开始")}</div><div className="mt-1 space-y-1">{start.start.map((c, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium">{c.chapter}</span>{c.acc != null ? ` · ${t("正确率")}${c.acc}%` : ""} · {t("薄弱/未学")}{c.weak + c.unlearned}</div>)}</div></div>}
-              {start.firstAction && <a href={`/practice?kp=${start.firstAction.kpId}`} className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">▶ {t("第一步:")}{start.firstAction.title.slice(0, 30)}</a>}
+              {start.firstAction && <a href={`/practice?kp=${start.firstAction.kpId}`} className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">▶ {t("第一步:")}<MD inline>{start.firstAction.title.slice(0, 30)}</MD></a>}
               {start.suggestMock && <a href="/mock" className="ml-2 text-xs text-amber-700 underline">{t("或直接做一次模拟考全面测")}</a>}
             </div>
           )}
