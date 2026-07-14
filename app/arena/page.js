@@ -25,6 +25,27 @@ export default function ArenaPage() {
   const [genBusy, setGenBusy] = useState(false);
   const boxRef = useRef(null);
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
+  // 竞技场进度在刷新后保留:恢复上次未结束的对局(video 形式除外)
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("launch")) return; // 有显式 launch 参数时以它为准,不恢复
+      const raw = localStorage.getItem("kye_arena");
+      if (!raw) return;
+      const sv = JSON.parse(raw);
+      if (sv && sv.launch && Array.isArray(sv.msgs)) {
+        launchedRef.current = true;
+        setLaunch(sv.launch); setMsgs(sv.msgs);
+        if (typeof sv.meter === "number") setMeter(sv.meter);
+        if (sv.done) setDone(sv.done);
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs, meter, done }));
+      else if (!launch) localStorage.removeItem("kye_arena");
+    } catch {}
+  }, [launch, msgs, meter, done]);
   const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => {
     setCustom({ play: d.play || [], exam_form: d.exam_form || [] });
     try {
@@ -124,8 +145,8 @@ export default function ArenaPage() {
       <div ref={boxRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl bg-gradient-to-b from-stone-50 to-amber-50/40 p-3">
         {msgs.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            <div className={`inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-[#2f2413] text-white" : "bg-white ring-1 ring-stone-200"}`}>
-              {m.role === "user" ? m.content : <div className="prose-arena"><MD>{m.content}</MD></div>}
+            <div className={`inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-[#2f2413] text-white" : "bg-white text-stone-800 ring-1 ring-stone-200"}`}>
+              {m.role === "user" ? m.content : <div className="prose-zh text-stone-800"><MD>{m.content}</MD></div>}
             </div>
           </div>
         ))}
