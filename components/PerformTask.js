@@ -246,7 +246,18 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
       {phase === "graded" && result && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-3">
           <p className="font-bold">{result.dontKnow ? "🤷 " + t("不会做 · 参考要点") : result.score + " " + t("分")}</p>
-          <div className="text-sm mt-1"><MD>{String(result.feedback || "").replace(/\\r\\n|\\r|\\n/g, "\n")}</MD></div>
+          {Array.isArray(result.dimensions) && result.dimensions.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {result.dimensions.map((d, i) => (
+                <div key={i}>
+                  <div className="flex justify-between text-xs"><span className="font-medium text-stone-700">{d.name}</span><span className={d.score < 60 ? "text-rose-600 font-semibold" : d.score < 75 ? "text-amber-600" : "text-emerald-600"}>{d.score}</span></div>
+                  <div className="h-1.5 rounded-full bg-stone-200"><div className={`h-1.5 rounded-full ${d.score < 60 ? "bg-rose-500" : d.score < 75 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${Math.max(0, Math.min(100, d.score))}%` }} /></div>
+                  {d.comment ? <div className="mt-0.5 text-[11px] text-stone-500">{d.comment}</div> : null}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="text-sm mt-2"><MD>{String(result.feedback || "").replace(/\\r\\n|\\r|\\n/g, "\n")}</MD></div>
         </div>
       )}
 

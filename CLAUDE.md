@@ -79,6 +79,7 @@
 - 竞技场/游戏化 `lib/arena.js`（`/arena`，@@STATE/@@KP 回流掌握度）。
 - 自定义/AI生成**考核形式** `lib/customModes.js`（`custom_modes`，kind=play/exam_form，format=interactive/video）；**exam_form 自动成为独立栏目**（`saveCustomItem` id=`xform<id>` + `moveFeature`；放到 nav/more/morefeatures/zone/hidden **由 AI/用户经 `where` 参数决定**，默认 morefeatures；`/arena?launch=<id>` 直达）；竞技场只放 play；视频判分 `/api/arena/video-grade`；成绩 `custom_mode_results`。
 - 实践任务回流掌握度改用 embedding 语义匹配知识点(≥0.55)+子串兜底;视频类自定义考核评分时 AI 归因 kpSignals→recordCrossKp 也回流掌握度。
+- **表演/口语类按维度驱动下一次任务(gap#4)**:`perform/grade` 现在让 AI【为每个 rubric 维度单独打 0~100 分】(schema.dimensions=[{name,score,comment}]),存进 `attempts.dims_json`;PerformTask 结果页画每维度进度条。`lib/performDims.js` 的 `weakestPerformDims(examId,{kpId})`/`weakDimHint` 聚合最近录制的弱维度(<70);`generateQuestionsForKp` 在表演类(perfOn)命题时注入 `weakDimBlock`——下次自动【命题+rubric 都重点攻弱维度】(如 eye contact 平均58→下次专练 eye contact)。这是「暴露弱点→改变后续安排」的按维度闭环。
 - 实践任务 `lib/practical.js` + **Judge0** `lib/judge0.js`（`/tasks`，代码里程碑跑测试用例；证据里程碑 AI 审阅；用例申诉 `task_test_appeals`；`judge0_url/judge0_key` 在设置里由管理员配，创建提交+轮询、rapidapi/官方/自建三种鉴权自动判断）。**仅编程/STEM 专属:不在全局默认里,开启「实践模式」才自动把 tasks 栏目放进该考试首页;杀手判断是编程类才加。**
 - 模拟考**后台判题**：`/api/mock/submit` 立即返回 grading，`gradeMock` 后台跑，`/api/mock/status` 轮询（`mock_exams.status/grade_started_at/results_json`）。
 - 两层界面：`lib/uilab/*` + `/api/ui-items`。**每门考试可独立改布局（所有用户）**；**发布为默认仅开发者**；`normalizePlacement` 让新功能在旧布局里自动补位。

@@ -116,25 +116,27 @@ export async function POST(req) {
       `- 要分清【笑场】和【符合情境的微笑/表情】:笑场=出戏、控制不住地笑、和角色/情境不符、把表演演崩了 —— 这是大忌,必须指出并扣分;但如果是贴合情境、有意为之、有感染力的微笑或笑容(是面部表演的一部分),那属于【表现力,应当肯定甚至加分】,别误判成笑场。看镜头发呆、明显糊弄仍要扣分。\n` +
       `- 评分刻度:90~100 接近专业;75~89 良好、瑕不掩瑜;60~74 基本合格但明显不足;40~59 较差、问题很多;0~39 未完成/敷衍/跑题/严重失误。宁可打低,不要为了让考生高兴而虚高。\n` +
       `- 点评要客观:有优点才说优点,没有就直说问题,不要硬找亮点、不要空洞夸奖${isVideo ? "(可结合时间点,如“0:03 就停下笑场”)" : ""}。\n` +
-      `请:1) 按每个评分维度逐条如实点评;2) 给 0~100 综合分(严格按上面的刻度和扣分规则);3) 给 2~3 条具体可练的改进建议。开头一句提醒:这是 AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。` + langInstruction(user.lang);
+      `请:1) 按每个评分维度逐条如实点评,并【为每个维度单独打 0~100 分】(dimensions 数组,name=维度名、score=该维度得分、comment=一句点评);2) 给 0~100 综合分(严格按上面的刻度和扣分规则);3) 给 2~3 条具体可练的改进建议。开头一句提醒:这是 AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。` + langInstruction(user.lang);
 
-    const schema = { type: "object", properties: { score: { type: "integer" }, feedback: { type: "string" } }, required: ["score", "feedback"] };
+    const schema = { type: "object", properties: { score: { type: "integer" }, feedback: { type: "string" }, dimensions: { type: "array", items: { type: "object", properties: { name: { type: "string" }, score: { type: "integer" }, comment: { type: "string" } }, required: ["name", "score"] } } }, required: ["score", "feedback"] };
     const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...parts] }], jsonSchema: schema });
     if (!res.text || !res.text.trim()) { const fr = res.candidates?.[0]?.finishReason || "empty"; throw new Error("模型没有返回评分内容(" + fr + "),可能是录制内容无法识别或被安全策略拦截,请重录后再试"); }
     let g; try { g = JSON.parse(res.text); } catch { const m = String(res.text).match(/\{[\s\S]*\}/); if (m) { try { g = JSON.parse(m[0]); } catch {} } }
     if (!g || typeof g.score === "undefined") throw new Error("评分结果解析失败:" + String(res.text).slice(0, 160));
     const score = Math.max(0, Math.min(100, g.score || 0));
     const fb = String(g.feedback || "").replace(/\\r\\n|\\r|\\n/g, "\n"); // 模型偶尔输出字面 \n,转成真换行
+    const dims = Array.isArray(g.dimensions) ? g.dimensions.filter((d) => d && d.name).map((d) => ({ name: String(d.name).slice(0, 60), score: Math.max(0, Math.min(100, Number(d.score) || 0)), comment: String(d.comment || "").slice(0, 300) })).slice(0, 12) : [];
+    const dimsJson = dims.length ? JSON.stringify(dims) : null;
     if (devBugId) {
       try { saveBugDevRec(devBugId, buffer); } catch {}
       try { db.prepare("UPDATE bug_reports SET dev_answer_mime=?, dev_answer_score=?, dev_answer_feedback=? WHERE id=?").run(recMime, score, fb, devBugId); } catch {}
-      return Response.json({ score, feedback: fb, saved: true });
+      return Response.json({ score, feedback: fb, dimensions: dims, saved: true });
     }
     const musicMat = (analyzeAudio === "music" && body.mediaMaterialId) ? body.mediaMaterialId : null; // 无麦克风的给定音乐题:回放时叠加这首原配乐
-    const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id) VALUES(?,?,?,?,?,?,?,?,?,?)")
-      .run(questionId, q.exam_id ?? exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat);
+    const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id,dims_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
+      .run(questionId, q.exam_id ?? exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat, dimsJson);
     try { saveRec(info.lastInsertRowid, buffer); } catch {}
-    return Response.json({ score, feedback: fb, attemptId: info.lastInsertRowid });
+    return Response.json({ score, feedback: fb, dimensions: dims, attemptId: info.lastInsertRowid });
   } catch (e) {
     if (e?.isAiError) return aiErrorResponse(e);
     console.error("[perform/grade] error:", e?.message || e, e?.stack || "");
