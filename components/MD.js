@@ -18,6 +18,15 @@ function wrapBareRuns(s) {
   });
 }
 
+// 代码被误当数学:AI 常把代码/函数名/字符串用 $...$(LaTeX)包起来,含引号的更会出现奇数 $ → 被当文字显示成字面 $。
+// 【含引号的 $...$ 绝不可能是数学】→ 转成行内代码 `...`;并剥掉紧贴引号的 $(如 $"15.0" → "15.0")。对真数学零影响。
+function codeNotMath(s) {
+  if (!s || s.indexOf("$") < 0) return s;
+  s = s.replace(/\$(?=["'\u201c\u2018])/g, "").replace(/(["'\u201d\u2019])\$/g, "$1"); // 剥掉贴着引号的 $
+  s = s.replace(/\$([^$\n]{1,160})\$/g, (m, inner) => (/["'\u201c\u201d\u2018\u2019]/.test(inner) && !/\\[a-zA-Z]/.test(inner)) ? "`" + inner.replace(/\$/g, "") + "`" : m); // 含引号且无 LaTeX 命令 → 代码
+  return s;
+}
+
 function autoMath(s) {
   if (!s) return s;
   s = s.replace(/\\\(/g, () => "$").replace(/\\\)/g, () => "$").replace(/\\\[/g, () => "$$").replace(/\\\]/g, () => "$$");
@@ -62,7 +71,8 @@ const KATEX_OPTS = { strict: false, throwOnError: false, errorColor: "#9a7b4f", 
 
 export default function MD({ children, className = "", inline = false }) {
   let raw = String(children ?? "").replace(/\\r\\n|\\n(?![a-zA-Z])/g, "  \n"); // AI 偶尔输出字面量 \n,转成真正的换行
-  let s = blockify(raw);
+  let s = codeNotMath(raw);
+  s = blockify(s);
   s = autoMath(s);
   s = unwrapProseMath(s);
   s = balanceDelims(s);
