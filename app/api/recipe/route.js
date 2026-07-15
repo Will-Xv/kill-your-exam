@@ -9,7 +9,7 @@ export async function GET() {
   let cur = null, phases = [];
   if (rc) {
     try { const c = currentPhase(rc, exam.id); cur = c ? { name: c.phase.name, index: c.index, total: c.total } : null; } catch {}
-    phases = (rc.spec?.phases || []).map((p, i) => ({ i, name: p.name, selector: p.selector?.type, method: p.method?.type, exit: p.exit?.type, level: p.exit?.level }));
+    phases = (rc.spec?.phases || []).map((p, i) => ({ i, name: p.name, selector: p.selector?.type, method: p.method?.type, count: p.method?.count ?? null, exit: p.exit?.type, level: p.exit?.level }));
   }
   const { versions } = recipeVersions(user.id, exam.id);
   const rules = activeRulesSummary(user.id, exam.id);

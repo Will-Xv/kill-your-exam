@@ -95,7 +95,8 @@
 - **P1-1 诊断卡串味**:`getBanner(userId,examId)` / `getResolveBanner(userId,examId)` 现按当前考试家族(examScope/familyScope)过滤,banner.examId 不在家族里就不显示;/api/daily 传 exam.id。根因诊断/资料解析横幅不再串到别的考试首页。
 - **P1-2 错题本缺选项**:app/mistakes 现在渲染完整选项(A/B/C/D),正确项绿、你选的错项红,带 ✓正确/✗你选的。
 - **P1-3 本地化(部分)**:确认弹窗 `t(a.desc)` 本就包了,但砖头标题没进词典→显示中文。已补计时「已用」「大改动…别急」+ 测试点名的 6 个砖头标题(recipe_save/activate/customize/revert/tweak/active_rules)全 8 语言。**仍待办**:全部~40砖头标题、chatAgent describe() 的模板串(如"为「X」出 N 道题",动态拼的没法直接 t())、工具 note 里的中文、杀手回复里"笔记本(Notebook)"这类双语回显。
-- **P1-4 小调参又慢又重**:tweak_daily_plan 描述强化——【哪怕有活跃配方,改题数/轮数也绝不重跑 recipe_save(重)】,纯数字走 tweak 改当天。
+- **P1-4 结构修复(2026-07-15)**:配方阶段 `method.count` 新字段承载【每阶段题数/轮数】;`tweakRecipeCounts` + `recipe_tweak` 砖头(已发布)零 AI 就地改配方阶段数量、bump 版本(可 recipe_revert)。recipe_save 会在用户给数字时填 count;methodLink 显示 ×N;/api/recipe + /plan 卡片显示 ×N。路由:改数字→当天用 tweak_daily_plan、长期用 recipe_tweak,【都绝不重跑 recipe_save】。
+- **P1-4 小调参又慢又重(旧记录)**:tweak_daily_plan 描述强化——【哪怕有活跃配方,改题数/轮数也绝不重跑 recipe_save(重)】,纯数字走 tweak 改当天。
 - **未修(诚实记录)**:P1-5 回退后今日任务呈现不完全逐字一致;P2-1 要问答题却出选择题(生成引擎规格);P2-2 改完 UI 不自动刷新今日任务卡;P2-3 Materials 页交互不稳。
 
 ## 配方打磨(2026-07:回退/生效说明/后台重建/可视化)

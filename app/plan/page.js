@@ -66,7 +66,7 @@ export default function PlanPage() {
                 <div key={p.i} className={`flex items-center gap-2 rounded-lg px-2 py-1 text-sm ${recipe.recipe.current && recipe.recipe.current.index === p.i ? "bg-indigo-100 font-semibold" : ""}`}>
                   <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-indigo-500 text-[11px] text-white">{p.i + 1}</span>
                   <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] text-indigo-700 ring-1 ring-indigo-200">{p.method}</span>
+                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] text-indigo-700 ring-1 ring-indigo-200">{p.method}{p.count != null ? ` ×${p.count}` : ""}</span>
                 </div>
               ))}
             </div>
