@@ -90,6 +90,14 @@
 - Workflow Recipe(MVP-1,dev灰度)`lib/recipes.js`(`recipes`/`recipe_versions`;多阶段:selector/method/exit;getActiveRecipe 冲突解析=scope>priority>recency;currentPhase 按掌握度判定;methodForKp 供 planner)。今日任务(`/api/daily`)按当前阶段给 KP 任务标 method。杀手 brick `recipe_save/activate/status/list` + `recipe_resegment_preview/apply`(**已 seed published=对全体用户开放**)。设计见 `docs/WORKFLOW_RECIPE_DESIGN.md`。**MVP-2 已做**:`recipeProgress` 阶段掌握度增益测量(`recipe_phase_state` 快照)+ `ai_choose` 自动选增益最高的方法(recipe_status 显示 effectiveness/bestMethod)。**MVP-3 已做**:`lib/recipeRemap.js` proposeResegment(diff 预览不改数据)+ applyResegment(checkpoint→建新结构→AI映射+embedding兜底→非破坏重指 kp_id→删旧→integrityFix)。回退复用 checkpoint。冲突/优先级:getActiveRecipe(scope>priority>recency)已解析配方层。
 
 
+
+## 黑盒测试 P1 修复(2026-07-15)
+- **P1-1 诊断卡串味**:`getBanner(userId,examId)` / `getResolveBanner(userId,examId)` 现按当前考试家族(examScope/familyScope)过滤,banner.examId 不在家族里就不显示;/api/daily 传 exam.id。根因诊断/资料解析横幅不再串到别的考试首页。
+- **P1-2 错题本缺选项**:app/mistakes 现在渲染完整选项(A/B/C/D),正确项绿、你选的错项红,带 ✓正确/✗你选的。
+- **P1-3 本地化(部分)**:确认弹窗 `t(a.desc)` 本就包了,但砖头标题没进词典→显示中文。已补计时「已用」「大改动…别急」+ 测试点名的 6 个砖头标题(recipe_save/activate/customize/revert/tweak/active_rules)全 8 语言。**仍待办**:全部~40砖头标题、chatAgent describe() 的模板串(如"为「X」出 N 道题",动态拼的没法直接 t())、工具 note 里的中文、杀手回复里"笔记本(Notebook)"这类双语回显。
+- **P1-4 小调参又慢又重**:tweak_daily_plan 描述强化——【哪怕有活跃配方,改题数/轮数也绝不重跑 recipe_save(重)】,纯数字走 tweak 改当天。
+- **未修(诚实记录)**:P1-5 回退后今日任务呈现不完全逐字一致;P2-1 要问答题却出选择题(生成引擎规格);P2-2 改完 UI 不自动刷新今日任务卡;P2-3 Materials 页交互不稳。
+
 ## 配方打磨(2026-07:回退/生效说明/后台重建/可视化)
 - **一键回退** `recipe_revert` 砖头 + `revertRecipe`(lib/recipes.js):把当前生效配方回到上一版本(用 recipe_versions,回退也入栈可再撤)。/plan 配方卡有「↩ 撤回上一次改动」按钮(`/api/recipe` POST action=revert)。只回退配方内容,不动树/记录。
 - **现在哪条规则生效** `active_rules` 砖头 + `activeRulesSummary`:列出本考试可见的已激活配方+学习模式及作用域,冲突解析=本考试特异 > 全局 > priority > 最近;governing=现在主管这门考试的那条。/plan 卡片也显示。

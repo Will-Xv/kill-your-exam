@@ -45,8 +45,8 @@ export async function GET() {
       if (others.length) crossExam = { totalMinutes: cp.totalMinutes, others };
     }
   } catch {}
-  let rootCauseBanner = null; try { rootCauseBanner = getBanner(user.id); } catch {}
-  let resolveBanner = null; try { resolveBanner = getResolveBanner(user.id); } catch {}
+  let rootCauseBanner = null; try { rootCauseBanner = getBanner(user.id, exam.id); } catch {}
+  let resolveBanner = null; try { resolveBanner = getResolveBanner(user.id, exam.id); } catch {}
   // 失败预案(类15):今天真没时间也别断——从未完成项里挑最要紧的一件作为「保底」,其余顺延到明天。
   let fallback = null;
   const undone = enriched.filter((it) => !it.done);
