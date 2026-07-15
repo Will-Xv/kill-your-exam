@@ -67,15 +67,31 @@ function blockify(s) {
   return s;
 }
 
+// 【保护代码不被数学处理】反引号/代码块里的内容(可能含合法的 $:shell $PATH、PHP $var、模板 ${x}、价格 $5 等)
+// 在所有数学预处理【之前】先遮成占位符,处理完再原样放回——代码里的 $ 永远不被 KaTeX/定界符逻辑碰。
+function protectCode(s) {
+  const store = [];
+  const stash = (m) => { store.push(m); return "\u0000C" + (store.length - 1) + "\u0000"; };
+  s = s.replace(/```[\s\S]*?```/g, stash);   // 围栏代码块
+  s = s.replace(/``[^`]*``/g, stash);          // 双反引号行内代码
+  s = s.replace(/`[^`\n]*`/g, stash);         // 单反引号行内代码
+  return { s, store };
+}
+function restoreCode(s, store) {
+  return s.replace(/\u0000C(\d+)\u0000/g, (m, i) => (store[Number(i)] != null ? store[Number(i)] : m));
+}
+
 const KATEX_OPTS = { strict: false, throwOnError: false, errorColor: "#9a7b4f", maxExpand: 1000 };
 
 export default function MD({ children, className = "", inline = false }) {
   let raw = String(children ?? "").replace(/\\r\\n|\\n(?![a-zA-Z])/g, "  \n"); // AI 偶尔输出字面量 \n,转成真正的换行
-  let s = codeNotMath(raw);
+  const { s: _masked, store: _codeStore } = protectCode(raw);
+  let s = codeNotMath(_masked);
   s = blockify(s);
   s = autoMath(s);
   s = unwrapProseMath(s);
   s = balanceDelims(s);
+  s = restoreCode(s, _codeStore);
   const linkRenderer = ({ href, children }) => {
     const h = typeof href === "string" ? href : "";
     // 杀手生成、发给主人下载的文件 -> 渲染成醒目的下载按钮

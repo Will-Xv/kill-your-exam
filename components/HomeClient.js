@@ -346,8 +346,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             <div className={`absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br ${f.grad || "from-amber-400 to-orange-500"} opacity-10 blur-xl transition-opacity group-hover:opacity-25`} />
             <div className={`relative grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${f.ig || "from-amber-50 to-orange-50"} text-xl shadow-inner`}>{f.icon}</div>
             {f.href === "/inbox" && unread > 0 && <span className="absolute right-3 top-3 grid h-5 min-w-[20px] place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{unread}</span>}
-            <div className="relative mt-2 font-semibold">{f.title}</div>
-            <div className="relative text-xs text-slate-500">{f.desc}</div>
+            <div className="relative mt-2 w-full break-words font-semibold leading-tight">{f.title}</div>
+            <div className="relative w-full break-words text-xs text-slate-500 leading-snug">{f.desc}</div>
             <div className={`relative mt-2 h-1 w-8 rounded-full bg-gradient-to-r ${f.grad || "from-amber-400 to-orange-500"} opacity-70`} />
           </Link>
         ))}

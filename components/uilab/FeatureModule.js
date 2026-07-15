@@ -26,8 +26,8 @@ export default function FeatureModule({ item, fill }) {
           )}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-base font-black">{t(item.label)}</div>
-          <div className="truncate text-xs text-[#6b4a25]">{t(item.desc)}</div>
+          <div className="break-words text-base font-black leading-tight">{t(item.label)}</div>
+          <div className="break-words text-xs text-[#6b4a25] leading-snug">{t(item.desc)}</div>
         </div>
       </div>
 
