@@ -126,7 +126,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
-    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) + ": " : t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
+    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) + (it.methodCount != null ? ` ×${it.methodCount}` : "") + ": " : t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
     `${t("自由练习")} (${it.count}/${it.target})`;
 
   const features = [
@@ -342,7 +342,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       <h2 className="mt-6 mb-2 text-sm font-semibold text-[#e8c987]">{t("更多功能")}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {gridCards.map((f, i) => (
-          <Link key={f.href} href={f.href} className={`group relative overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f5eed6] p-4 shadow-sm text-[#2f2413] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${f.tint || "hover:border-amber-300"} animate-in d${(i % 5) + 1} flex flex-col items-start`}>
+          <Link key={f.href} href={f.href} className={`group relative overflow-hidden rounded-3xl border border-[#e4d5af] bg-[#f5eed6] p-4 shadow-sm text-[#2f2413] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${f.tint || "hover:border-amber-300"} animate-in d${(i % 5) + 1} flex flex-col`}>
             <div className={`absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br ${f.grad || "from-amber-400 to-orange-500"} opacity-10 blur-xl transition-opacity group-hover:opacity-25`} />
             <div className={`relative grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${f.ig || "from-amber-50 to-orange-50"} text-xl shadow-inner`}>{f.icon}</div>
             {f.href === "/inbox" && unread > 0 && <span className="absolute right-3 top-3 grid h-5 min-w-[20px] place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{unread}</span>}

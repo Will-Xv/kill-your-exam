@@ -5,14 +5,13 @@ import { useEffect } from "react";
 // 部署后旧标签页会拿到已失效的代码块(ChunkLoadError)→ 首次跳转崩溃、刷新就好;这里检测到就自动硬刷新一次拉最新代码。
 export default function Error({ error, reset }) {
   useEffect(() => {
-    const msg = String((error && (error.message || error.name)) || error || "");
-    if (/ChunkLoadError|Loading chunk|dynamically imported module|Failed to fetch|Importing a module script failed/i.test(msg)) {
-      try {
-        const KEY = "kye_chunk_reload_at";
-        const last = Number(sessionStorage.getItem(KEY) || 0);
-        if (Date.now() - last > 20000) { sessionStorage.setItem(KEY, String(Date.now())); window.location.reload(); }
-      } catch { try { window.location.reload(); } catch {} }
-    }
+    // 首次加载的瞬态错误(部署后旧代码块 / 初始化时序竞态等)多数刷新即好 → 自动硬刷新一次自愈;
+    // 20s 内不重复,避免真·持续报错时死循环(那种会停在本友好页,让主人手动处理)。
+    try {
+      const KEY = "kye_err_reload_at";
+      const last = Number(sessionStorage.getItem(KEY) || 0);
+      if (Date.now() - last > 20000) { sessionStorage.setItem(KEY, String(Date.now())); window.location.reload(); }
+    } catch {}
   }, [error]);
   return (
     <div className="mx-auto mt-20 max-w-md px-6 text-center">

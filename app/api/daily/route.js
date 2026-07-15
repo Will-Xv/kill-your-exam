@@ -66,7 +66,7 @@ export async function GET() {
         if (it.type === "kp" && it.kpId) {
           const kpObj = mmById[it.kpId] || { id: it.kpId, chapter: it.chapter };
           const m = methodForKp(user.id, exam.id, kpObj);
-          if (m) { const link = methodLink(m, it.kpId); it.method = m.method; it.methodTag = link.tag; it.methodLabel = link.label; it.methodHref = link.href; }
+          if (m) { const link = methodLink(m, it.kpId); it.method = m.method; it.methodTag = link.tag; it.methodLabel = link.label; it.methodHref = link.href; it.methodCount = link.count; }
         }
       }
     }
