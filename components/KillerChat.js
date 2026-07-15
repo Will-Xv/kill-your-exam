@@ -63,7 +63,8 @@ export default function KillerChat() {
       const d = await fetch(`/api/chat/run?id=${runId}`).then((r) => r.json());
       const run = d.run; if (!run) return;
       setSteps(run.steps || []);
-      if ((run.status === "running" || run.status === "pending") && typeof run.elapsedSec === "number") elapsedBaseRef.current = { serverSec: run.elapsedSec, at: Date.now() };
+      // 计时基准:只在【合理范围】内用服务端 elapsedSec(供刷新后接续);过大多半是遗留/等确认很久的 run,用本地计时避免显示成 1000s+
+      if ((run.status === "running" || run.status === "pending") && typeof run.elapsedSec === "number" && run.elapsedSec < 300) elapsedBaseRef.current = { serverSec: run.elapsedSec, at: Date.now() };
       if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} try { window.dispatchEvent(new CustomEvent("kye:data-changed")); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
       else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, kind: run.pendingKind, plan: run.plan, actions: run.actions || [], approve }); }
       else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: run.reply || "(出错了,请重试)" }]); }

@@ -5,6 +5,7 @@ import { useT } from "@/components/I18n";
 export default function Exams() {
   const t = useT();
   const [exams, setExams] = useState(null);
+  const [confirmAsk, setConfirmAsk] = useState(null); // {action, examId, msg} 站内确认
   const load = () => fetch("/api/exam/list").then((r) => r.json()).then((d) => setExams(d.exams));
   useEffect(() => { load(); }, []);
   useEffect(() => { if (!exams?.some((e) => e.setup_state === "generating")) return; const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [exams]);
@@ -13,8 +14,11 @@ export default function Exams() {
     try { Object.keys(localStorage).filter((k) => k.startsWith("kye_practice:")).forEach((k) => localStorage.removeItem(k)); } catch {}
     location.href = "/";
   }
-  async function manage(action, examId, msg) {
-    if (msg && !confirm(msg)) return;
+  function manage(action, examId, msg) {
+    if (msg) { setConfirmAsk({ action, examId, msg }); return; }
+    doManage(action, examId);
+  }
+  async function doManage(action, examId) {
     try {
       const r = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, examId }) });
       if (!r.ok) { const tx = await r.text().catch(() => ""); alert("HTTP " + r.status + " " + tx); }
@@ -28,6 +32,17 @@ export default function Exams() {
   const STATUS = { active: t("当前"), archived: t("已归档"), completed: t("已完成") };
   return (
     <div className="space-y-4 md:mt-14">
+      {confirmAsk && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmAsk(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-stone-700">{confirmAsk.msg}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm text-stone-600" onClick={() => setConfirmAsk(null)}>{t("取消")}</button>
+              <button className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white" onClick={() => { const a = confirmAsk; setConfirmAsk(null); doManage(a.action, a.examId); }}>{t("确认")}</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("追杀计划")}</h1>
         <a href="/onboarding" className="btn py-2 text-sm">+ {t("新考试")}</a>
