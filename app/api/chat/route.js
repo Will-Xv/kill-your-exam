@@ -4,6 +4,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { startRun } from "@/lib/chatAgent";
 import { attachParts, generate } from "@/lib/gemini";
+import { saveChatFile } from "@/lib/files";
 
 export const maxDuration = 300;
 
@@ -55,8 +56,23 @@ export async function POST(req) {
       contents.push({ role: "model", parts: [{ text: "好的,我记住了。" }] });
     }
     for (const m of recent) contents.push({ role: m.role, parts: [{ text: m.content }] });
+    // 把用户这条消息带的附件持久化(source=upload),让杀手在这一轮里可以用 save_attachment_as_material 把它们存进资料库(不再看一眼就丢)。
+    let uploadedNote = "";
+    if (exam && Array.isArray(attachments) && attachments.length) {
+      const names = [];
+      for (const a of attachments.slice(0, 4)) {
+        if (!a || !a.data) continue;
+        try {
+          const buf = Buffer.from(a.data, "base64");
+          const ins = db.prepare("INSERT INTO chat_files(exam_id,user_id,filename,mime,source) VALUES(?,?,?,?,'upload')").run(exam.id, user.id, a.name || "file", a.mime || "application/octet-stream");
+          saveChatFile(ins.lastInsertRowid, buf); names.push(a.name || "file");
+        } catch {}
+      }
+      if (names.length) uploadedNote = `\n(系统提示:主人这条消息附带了 ${names.length} 个文件:${names.join("、")}。你能直接读它们来回答;如果这些是本考试的学习资料、且主人想留存,可以用 save_attachment_as_material 把它们存进资料库——存之前先问一句主人要不要存,除非主人已明确说要存。)`;
+    }
     const ap = await attachParts(attachments);
-    if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: message }, ...ap];
+    if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: message + uploadedNote }, ...ap];
+    else if (uploadedNote && contents.length) contents[contents.length - 1].parts = [{ text: message + uploadedNote }];
     const runId = startRun(exam, user, contents);
     return Response.json({ runId });
   } catch (e) { return aiErrorResponse(e); }

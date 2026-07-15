@@ -91,6 +91,10 @@
 
 
 
+
+## 聊天附件可入库(2026-07-15)
+- 用户在杀手聊天发的文件之前只当场多模态用、不落库。现在:`/api/chat` 收到 attachments 就持久化成 `chat_files(source='upload')`+saveChatFile,并在消息尾追加系统提示告诉杀手可存。`lib/materialIngest.js` 抽出 `ingestMaterialBuffer`(Materials 上传路由 + 本功能共用同一条入库流水线)。杀手工具 `save_attachment_as_material`(直接执行、非 WRITE_TOOLS,像 web_search_and_ingest;存前先问主人)读最近30分钟内该考试 source='upload' 且未存过的 chat_files → ingestMaterialBuffer → 标 saved_material_id。chat_files 加 source/saved_material_id 列。
+
 ## 黑盒测试 P1 修复(2026-07-15)
 - **P1-1 诊断卡串味**:`getBanner(userId,examId)` / `getResolveBanner(userId,examId)` 现按当前考试家族(examScope/familyScope)过滤,banner.examId 不在家族里就不显示;/api/daily 传 exam.id。根因诊断/资料解析横幅不再串到别的考试首页。
 - **P1-2 错题本缺选项**:app/mistakes 现在渲染完整选项(A/B/C/D),正确项绿、你选的错项红,带 ✓正确/✗你选的。
