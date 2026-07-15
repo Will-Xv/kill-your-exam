@@ -123,11 +123,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     : "/practice?fresh=1");
   const labelFor = (it) =>
     it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
-    it.type === "practice" ? `✍️ ${t("练习:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
+    it.type === "practice" ? `✍️ ${t("练习:")}${it.title}${it.target != null ? ` (${it.count || 0}/${it.target})` : (it.n ? ` ×${it.n}` : "")}` :
     it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
-    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) + (it.methodCount != null ? ` ×${it.methodCount}` : "") + ": " : t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
+    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) : t("学习")}${it.target != null ? ` (${it.count || 0}/${it.target})` : ""}: ${it.chapter ? it.chapter + " · " : ""}${it.title}` :
     `${t("自由练习")} (${it.count}/${it.target})`;
 
   const features = [

@@ -22,7 +22,11 @@ export async function GET() {
     if (["kp", "practice", "debate", "socratic", "explore"].includes(it.type) && it.kpId) {
       const n = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE kp_id=? AND date(created_at,'localtime')=date('now','localtime')`).get(it.kpId).n;
       const ins = db.prepare(`SELECT COUNT(*) n FROM insights WHERE kp_id=? AND date(created_at,'localtime')=date('now','localtime')`).get(it.kpId).n;
-      return { ...it, done: (n + ins) > 0 };
+      // 辩论/苏格拉底/探索是对话式,做过一次就算完成;知识点练习是做题式,要【做够当天目标题数】才算完成(目标默认 3,配方/步骤会覆盖,recipe 段再据 methodCount 重算)
+      if (it.type === "debate" || it.type === "socratic" || it.type === "explore") return { ...it, done: (n + ins) > 0 };
+      const DEFAULT_KP_TARGET = 3;
+      const target = it.n != null ? it.n : DEFAULT_KP_TARGET;
+      return { ...it, count: n, target, done: n >= target };
     }
     if (it.type === "free") return { ...it, count: todayAttempts, done: todayAttempts >= it.target };
     return it;
@@ -66,7 +70,7 @@ export async function GET() {
         if (it.type === "kp" && it.kpId) {
           const kpObj = mmById[it.kpId] || { id: it.kpId, chapter: it.chapter };
           const m = methodForKp(user.id, exam.id, kpObj);
-          if (m) { const link = methodLink(m, it.kpId); it.method = m.method; it.methodTag = link.tag; it.methodLabel = link.label; it.methodHref = link.href; it.methodCount = link.count; }
+          if (m) { const link = methodLink(m, it.kpId); it.method = m.method; it.methodTag = link.tag; it.methodLabel = link.label; it.methodHref = link.href; it.methodCount = link.count; if (link.count != null && (it.type === "kp" || it.type === "practice")) { it.target = link.count; it.done = (it.count || 0) >= it.target; } }
         }
       }
     }
