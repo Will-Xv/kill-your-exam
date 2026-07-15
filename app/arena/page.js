@@ -25,6 +25,9 @@ export default function ArenaPage() {
   const [done, setDone] = useState(null);
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState("");
+  const [runLang, setRunLang] = useState("python");
+  const [runOut, setRunOut] = useState(null);
+  const [running, setRunning] = useState(false);
   const [handOpen, setHandOpen] = useState(false);
   const [handImg, setHandImg] = useState(null);
   const [aFiles, setAFiles] = useState([]);
@@ -87,6 +90,15 @@ export default function ArenaPage() {
     setBusy(false);
   }
   function start(l) { setLaunch(l); setMsgs([]); setMeter(null); setDone(null); setAFiles([]); setHandImg(null); setHandOpen(false); setDraftOpen(false); setTimeout(() => turn([], l), 0); }
+  async function runCode() {
+    if (!input.trim() || running) return;
+    setRunning(true); setRunOut(null);
+    try {
+      const r = await fetch("/api/arena/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: input, language: runLang }) }).then((x) => x.json());
+      setRunOut(r);
+    } catch { setRunOut({ ok: false, error: "network" }); }
+    setRunning(false);
+  }
   async function send() {
     if (busy || done) return;
     const txt = input.trim();
@@ -193,7 +205,21 @@ export default function ArenaPage() {
           </DropZone>
           <div className="flex gap-2 items-end">
             {codingMode ? (
-              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); send(); } }} disabled={busy} rows={8} spellCheck={false} placeholder={t("在这里写你的代码…(Enter 换行;点发送或 Ctrl/⌘+Enter 提交)")} className="flex-1 rounded-xl border border-stone-600 bg-stone-900 text-stone-100 placeholder-stone-500 px-3 py-2 text-sm font-mono leading-relaxed resize-y" style={{ tabSize: 4 }} />
+              <div className="flex-1 space-y-1.5">
+                <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); send(); } }} disabled={busy} rows={8} spellCheck={false} placeholder={t("在这里写你的代码…(Enter 换行;点发送或 Ctrl/⌘+Enter 提交)")} className="w-full rounded-xl border border-stone-600 bg-stone-900 text-stone-100 placeholder-stone-500 px-3 py-2 text-sm font-mono leading-relaxed resize-y" style={{ tabSize: 4 }} />
+                <div className="flex items-center gap-2 text-sm">
+                  <select value={runLang} onChange={(e) => setRunLang(e.target.value)} className="rounded-lg border border-stone-300 bg-white text-stone-700 px-2 py-1 text-xs">
+                    {["python", "javascript", "c", "cpp", "java", "go", "ruby", "rust", "php", "csharp", "typescript", "bash"].map((l) => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                  <button type="button" onClick={runCode} disabled={running || !input.trim()} className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-40">▶ {running ? t("运行中…") : t("运行")}</button>
+                  <span className="text-xs text-stone-400">{t("运行只是自测,不算提交")}</span>
+                </div>
+                {runOut && (
+                  <pre className="max-h-52 overflow-auto whitespace-pre-wrap rounded-lg bg-stone-900 px-3 py-2 text-xs font-mono text-stone-100 ring-1 ring-stone-700">
+{runOut.notConfigured ? t("代码执行服务还没配置(去设置里填 Judge0)。") : runOut.ok === false ? (t("运行出错:") + (runOut.error || "")) : ((runOut.compile_output ? "⛔ " + t("编译错误") + ":\n" + runOut.compile_output + "\n" : "") + (runOut.stderr ? "⚠️ " + runOut.stderr + "\n" : "") + (runOut.stdout || (runOut.compile_output || runOut.stderr ? "" : t("(无输出)"))) + (runOut.status ? "\n— " + runOut.status + (runOut.time ? " · " + runOut.time + "s" : "") : ""))}
+                  </pre>
+                )}
+              </div>
             ) : (
               <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-3 py-2 text-sm" />
             )}
