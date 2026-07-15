@@ -17,8 +17,7 @@ export default function FitText({ children, className = "", max = 16, min = 10, 
   }, [children, max, min, lines]);
   return (
     <div ref={ref} className={className} title={title}
-      style={{ fontSize: size, lineHeight: lh, fontWeight: weight, height: boxH, overflow: "hidden",
-        display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines, wordBreak: "break-word" }}>
+      style={{ fontSize: size, lineHeight: lh, fontWeight: weight, maxHeight: boxH, overflow: "hidden", wordBreak: "break-word", overflowWrap: "anywhere" }}>
       {children}
     </div>
   );
