@@ -18,6 +18,7 @@ export default function ArenaPage() {
   const t = useT();
   const aiFetch = useAiFetch();
   const [launch, setLaunch] = useState(null);
+  const codingMode = !!(launch && /cod(e|ing)|程序|编程|program|python|java(script)?|c\+\+|算法|leetcode|函数题|debug/i.test(String(launch.title || "") + " " + String(launch.spec || "") + " " + String(launch.winDesc || "")));
   const [scope, setScope] = useState("weak");
   const [msgs, setMsgs] = useState([]);
   const [meter, setMeter] = useState(null);
@@ -190,8 +191,12 @@ export default function ArenaPage() {
             <label className="btn-ghost cursor-pointer px-3 py-1" title={t("上传图片/文件作答(可拖拽或粘贴)")}>📎 {t("拍照/上传作答")}<input type="file" multiple hidden accept="image/*,.pdf" onChange={(e) => setAFiles([...e.target.files])} /></label>
             {aFiles.length > 0 && <span className="text-stone-500">{aFiles.length} {t("个文件")} <button className="underline" onClick={() => setAFiles([])}>{t("清除")}</button></span>}
           </DropZone>
-          <div className="flex gap-2">
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-3 py-2 text-sm" />
+          <div className="flex gap-2 items-end">
+            {codingMode ? (
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); send(); } }} disabled={busy} rows={8} spellCheck={false} placeholder={t("在这里写你的代码…(Enter 换行;点发送或 Ctrl/⌘+Enter 提交)")} className="flex-1 rounded-xl border border-stone-600 bg-stone-900 text-stone-100 placeholder-stone-500 px-3 py-2 text-sm font-mono leading-relaxed resize-y" style={{ tabSize: 4 }} />
+            ) : (
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} disabled={busy} placeholder={t("出招/应答…")} className="flex-1 rounded-xl border border-stone-300 bg-white text-stone-800 placeholder-stone-400 px-3 py-2 text-sm" />
+            )}
             <button onClick={send} disabled={busy || (!input.trim() && !aFiles.length && !handImg)} className="btn px-4">{t("发送")}</button>
           </div>
         </div>

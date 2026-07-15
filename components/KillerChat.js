@@ -20,6 +20,7 @@ const ChatMsg = memo(function ChatMsg({ role, content }) {
 
 export default function KillerChat() {
   const t = useT();
+  const descLabel = (d) => { if (d && typeof d === "object" && d.t) { let str = t(d.t); const p = d.p || {}; return str.replace(/\{(\w+)\}/g, (_, k) => (p[k] != null ? String(p[k]) : "")); } return t(d || ""); };
   const aiFetch = useAiFetch();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -63,7 +64,7 @@ export default function KillerChat() {
       const run = d.run; if (!run) return;
       setSteps(run.steps || []);
       if ((run.status === "running" || run.status === "pending") && typeof run.elapsedSec === "number") elapsedBaseRef.current = { serverSec: run.elapsedSec, at: Date.now() };
-      if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
+      if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} try { window.dispatchEvent(new CustomEvent("kye:data-changed")); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
       else if (run.status === "pending") { stopPoll(); setBusy(false); setSteps([]); const approve = {}; (run.actions || []).forEach((a) => (approve[a.idx] = true)); setPending({ token: run.token, kind: run.pendingKind, plan: run.plan, actions: run.actions || [], approve }); }
       else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: run.reply || "(出错了,请重试)" }]); }
     } catch {}
@@ -175,7 +176,7 @@ export default function KillerChat() {
               {pending.actions.map((a) => (
                 <label key={a.idx} className="flex items-start gap-2 text-sm">
                   <input type="checkbox" checked={pending.approve[a.idx]} onChange={(e) => setPending((p) => ({ ...p, approve: { ...p.approve, [a.idx]: e.target.checked } }))} className="mt-1" />
-                  <span>{t(a.desc)}</span>
+                  <span>{descLabel(a.desc)}</span>
                 </label>
               ))}
             </div>

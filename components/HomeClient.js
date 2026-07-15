@@ -24,10 +24,17 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   useEffect(() => { const mq = window.matchMedia("(min-width:768px)"); const on = () => setPbDesktop(mq.matches); on(); try { mq.addEventListener("change", on); } catch { mq.addListener(on); } return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } }; }, []);
   useEffect(() => { fetch("/api/inbox").then((r) => r.json()).then((d) => setUnread(d.unread || 0)).catch(() => {}); }, []);
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then((d) => setIsDev(!!(d.user && d.user.isDeveloper))).catch(() => {}); }, []);
-  useEffect(() => {
-    fetch("/api/exam").then((r) => r.json()).then(setData);
+  const loadHome = () => {
+    fetch("/api/exam").then((r) => r.json()).then(setData).catch(() => {});
     fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
     fetch("/api/mastery").then((r) => r.json()).then((d) => setWeakCount((d.matrix || []).filter((x) => x.level === "weak" || x.level === "unlearned").length)).catch(() => {});
+  };
+  useEffect(() => {
+    loadHome();
+    // 杀手改完(今日任务/计划/资料/进度等)会派发全局事件 → 首页即时重拉,不用手动刷新
+    const onChanged = () => loadHome();
+    try { window.addEventListener("kye:data-changed", onChanged); } catch {}
+    return () => { try { window.removeEventListener("kye:data-changed", onChanged); } catch {} };
   }, []);
 
   async function loadSugg() {
