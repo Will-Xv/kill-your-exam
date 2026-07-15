@@ -214,3 +214,14 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **知识树重建改后台** `startRebuild`:置 setup_state='generating' + 分离 promise,`/api/kp`+/study gate 住半成品(显示「重建中」),避免同步长跑逼近超时。
 - **配方可视化** `/api/recipe` + /plan「🧭 学习配方」卡(阶段/当前/版本历史/一键回退/生效规则)。
 - 新砖头 tweak_daily_plan / recipe_revert / active_rules 均 seed published。i18n 全 8 语言补齐。
+
+## 更新日志 · 2026-07-15(三)黑盒回归 P1/P2 + 编程编辑器
+- **全局错误兜底**:`app/error.js`/`app/global-error.js`——client 异常友好界面+重试,ChunkLoadError 自动硬刷新一次(修 coding-first 首次白屏)。
+- **竞技场编程题**:codingMode 检测 → 深色等宽多行编辑器(Tab 缩进4空格/Shift+Tab 反缩进、左侧行号槽随滚动同步、Enter 换行、Ctrl/⌘+Enter 提交)+ 现场运行 `/api/arena/run`(Judge0)语言选择/输出面板;arena 系统提示加「代码用反引号、$…$ 只给数学」。
+- **计时器**:elapsed 只在 <300s 作服务端基准(修 1008s 失真)。
+- **删除考试**:站内确认弹窗替换原生 confirm()。
+- **今日任务措辞**:有方法时显示方法名(Custom challenge/Practice…)而非笼统 Study。
+- **P1-3 本地化**:砖头标题48 + 写操作确认模板22(confirmDesc {t,p} 模板+占位)+ 步骤条静态提示 + onboarding 考试类型 + 方法标签,全 8 语言。
+- **P2**:错题本完整选项+高亮;辩论轮数 ×N;Materials「其他文件或说明」保存反馈;首页 kye:data-changed 自动刷新今日任务。
+- **聊天附件入库**:`lib/materialIngest.js` `ingestMaterialBuffer`(Materials 上传 + 杀手 `save_attachment_as_material` 共用);chat_files 加 source/saved_material_id。
+- 新砖头/工具:tweak_daily_plan、recipe_revert、active_rules、recipe_tweak、save_attachment_as_material、customize_daily_plan(此前)。

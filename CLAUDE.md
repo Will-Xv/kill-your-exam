@@ -92,6 +92,15 @@
 
 
 
+## 黑盒测试 P1/P2 回归修复(2026-07-15 二)
+- **全局错误兜底**:`app/error.js` + `app/global-error.js`——client 异常不再白屏"Application error",给友好界面+重试;检测 ChunkLoadError(部署后旧标签页拿失效代码块→首次跳转崩、刷新好)自动硬刷新一次(sessionStorage 20s 防循环)。修 coding-first 首次进入白屏 P1。
+- **计时器失真**:KillerChat elapsed 只在 `run.elapsedSec < 300` 时作基准,过大(遗留/等确认很久的 run,如 1008s)改用本地计时。
+- **删除考试**:app/exams 原生 confirm() → 站内确认弹窗(confirmAsk 状态 + doManage)。
+- **竞技场编程题(Coding-First)**:codingMode 检测(launch.title/spec 含 cod/编程/python…);输入框=等宽深色多行编辑器,Enter 换行、Ctrl/⌘+Enter 提交,**Tab 缩进4空格/Shift+Tab 反缩进**,**左侧行号槽**(gutterRef 随 onScroll 同步);**现场运行代码** `/api/arena/run`(Judge0 runOnce)+语言选择+输出面板(编译错误/stderr/状态/耗时,"运行只自测不算提交")。代码渲染:arena systemFor/systemForCustom 加铁律「代码/函数名用反引号、$...$ 只留给数学」修 `$函数名$` 显示成 $ 的 bug。
+- **今日任务措辞**:HomeClient labelFor 的 kp 条目有 methodLabel 时显示方法名(t(methodLabel)+": ")而非笼统"学习:"——修 coding-first 卡片写 Study 的脱节。
+- **P1-3 本地化收口**:48 砖头标题 + 22 写操作确认模板(confirmDesc 返回 {t:模板,p:参数},前端 descLabel 翻译模板再回填占位)+ 计时/17 静态工具提示 + onboarding 考试类型(艺术类/只学习)+ 方法标签(辩论/自定义考核/先看讲解再练)——全 8 语言。仍留:步骤条动态提示(为「X」出N题这类拼接串)、杀手回复双语回显。
+- **P2**:错题本渲染完整选项+高亮(app/mistakes);辩论轮数中性 ×N(避"1 rounds");Materials「其他文件或说明」保存显示 ✓已保存;首页 kye:data-changed 事件杀手改完自动刷今日任务。
+
 ## 聊天附件可入库(2026-07-15)
 - 用户在杀手聊天发的文件之前只当场多模态用、不落库。现在:`/api/chat` 收到 attachments 就持久化成 `chat_files(source='upload')`+saveChatFile,并在消息尾追加系统提示告诉杀手可存。`lib/materialIngest.js` 抽出 `ingestMaterialBuffer`(Materials 上传路由 + 本功能共用同一条入库流水线)。杀手工具 `save_attachment_as_material`(直接执行、非 WRITE_TOOLS,像 web_search_and_ingest;存前先问主人)读最近30分钟内该考试 source='upload' 且未存过的 chat_files → ingestMaterialBuffer → 标 saved_material_id。chat_files 加 source/saved_material_id 列。
 
