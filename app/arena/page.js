@@ -38,6 +38,8 @@ export default function ArenaPage() {
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const boxRef = useRef(null);
+  const codeRef = useRef(null);
+  const gutterRef = useRef(null);
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
   // 竞技场进度在刷新后保留:恢复上次未结束的对局(video 形式除外)
   useEffect(() => {
@@ -206,7 +208,26 @@ export default function ArenaPage() {
           <div className="flex gap-2 items-end">
             {codingMode ? (
               <div className="flex-1 space-y-1.5">
-                <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); send(); } }} disabled={busy} rows={8} spellCheck={false} placeholder={t("在这里写你的代码…(Enter 换行;点发送或 Ctrl/⌘+Enter 提交)")} className="w-full rounded-xl border border-stone-600 bg-stone-900 text-stone-100 placeholder-stone-500 px-3 py-2 text-sm font-mono leading-relaxed resize-y" style={{ tabSize: 4 }} />
+                <div className="relative w-full overflow-hidden rounded-xl border border-stone-600 bg-stone-900">
+                  <div ref={gutterRef} className="pointer-events-none absolute inset-y-0 left-0 w-9 select-none overflow-hidden border-r border-stone-700 bg-stone-800 px-1 py-2 text-right font-mono text-sm leading-relaxed text-stone-500">
+                    {input.split("\n").map((_, i) => <div key={i}>{i + 1}</div>)}
+                  </div>
+                <textarea ref={codeRef} onScroll={(e) => { if (gutterRef.current) gutterRef.current.scrollTop = e.target.scrollTop; }} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); send(); return; }
+                  if (e.key === "Tab") {
+                    e.preventDefault();
+                    const el = e.target, start = el.selectionStart, end = el.selectionEnd, IND = "    ";
+                    if (e.shiftKey) {
+                      const lineStart = input.lastIndexOf("\n", start - 1) + 1;
+                      const head = input.slice(lineStart, start), m = head.match(/ {1,4}$/);
+                      if (m) { const n = m[0].length; setInput(input.slice(0, start - n) + input.slice(start)); requestAnimationFrame(() => { try { el.selectionStart = el.selectionEnd = start - n; } catch {} }); }
+                    } else {
+                      setInput(input.slice(0, start) + IND + input.slice(end));
+                      requestAnimationFrame(() => { try { el.selectionStart = el.selectionEnd = start + IND.length; } catch {} });
+                    }
+                  }
+                }} disabled={busy} rows={8} spellCheck={false} placeholder={t("在这里写你的代码…(Enter 换行;点发送或 Ctrl/⌘+Enter 提交)")} className="w-full resize-y bg-transparent py-2 pl-11 pr-3 text-sm font-mono leading-relaxed text-stone-100 placeholder-stone-500 outline-none" style={{ tabSize: 4 }} />
+                </div>
                 <div className="flex items-center gap-2 text-sm">
                   <select value={runLang} onChange={(e) => setRunLang(e.target.value)} className="rounded-lg border border-stone-300 bg-white text-stone-700 px-2 py-1 text-xs">
                     {["python", "javascript", "c", "cpp", "java", "go", "ruby", "rust", "php", "csharp", "typescript", "bash"].map((l) => <option key={l} value={l}>{l}</option>)}
