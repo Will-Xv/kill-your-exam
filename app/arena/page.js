@@ -40,6 +40,7 @@ export default function ArenaPage() {
   const boxRef = useRef(null);
   const codeRef = useRef(null);
   const gutterRef = useRef(null);
+  const launchedRef = useRef(false);
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
   // 竞技场进度在刷新后保留:恢复上次未结束的对局(video 形式除外)
   useEffect(() => {
@@ -73,7 +74,6 @@ export default function ArenaPage() {
       if (mid && !launchedRef.current) { const p = PRESETS.find((x) => x.key === mid); if (p) { launchedRef.current = true; start(p); } }
     } catch {}
   }).catch(() => {});
-  const launchedRef = useRef(false);
   useEffect(() => { loadModes(); }, []);
 
   async function turn(history, l, attachments) {

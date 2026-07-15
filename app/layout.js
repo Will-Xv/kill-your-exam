@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import db from "@/lib/db";
 import { AiErrorProvider } from "@/components/AiErrorDialog";
 import { I18nProvider } from "@/components/I18n";
+import VersionGuard from "@/components/VersionGuard";
 
 export const metadata = {
   title: "Kill Your Exam",
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
       <body>
+        <VersionGuard />
         <I18nProvider>
         <AiErrorProvider>
           <AppShell initialLayout={initialLayout}>{children}</AppShell>

@@ -3,6 +3,7 @@
 // 「只有按钮」的功能项、以及第三阶段杀手新建的项,都用它渲染(自带默认样式)。
 import Link from "next/link";
 import { useT } from "@/components/I18n";
+import FitText from "@/components/FitText";
 import { useStats, statValue, statMeta } from "@/lib/uilab/stats";
 
 export default function FeatureModule({ item, fill }) {
@@ -26,8 +27,8 @@ export default function FeatureModule({ item, fill }) {
           )}
         </div>
         <div className="min-w-0">
-          <div className="break-words text-base font-black leading-tight">{t(item.label)}</div>
-          <div className="break-words text-xs text-[#6b4a25] leading-snug">{t(item.desc)}</div>
+          <FitText className="font-black" max={17} min={12} lines={2} title={t(item.label)}>{t(item.label)}</FitText>
+          <FitText className="text-[#6b4a25]" max={12} min={9} lines={2} title={t(item.desc)}>{t(item.desc)}</FitText>
         </div>
       </div>
 
