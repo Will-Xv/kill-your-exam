@@ -126,7 +126,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
-    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
+    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) + ": " : t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :
     `${t("自由练习")} (${it.count}/${it.target})`;
 
   const features = [
