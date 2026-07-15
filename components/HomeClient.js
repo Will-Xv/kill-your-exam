@@ -123,7 +123,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const labelFor = (it) =>
     it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
     it.type === "practice" ? `✍️ ${t("练习:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
-    it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` (${it.n}${t("轮")})` : ""}` :
+    it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
     it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${t("学习:")}${it.chapter ? it.chapter + " · " : ""}${it.title}` :

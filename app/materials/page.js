@@ -12,6 +12,7 @@ export default function Materials() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState("");
   const [other, setOther] = useState("");
+  const [otherSaved, setOtherSaved] = useState(false);
   const OTHER = "其他文件或说明";
   const [openId, setOpenId] = useState(null);
   const [openContent, setOpenContent] = useState("");
@@ -54,7 +55,7 @@ export default function Materials() {
     const cl = checklist.filter((c) => c.item !== OTHER);
     if (other.trim()) cl.push({ kind: "qa", item: OTHER, why: "", priority: "opt", fixed: true, answer: other, done: true });
     setChecklist(cl);
-    await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: cl }) });
+    try { await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: cl }) }); setOtherSaved(true); setTimeout(() => setOtherSaved(false), 2500); } catch {}
   }
   async function view(m) {
     if (openId === m.id) { setOpenId(null); return; }
@@ -168,7 +169,7 @@ export default function Materials() {
         {!list.length && <p className="text-center text-stone-400 text-sm py-4">{t("还没有资料。上面上传后会显示在这里,可随时删除。")}</p>}
       </div>
       <div className="card space-y-2">
-        <h2 className="font-semibold text-sm">{t("其他文件或说明")}</h2>
+        <h2 className="font-semibold text-sm">{t("其他文件或说明")}{otherSaved && <span className="ml-2 text-xs font-normal text-emerald-600">✓ {t("已保存")}</span>}</h2>
         <p className="text-xs text-stone-400">{t("有资料没法上传(纸质书、老师口头强调、目标分数等),或想直接告诉 AI 的补充说明,写在这里。")}</p>
         <textarea className="input" rows={3} value={other} onChange={(e) => setOther(e.target.value)} onBlur={saveOther} placeholder={t("例如:我有纸质《XX》第 3 章;老师说重点考案例分析;目标 80 分…")} />
       </div>
