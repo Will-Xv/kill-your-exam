@@ -27,7 +27,7 @@ export default function Dev() {
       <DevSwitcher t={t} />
       <div className="card border-amber-200 bg-amber-50/60">
         <h2 className="font-bold text-amber-800">🕰️ {t("日期穿越(测多天剧本)")}</h2>
-        <p className="mt-1 text-xs text-amber-700">{t("把整个应用当成「今天 + N 天」来运行:复习到期、今日任务、考试倒计时都会按这个虚拟日期推进,不用真的等好几天。作用于整个测试环境(全服务器);当天做题的计数仍按真实时间。用完点「回到今天」清零。")}</p>
+        <p className="mt-1 text-xs text-amber-700">{t("把整个应用当成「今天 + N 天」来运行:复习到期、今日任务、考试倒计时都会按这个虚拟日期推进,不用真的等好几天。只作用于你当前的账号(不影响其他用户);当天做题的计数仍按真实时间。用完点「回到今天」清零。")}</p>
         <div className="mt-2 text-sm">
           <span className="font-medium">{t("当前生效日期")}: </span>
           <span className="font-mono font-bold text-amber-900">{dt ? dt.today : "…"}</span>

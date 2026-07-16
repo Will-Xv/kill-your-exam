@@ -130,3 +130,17 @@
 
 ## Judge0（Will 已买官方 per-use，实为 RapidAPI 计费）
 - 设置里：地址 `https://judge0-ce.p.rapidapi.com` + RapidAPI Key。已实测代码执行判分通（正确 4/4、错误按用例扣分）。
+
+## 2026-07-16 concierge 硬伤批 + 日期穿越 + 定时提醒 + 截断根因 + 发布家族砖头
+- **功能卡截断根因(不是 CSS)**:`lib/customModes.js` 注册自定义考核为功能卡时 label `slice(0,20)`、desc `slice(0,40)` 硬截("Coding-First Challenge"→"Coding-First Challen")。①放宽到 40/80;②`create_custom_mode` 工具 schema 直接约束 name≤40/winDesc≤80(生成按钮时就控长,不靠事后 slice);③db.js 一次性自愈迁移 `_heal_xform_labels_v1` 从 custom_modes 完整 name/win_desc 回填 feature_registry.name + ui_custom_items。另修 `components/FitText.js` 真 bug:原用 `-webkit-box`+line-clamp 让 scrollHeight 测不出溢出、缩字号循环从不触发→改普通块+maxHeight+overflow,字号自适应才生效。线上验证标题完整。
+- **VersionGuard**(P1-6 方向):`components/VersionGuard.js` 轮询 `/api/version`(RAILWAY_GIT_COMMIT_SHA),检测到新部署→拦截内部链接点击走整页 `location.assign`,预防旧标签页拿失效代码块的 ChunkLoadError。挂在 app/layout。
+- **今日任务完成判定重做**:每类有【当天目标题数】(DEFAULT_KP_TARGET=6,配方 method.count/步骤覆盖),做够目标才算完成(不再连一道就算);显示(已做/目标)。辩论/苏格拉底/探索/自定义考核=对话式,**做过一次活动即完成、少出题甚至不出题**。`set_practical_mode` 砖头=任务优先模式(vibe coding/编程:主要做实践任务、复习+少量轻知识点,target 降到 2)。/api/daily done 逻辑按方法分流(method-aware)。appGuide 补"练习数量真相"(实时无限出题、×N 是每日目标非硬上限、设上限=只限每日做题数不改出题逻辑)+"少出题/不出题的学法"。
+- **P1-5 undo 唯一入口**:`recipe_revert` 回退配方版本 + 清当天 daily_plan 一起回退(per-topic 计数 + 自由练习都退,不留半截);appGuide 加 undo 路由规则(别用 tweak 手动改回当 undo)。
+- **发布家族砖头**:`exam_merge`/`exam_split`/`exam_integrity_check` 此前只开发者账号可用→加入 `_bn` 发布名单 + 一次性强制发布迁移 `_publish_family_bricks_v1`(UPSERT published=1)。对普通用户开放(剧本三融合/拆分此前没测到的原因)。
+- **开发者日期穿越(测剧本6多天)**:`lib/devtime.js` 全局 `dev_day_offset`(整数天)→ `todayStr()`/`nowMs()`/`nowStamp()`。今日任务日期键、复习到期排期&判定&列表(mastery.js `date('now')`→绑 todayStr、review/route)、考试倒计时(planner daysUntil 用 nowMs)全部跟随偏移。`/api/dev/date`(仅开发者,±370天护栏)+ `/dev` 页"🕰️ 日期穿越"卡(+1/+7/-1/回到今天/跳到指定日期,全语言)。**offset 按用户隔离(通过 lib/reqctx AsyncLocalStorage 把请求 userId 带进 devtime,key=`dev_day_offset:<uid>`),只影响当前账号、绝不影响其他用户;测完点回到今天即清零。**
+- **H3 定时提醒**:`reminders` 表 + `lib/reminders.js`(`addReminder`/`deliverDue`/`startReminderLoop`)+ 砖头 `set_reminder`/`list_reminders`(已发布)。到期投递=收件箱(sendLetter)+ web-push(pushUser);/api/daily 每次调 `deliverDue(user.id)` + 启动后台每分钟轮询。due 比较用 nowStamp(穿越也触发)。appGuide 加提醒认知(诚实标注:推送需先开通知,否则进收件箱)。
+- **H7 配方名本地化**:HomeClient 配方名引号从硬编码「」改 `t("「")/t("」")`,8 字典按语言给引号(EN/ID→""、FR/ES/RU/AR→«»、TW/HK→「」)。
+- **H8 穿越写入时间戳**:offset≠0 时 attempts(answer×2/skip/grade)+ insights(explore/discuss finalize)写入带 `created_at=nowStamp()`,穿越期间当天做题/洞察计数与虚拟日期对齐。
+- **H9 首页自动刷新**:HomeClient 除 kye:data-changed 外,加 visibilitychange/focus 重载(节流3s)——去别处做完事回首页即最新。
+- **H1 澄清**:UI 服务 workflow 靠【今日任务生成时按当前阶段方法编排】(methodForKp→每条带方法标签+直达链接;仪式型落有序步骤),不额外堆入口按钮(曾误加"学习法入口条"已删)。
+- **H2 核实**:辩论/苏格拉底(竞技场 recordArenaSignals→recordCrossKp 并入掌握度+误区真题进错题本)、自由探索 finalize(写 insights+recordCrossKp)本就把状态回流并驱动 planner,无需改。
