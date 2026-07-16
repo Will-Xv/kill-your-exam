@@ -1,6 +1,7 @@
 import db, { getSetting, setSetting } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { crossExamPlan, weekPlan } from "@/lib/planner";
+import { todayStr } from "@/lib/devtime";
 
 // 本地日期 YYYY-MM-DD,加 n 天。
 function addDays(baseStr, n) {
@@ -17,7 +18,7 @@ export async function GET(req) {
 
   // 多天排期:?week=1(&caps=20,180,0,...)。caps 为从今天起每天的可用分钟;省略则用上次保存的,再没有就每天 60。
   if (url.searchParams.get("week")) {
-    const today = new Date().toLocaleDateString("sv-SE");
+    const today = todayStr();
     let caps = url.searchParams.get("caps");
     if (caps != null) { try { setSetting("week_caps:" + user.id, caps); } catch {} }
     else { try { caps = getSetting("week_caps:" + user.id); } catch {} }

@@ -1,0 +1,32 @@
+import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
+import { getSetting, setSetting } from "@/lib/db";
+import { dayOffset, todayStr } from "@/lib/devtime";
+
+function realToday() { return new Date().toLocaleDateString("sv-SE"); }
+
+export async function GET() {
+  const u = await getSessionUser();
+  if (!u) return unauthorized();
+  if (!u.is_developer) return forbidden();
+  return Response.json({ ok: true, offset: dayOffset(), today: todayStr(), realToday: realToday() });
+}
+
+// op: "advance"(相对拨 days 天,可负) | "set"(设成绝对 YYYY-MM-DD) | "reset"(回到真实今天)
+export async function POST(req) {
+  const u = await getSessionUser();
+  if (!u) return unauthorized();
+  if (!u.is_developer) return forbidden();
+  const b = await req.json().catch(() => ({}));
+  let off = dayOffset();
+  if (b.op === "reset") off = 0;
+  else if (b.op === "advance") off = off + (parseInt(b.days, 10) || 0);
+  else if (b.op === "set" && b.date) {
+    const target = new Date(String(b.date).slice(0, 10) + "T00:00:00");
+    const base = new Date(realToday() + "T00:00:00");
+    if (!isNaN(target.getTime())) off = Math.round((target.getTime() - base.getTime()) / 86400000);
+  }
+  // 安全护栏:限制在 ±370 天
+  off = Math.max(-370, Math.min(370, off));
+  setSetting("dev_day_offset", String(off));
+  return Response.json({ ok: true, offset: off, today: todayStr(), realToday: realToday() });
+}
