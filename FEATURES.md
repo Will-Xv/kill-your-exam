@@ -225,3 +225,13 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **P2**:错题本完整选项+高亮;辩论轮数 ×N;Materials「其他文件或说明」保存反馈;首页 kye:data-changed 自动刷新今日任务。
 - **聊天附件入库**:`lib/materialIngest.js` `ingestMaterialBuffer`(Materials 上传 + 杀手 `save_attachment_as_material` 共用);chat_files 加 source/saved_material_id。
 - 新砖头/工具:tweak_daily_plan、recipe_revert、active_rules、recipe_tweak、save_attachment_as_material、customize_daily_plan(此前)。
+
+## 更新日志 · 2026-07-16(四)concierge 硬伤批 + 日期穿越(按用户)+ 定时提醒 + 截断根因
+- **自定义考核卡截断根因**:`lib/customModes.js` 注册功能卡时 label/desc 被 slice(0,20)/(0,40) 硬截。放宽到 40/80 + `create_custom_mode` schema 约束 name≤40/winDesc≤80(源头控长)+ db.js 自愈迁移 `_heal_xform_labels_v1` 回填历史卡片。`components/FitText.js` 去 `-webkit-box`/line-clamp(致 scrollHeight 测不出溢出、字号自适应从不触发)改 maxHeight+overflow。
+- **今日任务完成判定**:每类【当天目标题数】(默认 6,配方 method.count/步骤覆盖),做够才完成、显示(已做/目标);辩论/苏格拉底/探索/自定义考核=活动式做过即完成、少/不出题;`set_practical_mode` 砖头=任务优先模式(编程/vibe:主做实践任务、target 降 2)。/api/daily done 逻辑 method-aware。
+- **家族砖头发布**:`exam_merge`/`exam_split`/`exam_integrity_check` 加入 `_bn` + 一次性强制发布迁移,对普通用户开放。
+- **开发者日期穿越(按用户隔离)**:`lib/devtime.js`(`todayStr`/`nowMs`/`nowStamp`)读 `dev_day_offset:<uid>`;`lib/reqctx.js` AsyncLocalStorage 在 `getSessionUser` 绑定请求 userId → 偏移**只作用于当前账号,绝不全服务器**。今日任务日期键、复习到期(mastery/review 路由 `date('now')`→绑 todayStr)、倒计时(planner nowMs)、做题/洞察写入(nowStamp)全跟随。`/api/dev/date`(仅开发者,±370天)+ `/dev` "🕰️ 日期穿越"卡(全语言)。
+- **H3 定时提醒**:`reminders` 表 + `lib/reminders.js`(addReminder/deliverDue/startReminderLoop)+ 砖头 `set_reminder`/`list_reminders`(已发布)。到期投递=收件箱 + web-push;/api/daily 每次 deliverDue + 后台每分钟轮询。诚实边界:推送需先开通知,否则进收件箱。
+- **H7** 配方名引号本地化(HomeClient t("「")/t("」"),8 字典按语言给引号)。**H9** 首页 visibilitychange/focus 自动重载。**H1** 澄清:UI 服务 workflow 靠今日任务按方法编排,不额外堆按钮(误加的入口条已删)。**H2** 核实竞技场/探索本就把状态回流并驱动 planner。
+- **VersionGuard**(`components/VersionGuard.js`):检测新部署→内部跳转走整页加载,防 ChunkLoadError;配 app/error.js/global-error.js 友好兜底+自愈刷新。
+- 砖头数增至 ≈53(新增 set_reminder/list_reminders,并发布 exam_merge/split/integrity_check);新增数据表 `reminders`。
