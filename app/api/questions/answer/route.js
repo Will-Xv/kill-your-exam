@@ -9,6 +9,7 @@ import { classifyTransferBg } from "@/lib/langTransfer";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { onAnswer } from "@/lib/triggers";
 import { aiErrorResponse } from "@/lib/errors";
+import { nowStamp } from "@/lib/devtime";
 
 export async function POST(req) {
   try {
@@ -22,8 +23,8 @@ export async function POST(req) {
     let correct, score, feedback = "", gradeCross = null;
     if (dontKnow) {
       correct = 0; score = 0;
-      const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
-        .run(questionId, q.exam_id, q.kp_id, "[不会做]", 0, 0, "", mode);
+      const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
+        .run(questionId, q.exam_id, q.kp_id, "[不会做]", 0, 0, "", mode, nowStamp());
       updateReviewQueue(questionId, false);
       let autoTriggersDK = null; try { autoTriggersDK = await onAnswer(user.id, q.exam_id, { correct: false, kpId: q.kp_id, questionId }); } catch {}
       maybeAutoUpdateOverall(user);
@@ -64,8 +65,8 @@ ${attachments && attachments.length ? "考生以图片/文件形式作答(见附
       }
       score = correct ? 100 : 0;
     }
-    const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode) VALUES(?,?,?,?,?,?,?,?)")
-      .run(questionId, q.exam_id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode);
+    const ins = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
+      .run(questionId, q.exam_id, q.kp_id, String(userAnswer || ""), correct, score, feedback, mode, nowStamp());
     updateReviewQueue(questionId, !!correct);
     let autoTriggers = null; try { autoTriggers = await onAnswer(user.id, q.exam_id, { correct: !!correct, kpId: q.kp_id, questionId }); } catch {} // 确定性触发器:按已激活模式自动升/降难度等
     // 做题反映的熟悉度 -> 并入同一套记忆(冲突并存、按新近加权;和自述说法可相互印证)

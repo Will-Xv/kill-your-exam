@@ -3,6 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, langInstruction } from "@/lib/gemini";
 import { leafKpList, recordCrossKp } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
+import { nowStamp } from "@/lib/devtime";
 
 export const maxDuration = 120;
 
@@ -34,7 +35,7 @@ export async function POST(req) {
 
     const masteryUpdates = [];
     if (out.kind !== "none" && out.insight?.trim()) {
-      db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text) VALUES(?,?,?,?,?)").run(kp.exam_id, kp.id, null, out.kind, out.insight.trim());
+      db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text,created_at) VALUES(?,?,?,?,?,?)").run(kp.exam_id, kp.id, null, out.kind, out.insight.trim(), nowStamp());
       const th = db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.id)?.title;
       masteryUpdates.push({ kpId: kp.id, title: th, kind: out.kind });
     }

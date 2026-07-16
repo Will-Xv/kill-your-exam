@@ -4,6 +4,7 @@ import { generateJson, langInstruction } from "@/lib/gemini";
 import { leafKpList, recordCrossKp } from "@/lib/mastery";
 import { applyMasteryTag, addLabels } from "@/lib/attemptTags";
 import { aiErrorResponse } from "@/lib/errors";
+import { nowStamp } from "@/lib/devtime";
 
 export const maxDuration = 120;
 
@@ -47,7 +48,7 @@ export async function POST(req) {
     let applied = { revised: false };
     const masteryUpdates = [];
     if (out.kind !== "none" && out.insight?.trim()) {
-      db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text) VALUES(?,?,?,?,?)").run(q.exam_id, q.kp_id, questionId, out.kind, out.insight.trim());
+      db.prepare("INSERT INTO insights(exam_id,kp_id,question_id,kind,text,created_at) VALUES(?,?,?,?,?,?)").run(q.exam_id, q.kp_id, questionId, out.kind, out.insight.trim(), nowStamp());
       applied.insight = out.insight.trim();
       if (q.kp_id) { const th = db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title; masteryUpdates.push({ kpId: q.kp_id, title: th, kind: out.kind }); }
     }

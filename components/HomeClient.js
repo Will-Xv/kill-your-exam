@@ -34,8 +34,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     loadHome();
     // 杀手改完(今日任务/计划/资料/进度等)会派发全局事件 → 首页即时重拉,不用手动刷新
     const onChanged = () => loadHome();
-    try { window.addEventListener("kye:data-changed", onChanged); } catch {}
-    return () => { try { window.removeEventListener("kye:data-changed", onChanged); } catch {} };
+    // 页面重新可见/获得焦点时也重拉(去练习/竞技场做完事回首页,数据自动最新,不用手动刷新)——节流3s
+    let lastLoad = Date.now();
+    const onFocus = () => { if (document.visibilityState !== "hidden" && Date.now() - lastLoad > 3000) { lastLoad = Date.now(); loadHome(); } };
+    try { window.addEventListener("kye:data-changed", onChanged); document.addEventListener("visibilitychange", onFocus); window.addEventListener("focus", onFocus); } catch {}
+    return () => { try { window.removeEventListener("kye:data-changed", onChanged); document.removeEventListener("visibilitychange", onFocus); window.removeEventListener("focus", onFocus); } catch {} };
   }, []);
 
   async function loadSugg() {
@@ -287,7 +290,20 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         </div>
         {daily?.recipe && (
           <div className="mb-2 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs text-indigo-800 ring-1 ring-indigo-200">
-            🧭 {t("学习配方")}「{daily.recipe.name}」· {t("阶段")} {daily.recipe.phaseIndex + 1}/{daily.recipe.phaseTotal}{daily.recipe.phase ? " · " + daily.recipe.phase : ""}{daily.recipe.allDone ? " ✓" : ""}
+            🧭 {t("学习配方")}{t("「")}{daily.recipe.name}{t("」")}· {t("阶段")} {daily.recipe.phaseIndex + 1}/{daily.recipe.phaseTotal}{daily.recipe.phase ? " · " + daily.recipe.phase : ""}{daily.recipe.allDone ? " ✓" : ""}
+          </div>
+        )}
+        {daily?.recipe?.surface?.length > 0 && (
+          <div className="mb-2">
+            <div className="mb-1 text-[11px] font-semibold text-slate-400">{t("为你的学习法准备的入口")}</div>
+            <div className="flex flex-wrap gap-2">
+              {daily.recipe.surface.map((e, i) => (
+                <Link key={i} href={e.href}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold shadow-sm transition ${e.current ? "bg-[#2f2413] text-[#f6efdd] ring-2 ring-amber-300" : "bg-[#f5eed6] text-[#2f2413] ring-1 ring-[#e4d5af] hover:brightness-105"}`}>
+                  <span>{e.tag}</span>{t(e.label)}{e.current ? " ·" + t("现在") : ""}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
         {!daily ? <div className="shimmer h-10 rounded-xl" /> : (

@@ -7,6 +7,7 @@ import { hasFfmpeg, detectBeats, extractFrames, extractAudio, transcodeToMp3, tr
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { nowStamp } from "@/lib/devtime";
 
 export const maxDuration = 300;
 const B64 = (b) => b.toString("base64");
@@ -133,8 +134,8 @@ export async function POST(req) {
       return Response.json({ score, feedback: fb, dimensions: dims, saved: true });
     }
     const musicMat = (analyzeAudio === "music" && body.mediaMaterialId) ? body.mediaMaterialId : null; // 无麦克风的给定音乐题:回放时叠加这首原配乐
-    const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id,dims_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-      .run(questionId, q.exam_id ?? exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat, dimsJson);
+    const info = db.prepare("INSERT INTO attempts(question_id,exam_id,kp_id,user_answer,correct,score,feedback,mode,q_stem,music_material_id,dims_json,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+      .run(questionId, q.exam_id ?? exam.id, q.kp_id, "[表演录制]", score >= 60 ? 1 : 0, score, fb, "practice", body.stem || null, musicMat, dimsJson, nowStamp());
     try { saveRec(info.lastInsertRowid, buffer); } catch {}
     return Response.json({ score, feedback: fb, dimensions: dims, attemptId: info.lastInsertRowid });
   } catch (e) {
