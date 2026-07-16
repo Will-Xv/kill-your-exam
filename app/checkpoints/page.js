@@ -47,7 +47,7 @@ export default function Checkpoints() {
   return (
     <div className="mx-auto max-w-2xl px-4 pb-24 pt-6 md:pt-20">
       <h1 className="text-2xl font-black">↩️ {t("回档(后悔药)")}</h1>
-      <p className="mt-2 text-sm text-[#8a7a54]">{t("对知识树/考试结构的每一次大改(重建、合并、复制、挂父、开汇总等)都自动留了一个还原点。想撤就点「撤销」,把相关考试还原到那次改动之前。默认保留最近 40 次、最多 60 天,更早的自动清掉。")}</p>
+      <p className="mt-2 text-sm text-[#8a7a54]">{t("对知识树/考试结构的每一次大改(重建、合并、复制、挂父、开汇总等)都自动留了一个还原点。想撤就点「撤销」;撤销后又反悔,点「重做」恢复到撤销前——每条记录都能撤销↔重做反复来回。默认保留最近 40 次、最多 60 天,更早的自动清掉。")}</p>
 
       {msg && <div className="mt-3 rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-800">{msg}</div>}
 
