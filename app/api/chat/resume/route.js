@@ -2,6 +2,7 @@ import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise } from "@/lib/chatAgent";
+import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
 
@@ -9,6 +10,7 @@ export const maxDuration = 300;
 export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
     if (!user) return unauthorized();
     const { token, approvals, action, feedback } = await req.json();
     const run = db.prepare("SELECT * FROM chat_runs WHERE token=?").get(token);

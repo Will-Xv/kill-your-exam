@@ -8,9 +8,11 @@ import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practic
 import { getActiveRecipe, currentPhase, methodForKp, methodLink } from "@/lib/recipes";
 import { todayStr } from "@/lib/devtime";
 import { deliverDue, startReminderLoop } from "@/lib/reminders";
+import { setReqUser } from "@/lib/reqctx";
 
 export async function GET() {
   const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   if (!exam) return Response.json({ plan: null });
   try { startReminderLoop(); await deliverDue(user.id); } catch {}  // H3:到期提醒投递(进收件箱+尝试推送)+ 启动后台轮询

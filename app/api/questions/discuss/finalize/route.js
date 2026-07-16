@@ -5,6 +5,7 @@ import { leafKpList, recordCrossKp } from "@/lib/mastery";
 import { applyMasteryTag, addLabels } from "@/lib/attemptTags";
 import { aiErrorResponse } from "@/lib/errors";
 import { nowStamp } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 120;
 
@@ -12,6 +13,7 @@ export const maxDuration = 120;
 export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
     if (!user) return unauthorized();
     const { questionId, attemptId, history } = await req.json();
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);

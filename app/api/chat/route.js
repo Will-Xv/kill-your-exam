@@ -5,11 +5,13 @@ import { aiErrorResponse } from "@/lib/errors";
 import { startRun } from "@/lib/chatAgent";
 import { attachParts, generate } from "@/lib/gemini";
 import { saveChatFile } from "@/lib/files";
+import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
 
 export async function GET() {
   const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   const _ids = exam ? familyScope(exam.id) : []; _ids.push(-user.id);
   const _scope = scopeSql(_ids); // 始终并入“无考试建考试对话”,避免建好考试后创建过程的对话消失

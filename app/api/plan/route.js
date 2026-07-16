@@ -2,6 +2,7 @@ import db, { getSetting, setSetting } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { crossExamPlan, weekPlan } from "@/lib/planner";
 import { todayStr } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 
 // 本地日期 YYYY-MM-DD,加 n 天。
 function addDays(baseStr, n) {
@@ -12,6 +13,7 @@ function addDays(baseStr, n) {
 
 export async function GET(req) {
   const { user } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   const url = new URL(req.url);
   const mode = url.searchParams.get("mode") || undefined;

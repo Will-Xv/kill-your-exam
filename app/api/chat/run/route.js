@@ -1,9 +1,11 @@
 import db, { rootExamId, familyScope, scopeSql } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
+import { setReqUser } from "@/lib/reqctx";
 
 // 轮询某次杀手运行的状态/步骤/结果;不传 id 则返回本考试最近一个未完成(running/pending)的运行。
 export async function GET(req) {
   const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   const id = new URL(req.url).searchParams.get("id");
   let run;

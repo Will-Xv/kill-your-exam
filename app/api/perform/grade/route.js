@@ -8,6 +8,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { nowStamp } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
 const B64 = (b) => b.toString("base64");
@@ -15,6 +16,7 @@ const CONTACT = "处理失败了,请稍后再试;如果一直不行,请点右下
 
 export async function POST(req) {
   const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   let form;
   try { form = await req.formData(); }

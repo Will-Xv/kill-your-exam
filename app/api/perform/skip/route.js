@@ -3,10 +3,12 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { updateReviewQueue } from "@/lib/mastery";
 import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { nowStamp } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 
 // 表演题「不会做」:计为不会(薄弱),返回评分要点/示范要点供学习。
 export async function POST(req) {
   const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   const { questionId } = await req.json();
   const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);

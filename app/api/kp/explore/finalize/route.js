@@ -4,6 +4,7 @@ import { generateJson, langInstruction } from "@/lib/gemini";
 import { leafKpList, recordCrossKp } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 import { nowStamp } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 120;
 
@@ -12,6 +13,7 @@ export const maxDuration = 120;
 export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
     if (!user) return unauthorized();
     const { kpId, history } = await req.json();
     const kp = db.prepare("SELECT * FROM knowledge_points WHERE id=?").get(Number(kpId));

@@ -2,8 +2,10 @@ import db, { examScope, scopeSql } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { dueReviewCount } from "@/lib/mastery";
 import { todayStr } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 export async function GET() {
   const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   if (!exam) return Response.json({ questions: [], due: 0 });
   const qs = db.prepare(`SELECT q.* FROM review_queue rq JOIN questions q ON q.id=rq.question_id

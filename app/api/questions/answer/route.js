@@ -10,6 +10,7 @@ import { maybeAutoUpdateOverall } from "@/lib/overall";
 import { onAnswer } from "@/lib/triggers";
 import { aiErrorResponse } from "@/lib/errors";
 import { nowStamp } from "@/lib/devtime";
+import { setReqUser } from "@/lib/reqctx";
 
 export async function POST(req) {
   try {
@@ -17,6 +18,7 @@ export async function POST(req) {
     const q = db.prepare("SELECT * FROM questions WHERE id=?").get(questionId);
     if (!q) return Response.json({ error: "not found" }, { status: 404 });
     const { user, exam } = await requireUser();
+    if (user) setReqUser(user.id);
     if (!user) return unauthorized();
     if (!exam || !inScope(exam.id, q.exam_id)) return forbidden();
     const ans = JSON.parse(q.answer);
