@@ -1,9 +1,9 @@
 import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
 import { getSetting, setSetting } from "@/lib/db";
-import { dayOffset, todayStr } from "@/lib/devtime";
+import { dayOffset, todayStr, realTodayStr } from "@/lib/devtime";
 import { setReqUser } from "@/lib/reqctx";
 
-function realToday() { return new Date().toLocaleDateString("sv-SE"); }
+function realToday() { return realTodayStr(); }   // 用户时区的真实今天
 
 export async function GET() {
   const u = await getSessionUser();
