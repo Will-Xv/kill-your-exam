@@ -26,6 +26,15 @@ export default function Checkpoints() {
     } catch { setMsg(t("回档失败")); }
     setBusy(0);
   }
+  async function redo(id) {
+    setBusy(id); setMsg("");
+    try {
+      const d = await fetch("/api/checkpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "redo", checkpointId: id }) }).then((r) => r.json());
+      if (d.ok) { setMsg(t("已重做 ✓ 相关考试已恢复到撤销前。")); await load(); }
+      else setMsg((d.error || t("重做失败")) + "");
+    } catch { setMsg(t("重做失败")); }
+    setBusy(0);
+  }
   async function clearAll() {
     if (!confirm(t("清空全部回档存档点?清空后就不能再撤销之前的操作了。"))) return;
     setBusy(-1);
@@ -54,7 +63,9 @@ export default function Checkpoints() {
                     <p className="mt-0.5 text-xs text-[#8a7a54]">{fmt(c.created_at)}{c.undone ? " · " + t("已撤销") : ""}</p>
                   </div>
                   {c.undone
-                    ? <span className="shrink-0 text-xs text-slate-400">{t("已撤销")}</span>
+                    ? (c.redoable
+                        ? <button className="btn-ghost shrink-0 text-sm" disabled={busy === c.id} onClick={() => redo(c.id)}>{busy === c.id ? t("重做中…") : "↪️ " + t("重做")}</button>
+                        : <span className="shrink-0 text-xs text-slate-400">{t("已撤销")}</span>)
                     : <button className="btn-ghost shrink-0 text-sm" disabled={busy === c.id} onClick={() => rollback(c.id, t(OP_LABEL[c.op] || c.op) + (c.names && c.names.length ? " · " + c.names.join(", ") : ""))}>{busy === c.id ? t("回档中…") : "↩️ " + t("撤销")}</button>}
                 </div>
               ))}
