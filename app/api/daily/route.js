@@ -5,7 +5,7 @@ import { crossExamPlan, currentDailyItems } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
-import { getActiveRecipe, currentPhase, methodForKp, methodLink, recipeSurface } from "@/lib/recipes";
+import { getActiveRecipe, currentPhase, methodForKp, methodLink } from "@/lib/recipes";
 import { todayStr } from "@/lib/devtime";
 import { deliverDue, startReminderLoop } from "@/lib/reminders";
 
@@ -67,8 +67,7 @@ export async function GET() {
     const rc = getActiveRecipe(user.id, exam.id);
     if (rc) {
       const cur = currentPhase(rc, exam.id);
-      const _curM = cur && cur.phase.method ? cur.phase.method.type : null;
-      recipe = { name: rc.name, phase: cur ? cur.phase.name : null, phaseIndex: cur ? cur.index : 0, phaseTotal: cur ? cur.total : 0, method: _curM, allDone: cur ? !!cur.allDone : false, surface: recipeSurface(rc, _curM) };
+      recipe = { name: rc.name, phase: cur ? cur.phase.name : null, phaseIndex: cur ? cur.index : 0, phaseTotal: cur ? cur.total : 0, method: cur && cur.phase.method ? cur.phase.method.type : null, allDone: cur ? !!cur.allDone : false };
       let mmById = {}; try { const { masteryMatrix } = await import("@/lib/mastery"); for (const m of masteryMatrix(exam.id)) mmById[m.id] = m; } catch {}
       for (const it of enriched) {
         if (it.type === "kp" && it.kpId) {
