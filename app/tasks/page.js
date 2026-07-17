@@ -146,6 +146,17 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const lang = ms.language || task.language || "python";
   const invalid = (task.appeals && task.appeals[idx]) || {};
   const [appealing, setAppealing] = useState(-1);
+  // 刷新保留:把【还没提交】的代码/证据作答存进 localStorage,重进/刷新时恢复(已提交的另由服务端 prog.submission 兜底)。
+  const draftKey = `kye_task:${task.id}:${idx}`;
+  const hydrated = useRef(false);
+  useEffect(() => {
+    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); } } catch {}
+    hydrated.current = true;
+  }, []); // eslint-disable-line
+  useEffect(() => {
+    if (!hydrated.current) return;
+    try { localStorage.setItem(draftKey, JSON.stringify({ code, evi, ts: Date.now() })); } catch {}
+  }, [code, evi]); // eslint-disable-line
   async function appeal(ti) {
     setAppealing(ti);
     try {
