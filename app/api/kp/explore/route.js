@@ -39,6 +39,7 @@ ${learnerKpContext(kp.id) || "(暂无历史记录)"}
 知识背景(考生看不到你这段):${hits.length ? "\n相关资料(优先据此):\n" + ragBlock(hits) : "\n(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
 
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
+    if (!contents.length) contents.push({ role: "user", parts: [{ text: "(开场:点出这个主题最值得琢磨的地方,然后邀请我就它提问)" }] });  // Gemini 需要至少一条用户消息,否则空 contents 会报错、误弹"API出问题"
     let ap = [];
     try { const { attachParts } = await import("@/lib/gemini"); ap = await attachParts(attachments); } catch {}
     const mp = await materialParts(exam.id, { max: 4 });
