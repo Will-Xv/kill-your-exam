@@ -114,7 +114,7 @@ function TaskChat({ task }) {
     const m = text.trim(); if (!m || busy) return;
     setMsgs((x) => [...x, { role: "user", content: m }]); setText(""); setBusy(true);
     // 把【当前正在做的代码 + 最新运行结果】(各里程碑草稿,未提交也算)一并发给助教,让它看得到我的运行/测试结果。
-    const live = (task.milestones || []).map((_, i) => { try { const d = JSON.parse(localStorage.getItem(`kye_task:${task.id}:${i}`) || "null"); return d ? { idx: i, code: d.code, evi: d.evi, runOut: d.runOut } : null; } catch { return null; } }).filter(Boolean);
+    const live = (task.milestones || []).map((_, i) => { try { const d = JSON.parse(localStorage.getItem(`kye_task:${task.id}:${i}`) || "null"); return d ? { idx: i, code: d.code, evi: d.evi, runOut: d.runOut, runInput: d.runInput } : null; } catch { return null; } }).filter(Boolean);
     try { const r = await aiFetch("/api/tasks/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, message: m, live }) }); setMsgs((x) => [...x, { role: "assistant", content: r.reply || "…" }]); } catch {}
     setBusy(false);
   }
@@ -145,6 +145,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const [code, setCode] = useState((prog && prog.submission) || ms.starter || "");
   const [evi, setEvi] = useState((prog && prog.submission) || "");
   const [eviAtts, setEviAtts] = useState([]);
+  const [runInput, setRunInput] = useState("");
   const [runOut, setRunOut] = useState(null);
   const [busy, setBusy] = useState("");
   const lang = ms.language || task.language || "python";
@@ -154,16 +155,16 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const draftKey = `kye_task:${task.id}:${idx}`;
   const hydrated = useRef(false);
   useEffect(() => {
-    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); if (Array.isArray(d.eviAtts)) setEviAtts(d.eviAtts); if (d.runOut) setRunOut(d.runOut); } } catch {}
+    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); if (Array.isArray(d.eviAtts)) setEviAtts(d.eviAtts); if (d.runOut) setRunOut(d.runOut); if (typeof d.runInput === "string") setRunInput(d.runInput); } } catch {}
     hydrated.current = true;
   }, []); // eslint-disable-line
   useEffect(() => {
     if (!hydrated.current) return;
     try {
       const attsSize = eviAtts.reduce((a, x) => a + (x.data ? x.data.length : 0), 0);
-      localStorage.setItem(draftKey, JSON.stringify({ code, evi, eviAtts: attsSize < 2500000 ? eviAtts : [], runOut, ts: Date.now() }));
+      localStorage.setItem(draftKey, JSON.stringify({ code, evi, eviAtts: attsSize < 2500000 ? eviAtts : [], runOut, runInput, ts: Date.now() }));
     } catch {}
-  }, [code, evi, eviAtts, runOut]); // eslint-disable-line
+  }, [code, evi, eviAtts, runOut, runInput]); // eslint-disable-line
   async function appeal(ti) {
     setAppealing(ti);
     try {
@@ -176,6 +177,11 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
     setAppealing(-1);
   }
 
+  async function runProgram() {
+    setBusy("prog"); setRunOut(null);
+    try { const r = await aiFetch("/api/tasks/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: code, language: lang, stdin: runInput }) }); setRunOut(r); } catch {}
+    setBusy("");
+  }
   async function run() {
     setBusy("run"); setRunOut(null);
     try { const r = await aiFetch("/api/tasks/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: code, language: lang, tests: ms.tests || [] }) }); setRunOut(r); } catch {}
@@ -211,8 +217,10 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
               <div className="text-xs font-semibold">{t("通过")} {runOut.passedCount}/{runOut.total}</div>
             </div>
           ) : <p className="mt-1 text-xs text-stone-500">{runOut.stdout || runOut.stderr || runOut.compile_output || t("(无输出)")}</p>)}
-          <div className="mt-2 flex gap-2">
-            <button onClick={run} disabled={busy === "run" || !judge0} className="btn-ghost px-3 py-1.5 text-sm">{busy === "run" ? t("运行中…") : "▶ " + t("运行")}</button>
+          <textarea value={runInput} onChange={(e) => setRunInput(e.target.value)} rows={1} placeholder={t("(可选)运行程序时喂给它的输入(stdin)…")} className="mt-2 w-full resize-y rounded-lg border border-stone-300 bg-white px-3 py-1.5 font-mono text-xs" />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button onClick={runProgram} disabled={busy === "prog" || !judge0} className="btn-ghost px-3 py-1.5 text-sm">{busy === "prog" ? t("运行中…") : "▶ " + t("运行程序")}</button>
+            <button onClick={run} disabled={busy === "run" || !judge0} className="btn-ghost px-3 py-1.5 text-sm">{busy === "run" ? t("测试中…") : "🧪 " + t("测试")}</button>
             <button onClick={submit} disabled={busy === "submit"} className="btn px-3 py-1.5 text-sm">{busy === "submit" ? t("判分中…") : t("提交判分")}</button>
           </div>
           {!judge0 && <p className="mt-1 text-[11px] text-amber-700">{t("未配置 Judge0,运行/判分不可用(可先在设置里配置)。")}</p>}
