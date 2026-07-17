@@ -1,6 +1,6 @@
 "use client";
 import { useT } from "@/components/I18n";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import MD from "@/components/MD";
@@ -94,6 +94,44 @@ function TaskDetail({ task, judge0, onBack, onGraded }) {
       {task.milestones.map((ms, i) => (
         <Milestone key={i} task={task} idx={i} ms={ms} judge0={judge0} prog={task.progress[i]} onGraded={onGraded} aiFetch={aiFetch} t={t} />
       ))}
+      <TaskChat task={task} />
+    </div>
+  );
+}
+
+function TaskChat({ task }) {
+  const t = useT();
+  const aiFetch = useAiFetch();
+  const [msgs, setMsgs] = useState([]);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const boxRef = useRef(null);
+  useEffect(() => { fetch(`/api/tasks/chat?taskId=${task.id}`).then((r) => r.json()).then((d) => setMsgs(d.messages || [])).catch(() => {}); }, [task.id]);
+  useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
+  async function send() {
+    const m = text.trim(); if (!m || busy) return;
+    setMsgs((x) => [...x, { role: "user", content: m }]); setText(""); setBusy(true);
+    try { const r = await aiFetch("/api/tasks/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, message: m }) }); setMsgs((x) => [...x, { role: "assistant", content: r.reply || "…" }]); } catch {}
+    setBusy(false);
+  }
+  return (
+    <div className="card">
+      <p className="text-sm font-medium">💬 {t("做题问答(卡住就问,帮你把作业做出来)")}</p>
+      <p className="mt-0.5 text-xs text-stone-400">{t("这段问答会在你完成整个作业后自动清空;你在这儿体现的理解/误区会记进掌握度。")}</p>
+      <div ref={boxRef} className="mt-2 max-h-72 space-y-2 overflow-y-auto">
+        {msgs.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : ""}>
+            <div className={"inline-block max-w-[85%] rounded-2xl px-3 py-1.5 text-left text-sm " + (m.role === "user" ? "bg-amber-500 text-white" : "bg-stone-100 text-stone-700")}>
+              {m.role === "user" ? m.content : <MD>{m.content}</MD>}
+            </div>
+          </div>
+        ))}
+        {busy && <div className="animate-pulse text-xs text-stone-400">{t("思考中…")}</div>}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={t("问点什么…(Enter 发送)")} className="flex-1 resize-none rounded-xl border border-stone-200 px-3 py-2 text-sm focus:border-amber-400 focus:outline-none" />
+        <button className="btn px-4" disabled={busy} onClick={send}>{t("发送")}</button>
+      </div>
     </div>
   );
 }
