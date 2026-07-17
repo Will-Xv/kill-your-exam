@@ -223,6 +223,7 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **竞技场编程题**:codingMode 检测 → 深色等宽多行编辑器(Tab 缩进4空格/Shift+Tab 反缩进、左侧行号槽随滚动同步、Enter 换行、Ctrl/⌘+Enter 提交)+ 现场运行 `/api/arena/run`(Judge0)语言选择/输出面板;arena 系统提示加「代码用反引号、$…$ 只给数学」。
 - **计时器**:elapsed 只在 <300s 作服务端基准(修 1008s 失真)。
 - **删除考试**:站内确认弹窗替换原生 confirm()。
+- **子考试完成→掌握度映射家族树(2026-07,Will 定)**:标记【真子考试】(有 `parent_exam_id`)完成时,`/api/exam/manage` complete 返回 `isSubExam`;前端弹二选一——【映射到家族知识树】或【放着不动】。选映射→ `action:map_mastery_to_family` → `lib/mastery.mapSubExamMasteryToFamily`:取子考试【自己】叶子知识点的档位(masteryMatrix 家族聚合后按 exam_id 过滤),`embed`+`cosine` 语义匹配到家族里【其它考试】(母+兄弟)的对应叶子(≥0.6),已掌握/一般→understanding、薄弱→gap 写进那些点的 `insights`(`recordCrossKp`,家族校验)。**只认真考试;实践任务(伪子考试、非 exams 行)不走这套**——它的掌握度另有逻辑:`assignTask` 用 `matchKp`(子串→embedding≥0.55)把任务绑一个叶子 kp,`gradeMilestone` 里程碑过=understanding/未过=gap 写该 kp。
 - **今日任务措辞**:有方法时显示方法名(Custom challenge/Practice…)而非笼统 Study。
 - **P1-3 本地化**:砖头标题48 + 写操作确认模板22(confirmDesc {t,p} 模板+占位)+ 步骤条静态提示 + onboarding 考试类型 + 方法标签,全 8 语言。
 - **P2**:错题本完整选项+高亮;辩论轮数 ×N;Materials「其他文件或说明」保存反馈;首页 kye:data-changed 自动刷新今日任务。

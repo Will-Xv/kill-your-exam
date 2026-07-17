@@ -65,6 +65,16 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       if (!r.ok) { const tx = await r.text().catch(() => ""); alert(t("标记失败:") + " HTTP " + r.status + " " + tx); return; }
       const d = await r.json().catch(() => ({}));
       if (d && d.ok === false) { alert(t("标记失败:") + " " + (d.error || "")); return; }
+      // 真子考试完成→让用户选:把进度映射进家族知识树,还是放着不动。
+      if (d && d.isSubExam) {
+        if (confirm(t("这门子考试已完成。要把它的掌握度映射到家族知识树(母考试和同家族其它考试的对应知识点)吗?点\u201c取消\u201d则放着不动。"))) {
+          try {
+            const mr = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "map_mastery_to_family", examId: eid }) }).then((x) => x.json());
+            if (mr && mr.ok) alert(mr.mapped ? t("已把 {n} 个知识点的掌握度映射进家族知识树。").replace("{n}", mr.mapped) : (mr.note || t("没有可映射的知识点。")));
+            else alert(t("映射失败:") + " " + ((mr && mr.reason) || ""));
+          } catch (e) { alert(t("映射失败:") + " " + ((e && e.message) || e)); }
+        }
+      }
       location.reload();
     } catch (e) { alert(t("标记失败:") + " " + ((e && e.message) || e)); }
   }
