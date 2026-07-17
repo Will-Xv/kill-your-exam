@@ -25,6 +25,7 @@ export default function AppShell({ children, initialLayout = null }) {
   useEffect(() => { if (path !== "/" && lab.snap().editing) lab.exitEdit(); }, [path]);
   useEffect(() => { fetch("/api/triggers/tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tz: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })() }) }).catch(() => {}); }, []); // 打开应用时触发 session/每日/每周级触发器 // 离开首页即退出编辑,避免编辑态泄漏到其它页
   useIso(() => { if (typeof window === "undefined") return; const mq = window.matchMedia("(min-width: 768px)"); const on = () => lab.setDesktop(mq.matches); on(); try { mq.addEventListener("change", on); } catch { mq.addListener(on); } return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } }; }, []); // 绘制前就确定桌面/手机,配合 SSR 布局:刷新时直接出正确外壳,不再闪
+  placement.useItems();   // 【必须在提前 return 之前调用】否则 BARE 页(如 /arena)会少调这个 Hook,SPA 从别的页切过来时 Hook 数量变化 → React #300 崩溃
   if (BARE.includes(path)) return children;
   // 开发者在首页开启布局(编辑中或已套用某套布局)时,主内容改为全宽画布 —— 不再被「给杀手让出右边一条」限制,
   // 内容与杀手可自由摆放(上下、任意位置)。内容本身不自动放宽,仍保持原来的宽度,只是可被拖到任何地方。
@@ -34,7 +35,6 @@ export default function AppShell({ children, initialLayout = null }) {
   const onHome = path === "/";
   const applied = lab.contentToRender() || (!S.editing && initialLayout && initialLayout.v === 2 ? initialLayout : null); // 优先用 store;首帧(fetch 未回)用 SSR 传入的已发布布局
   const labHome = onHome && S.isDesktop && S.editing; // 首页【编辑中】才用 LayoutLab 编辑器(全宽网格)
-  placement.useItems();
   const _pact = placement.active();
   const _bp = S.isDesktop ? "desktop" : "mobile";
   const killerHome = _pact ? placement.killerHomeOf(placement.renderPlacement(), _bp) : "dock";
