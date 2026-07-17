@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import MD from "@/components/MD";
+import CodeEditor from "@/components/CodeEditor";
 
 export default function TasksPage() {
   const t = useT();
@@ -180,7 +181,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
       {isRun ? (
         <>
           <div className="mt-2 text-xs text-stone-400">{t("语言")}: {lang}{ms.tests?.length ? ` · ${ms.tests.length} ${t("个测试用例")}` : ""}</div>
-          <textarea value={code} onChange={(e) => setCode(e.target.value)} spellCheck={false} rows={10} className="mt-1 w-full rounded-lg border border-stone-300 bg-stone-900 px-3 py-2 font-mono text-xs text-stone-100" placeholder={t("在这里写代码…")} />
+          <div className="mt-1"><CodeEditor value={code} onChange={setCode} language={lang} rows={12} placeholder={t("在这里写代码…")} /></div>
           {runOut && (runOut.notConfigured ? <p className="mt-1 text-xs text-amber-700">{t("未配置 Judge0,无法运行。")}</p> : runOut.error ? <p className="mt-1 text-xs text-rose-700">{t("运行出错")}: {runOut.error}{runOut.detail ? " · " + String(runOut.detail).slice(0, 120) : ""}</p> : runOut.results ? (
             <div className="mt-2 space-y-1">
               {runOut.results.map((r, ri) => (
