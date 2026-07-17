@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import { useT } from "@/components/I18n";
 import { openKiller, useKillerOpen } from "@/lib/killerUi";
 
@@ -24,8 +23,6 @@ export default function PendingBanner({ floatDesktop = false }) {
   if (!pending || path === "/chat" || killerOpen) return null; // 抽屉已打开就不用横幅了
   const cls = `${floatDesktop ? "" : "md:hidden"} fixed left-1/2 top-2 z-[80] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 animate-in`;
   const label = <>🔐 {t("杀手有个改动等你确认")} →</>;
-  // 电脑端浮动:点横幅把杀手抽屉叫出来(确认就在里面);其余(手机):进入聊天页确认
-  return floatDesktop
-    ? <button onClick={openKiller} className={cls}>{label}</button>
-    : <Link href="/chat" className={cls}>{label}</Link>;
+  // 点横幅一律把【当前的杀手浮层/抽屉】叫出来(确认就在里面),不再跳到 /chat 那个独立整页。
+  return <button onClick={openKiller} className={cls}>{label}</button>;
 }

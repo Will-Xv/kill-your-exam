@@ -191,7 +191,7 @@ export default function KillerChat() {
           let plan = null;
           const pstep = [...steps].reverse().find((x) => x.kind === "plan");
           if (pstep) { try { plan = JSON.parse(pstep.detail); } catch {} }
-          const vis = steps.filter((x) => x.kind !== "done" && x.kind !== "plan");
+          const vis = steps.filter((x) => x.kind !== "done" && x.kind !== "plan" && x.kind !== "pending"); // pending 是残留步骤:真要确认时会显示确认卡、不该混在"思考中"进程里(否则像"等你决定却没选项")
           const label = (x) => x.kind === "think" ? "💭 " + t("思考中…")
             : x.kind === "tool" ? "🔧 " + t(x.detail || "")
             : x.kind === "result" ? "✅ " + t(x.detail || "")

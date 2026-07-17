@@ -23,6 +23,8 @@ export default function AppShell({ children, initialLayout = null }) {
   const t = useT();
   const S = lab.useUiLab();
   useEffect(() => { if (path !== "/" && lab.snap().editing) lab.exitEdit(); }, [path]);
+  // 从杀手推送通知(url 带 ?killer=1)进来时,自动把【当前的杀手浮层】叫出来,并清掉参数——不再跳去 /chat 那个独立整页。
+  useEffect(() => { try { const sp = new URLSearchParams(window.location.search); if (sp.get("killer") === "1") { openKiller(); const u = new URL(window.location.href); u.searchParams.delete("killer"); window.history.replaceState(null, "", u.pathname + u.search); } } catch {} }, [path]);
   useEffect(() => { fetch("/api/triggers/tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tz: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })() }) }).catch(() => {}); }, []); // 打开应用时触发 session/每日/每周级触发器 // 离开首页即退出编辑,避免编辑态泄漏到其它页
   useIso(() => { if (typeof window === "undefined") return; const mq = window.matchMedia("(min-width: 768px)"); const on = () => lab.setDesktop(mq.matches); on(); try { mq.addEventListener("change", on); } catch { mq.addListener(on); } return () => { try { mq.removeEventListener("change", on); } catch { mq.removeListener(on); } }; }, []); // 绘制前就确定桌面/手机,配合 SSR 布局:刷新时直接出正确外壳,不再闪
   placement.useItems();   // 【必须在提前 return 之前调用】否则 BARE 页(如 /arena)会少调这个 Hook,SPA 从别的页切过来时 Hook 数量变化 → React #300 崩溃

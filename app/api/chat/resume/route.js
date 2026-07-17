@@ -29,7 +29,7 @@ export async function POST(req) {
     const calls = JSON.parse(run.pending_calls_json || "[]");
     // 【原子占坑·防重复执行】把 status 从 pending 抢成 running(只有当它还是 pending 时才成功)。
     // 若同一个确认被点了两下 / 横幅和页面各发一个 / 手机通知又触发一次——第二个请求拿到 changes=0,直接返回,绝不再执行一遍(不会重复布置任务)。
-    const claim = db.prepare("UPDATE chat_runs SET status='running', token=NULL, actions_json=NULL, pending_kind=NULL, pending_contents_json=NULL, pending_calls_json=NULL, updated_at=datetime('now') WHERE id=? AND status='pending'").run(run.id);
+    const claim = db.prepare("UPDATE chat_runs SET status='running', token=NULL, actions_json=NULL, pending_kind=NULL, pending_contents_json=NULL, pending_calls_json=NULL, steps_json='[]', updated_at=datetime('now') WHERE id=? AND status='pending'").run(run.id);
     if (!claim.changes) return Response.json({ runId: run.id });   // 已被另一个并发请求认领
     try {
       const toolNotes = [];
