@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import MD from "@/components/MD";
 import CodeEditor from "@/components/CodeEditor";
+import { filesToAttachments } from "@/lib/attach";
 
 export default function TasksPage() {
   const t = useT();
@@ -141,6 +142,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const isRun = ms.check === "run";
   const [code, setCode] = useState((prog && prog.submission) || ms.starter || "");
   const [evi, setEvi] = useState((prog && prog.submission) || "");
+  const [eviAtts, setEviAtts] = useState([]);
   const [runOut, setRunOut] = useState(null);
   const [busy, setBusy] = useState("");
   const lang = ms.language || task.language || "python";
@@ -150,13 +152,16 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const draftKey = `kye_task:${task.id}:${idx}`;
   const hydrated = useRef(false);
   useEffect(() => {
-    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); } } catch {}
+    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); if (Array.isArray(d.eviAtts)) setEviAtts(d.eviAtts); } } catch {}
     hydrated.current = true;
   }, []); // eslint-disable-line
   useEffect(() => {
     if (!hydrated.current) return;
-    try { localStorage.setItem(draftKey, JSON.stringify({ code, evi, ts: Date.now() })); } catch {}
-  }, [code, evi]); // eslint-disable-line
+    try {
+      const attsSize = eviAtts.reduce((a, x) => a + (x.data ? x.data.length : 0), 0);
+      localStorage.setItem(draftKey, JSON.stringify({ code, evi, eviAtts: attsSize < 2500000 ? eviAtts : [], ts: Date.now() }));
+    } catch {}
+  }, [code, evi, eviAtts]); // eslint-disable-line
   async function appeal(ti) {
     setAppealing(ti);
     try {
@@ -176,7 +181,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   }
   async function submit() {
     setBusy("submit");
-    try { const r = await aiFetch("/api/tasks/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, idx, submission: isRun ? code : evi, language: lang }) }); if (r.needKey) alert(t("需要管理员在设置里配置 Judge0 密钥才能运行判分。")); else onGraded(); } catch {}
+    try { const r = await aiFetch("/api/tasks/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, idx, submission: isRun ? code : evi, language: lang, attachments: isRun ? undefined : eviAtts }) }); if (r.needKey) alert(t("需要管理员在设置里配置 Judge0 密钥才能运行判分。")); else onGraded(); } catch {}
     setBusy("");
   }
 
@@ -214,6 +219,14 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
         <>
           {ms.evidenceHint && <p className="mt-1 text-xs text-stone-500">📎 {t("要交的证据")}: {ms.evidenceHint}</p>}
           <textarea value={evi} onChange={(e) => setEvi(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" placeholder={t("贴上你的成果/发现/输出/截图说明…")} />
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <label className="btn-ghost cursor-pointer px-3 py-1.5 text-sm" title={t("上传图片/文件/拍照作答")}>📎 {t("拍照/上传文件")}
+              <input type="file" multiple hidden accept="image/*,.pdf,.txt,.md,.docx" onChange={async (e) => { try { const a = await filesToAttachments(Array.from(e.target.files || [])); setEviAtts((x) => [...x, ...a].slice(0, 4)); } catch {} e.target.value = ""; }} />
+            </label>
+            {eviAtts.map((a, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">📄 {a.name || "file"}<button onClick={() => setEviAtts((x) => x.filter((_, j) => j !== i))} className="text-rose-500">✕</button></span>
+            ))}
+          </div>
           <button onClick={submit} disabled={busy === "submit"} className="btn mt-2 px-3 py-1.5 text-sm">{busy === "submit" ? t("审阅中…") : t("提交成果")}</button>
         </>
       )}

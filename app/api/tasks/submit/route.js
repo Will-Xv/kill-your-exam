@@ -9,10 +9,10 @@ export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    const { taskId, idx, submission, language } = await req.json();
+    const { taskId, idx, submission, language, attachments } = await req.json();
     const task = getTask(Number(taskId));
     if (!task || !exam || !inScope(exam.id, task.exam_id)) return forbidden();
-    const r = await gradeMilestone(user, task, Number(idx), { submission: String(submission || ""), language });
+    const r = await gradeMilestone(user, task, Number(idx), { submission: String(submission || ""), language, attachments });
     return Response.json(r);
   } catch (e) { return aiErrorResponse(e); }
 }

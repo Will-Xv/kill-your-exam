@@ -31,6 +31,18 @@ export default function CodeEditor({ value = "", onChange, language = "python", 
       }
       return;
     }
+    if (e.key === "Backspace" && start === end) {
+      // 像编辑器一样删缩进:光标前【本行只有空格】且有空格时,退格删到上一个缩进档(4空格),不是一格一格。
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      const before = value.slice(lineStart, start);
+      if (before.length > 0 && /^ +$/.test(before)) {
+        e.preventDefault();
+        const del = before.length % 4 === 0 ? 4 : before.length % 4;
+        onChange(value.slice(0, start - del) + value.slice(start));
+        requestAnimationFrame(() => { try { el.selectionStart = el.selectionEnd = start - del; } catch {} });
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey && !(e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       const lineStart = value.lastIndexOf("\n", start - 1) + 1;
