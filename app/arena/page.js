@@ -327,7 +327,7 @@ function Creator({ t, aiFetch, onCreated }) {
   async function create() {
     if (!name.trim() || !spec.trim()) return;
     setBusy(true);
-    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); if (kind === "exam_form") alert(t("已创建为一个独立考核栏目,在首页/更多功能里可找到。")); onCreated(); } catch {}
+    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); if (kind === "exam_form") alert(t("已存进竞技场,随时能来这里选。想把它(或竞技场里任何栏目)放到首页/导航栏,直接跟杀手说让它挪就行。")); onCreated(); } catch {}
     setBusy(false);
   }
   return (
