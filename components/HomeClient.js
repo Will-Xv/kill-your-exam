@@ -103,7 +103,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     );
   }
 
-  const { exam, stats, topExam, subExams, aggregating, aggregateCount } = data;
+  const { exam, stats, topExam, subExams, taskSubs, aggregating, aggregateCount } = data;
   const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date) - Date.now()) / 86400000) : null;
   const completeBtn = <button className="rounded-full bg-[#2f2413] px-2.5 py-0.5 text-xs font-medium text-[#f6efdd] hover:opacity-90" onClick={markComplete}>✅ {t("标记为已完成")}</button>;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
@@ -192,11 +192,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           {aggregating && (
             <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#2f2413]/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">🧩 {t("汇总复习")} · {t("含 {n} 门子考试").replace("{n}", aggregateCount)}</div>
           )}
-          {subExams && subExams.length > 0 && (
+          {((subExams && subExams.length > 0) || (taskSubs && taskSubs.length > 0)) && (
             <div className="mt-2">
               <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试")}:</span>
               <div className="mt-1 flex flex-col gap-1">
-                {subExams.map((sx) => {
+                {(subExams || []).map((sx) => {
                   const on = sx.id === exam.id;
                   const direct = sx.depth === 0; // 顶层考试的直接子考试;depth>0 是“子考试的子考试”
                   return (
@@ -207,6 +207,16 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
                     </button>
                   );
                 })}
+                {/* 实践任务:做成“子考试样式”条目,带进度,点它进做题界面(不是真考试、没有自己的学习计划) */}
+                {(taskSubs || []).map((tk) => (
+                  <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} title={t("实践任务(点开做)")}
+                    className="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition bg-[#123a2a]/[0.06] text-[#1f5c40] ring-[#a9d6bf] hover:brightness-95">
+                    🛠 {tk.title}
+                    <span className={"ml-1 rounded-full px-1.5 py-0.5 text-[10px] " + (tk.complete ? "bg-emerald-100 text-emerald-700" : "bg-[#123a2a]/[0.1] text-[#1f5c40]")}>
+                      {tk.complete ? t("已完成") : (tk.total ? `${tk.done}/${tk.total}` : t("待做"))}
+                    </span>
+                  </a>
+                ))}
               </div>
             </div>
           )}

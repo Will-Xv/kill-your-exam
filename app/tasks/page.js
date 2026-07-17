@@ -1,6 +1,7 @@
 "use client";
 import { useT } from "@/components/I18n";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
 
 export default function TasksPage() {
@@ -17,6 +18,8 @@ export default function TasksPage() {
   const load = () => fetch("/api/tasks").then((r) => r.json()).then((d) => { setList(d.tasks || []); setJudge0(!!d.judge0); setPmode(!!d.practicalMode); }).catch(() => setList([]));
   useEffect(() => { load(); }, []);
   const openTask = (id) => { setOpenId(id); setTask(null); fetch("/api/tasks/detail?id=" + id).then((r) => r.json()).then((d) => { setTask(d.task); setJudge0(!!d.judge0); }).catch(() => {}); };
+  const sp = useSearchParams();
+  useEffect(() => { const tid = sp.get("task"); if (tid) openTask(Number(tid)); }, []); // 首页“子考试样式”的实践任务条目点进来,直接打开这条任务
 
   async function del(id, e) {
     e.stopPropagation();
