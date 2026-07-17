@@ -124,8 +124,8 @@ export default function Nav() {
         <div ref={navRef} data-snap style={navStyle} className={innerCls}>
           {navItems.map((it) => (
             <Link key={it.href} href={it.href}
-              className={`${itemBase} ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
-              <span className="text-lg md:text-base">{it.icon}</span><span>{t(it.label)}</span>
+              className={`${itemBase} min-w-0 ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
+              <span className="text-lg md:text-base shrink-0">{it.icon}</span><span className="block max-w-full truncate text-center md:max-w-[140px] md:text-left">{t(it.label)}</span>
             </Link>
           ))}
           <button onClick={() => setOpen(!open)}
