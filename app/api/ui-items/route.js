@@ -1,4 +1,4 @@
-import db, { getActiveExam } from "@/lib/db";
+import db, { getActiveExam, familyScope } from "@/lib/db";
 import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
 import { getExamPlacement, setExamPlacement } from "@/lib/uiPlacement";
 import { getCustomItems } from "@/lib/uiRegistry";
@@ -10,7 +10,27 @@ export async function GET() {
   let placement = null, examPlacement = null, customItems = [], canPublish = false;
   try { customItems = getCustomItems(); } catch {}
   try { const row = db.prepare("SELECT value FROM settings WHERE key='ui_item_placement'").get(); if (row && row.value) placement = JSON.parse(row.value); } catch {}
-  try { const u = await getSessionUser(); if (u) { canPublish = !!u.is_developer; const ex = getActiveExam(u.id); if (ex) examPlacement = getExamPlacement(ex.id); } } catch {}
+  try {
+    const u = await getSessionUser();
+    if (u) {
+      canPublish = !!u.is_developer;
+      const ex = getActiveExam(u.id);
+      if (ex) {
+        examPlacement = getExamPlacement(ex.id);
+        // 隔离跨考试污染:自定义考核(feature_id=xform<模式id>)只保留【属于当前考试家族】的——
+        // 否则别的考试建的庖丁/惠子/无用之树/Coding-First 会冒进每门考试的栏目分配。非 xform 的通用自定义功能不按考试隔离。
+        try {
+          const fam = new Set(familyScope(ex.id).map(Number));
+          customItems = customItems.filter((it) => {
+            const m = /^xform(\d+)$/.exec(String(it.id || ""));
+            if (!m) return true;
+            const row = db.prepare("SELECT exam_id FROM custom_modes WHERE id=?").get(Number(m[1]));
+            return row ? fam.has(Number(row.exam_id)) : false;
+          });
+        } catch {}
+      }
+    }
+  } catch {}
   return Response.json({ placement, examPlacement, customItems, canPublish });
 }
 
