@@ -30,6 +30,8 @@ function StudyInner() {
   const sp = useSearchParams();
   const kpParam = sp.get("kp");
   const modeParam = sp.get("mode");
+  const syncUrl = (params) => { try { const u = new URL(window.location.href); u.search = ""; for (const [k, v] of Object.entries(params || {})) if (v != null) u.searchParams.set(k, String(v)); window.history.replaceState(null, "", u.pathname + u.search); } catch {} };
+  const enterExplore = (kp) => { setExploreKp(kp); syncUrl({ kp: kp.id, mode: "explore" }); };
   useEffect(() => {
     fetch("/api/kp").then((r) => r.json()).then((d) => {
       setTree(d.tree); setGenerating(!!d.generating);
@@ -40,10 +42,10 @@ function StudyInner() {
         for (const ch of d.tree) {
           const hit = ch.points.find((p) => p.id === Number(kpParam));
           // URL 的 kp 正是上次在探索的那个知识点(或显式 mode=explore)→ 恢复【探索】,而不是打开讲解
-          if (hit) { if (modeParam === "explore" || (savedExplore && Number(savedExplore.kpId) === Number(kpParam))) setExploreKp(hit); else open(hit); break; }
+          if (hit) { if (modeParam === "explore" || (savedExplore && Number(savedExplore.kpId) === Number(kpParam))) enterExplore(hit); else open(hit); break; }
         }
       } else if (savedExplore && savedExplore.kpId) {
-        for (const ch of d.tree) { const hit = ch.points.find((p) => p.id === Number(savedExplore.kpId)); if (hit) { setExploreKp(hit); break; } }
+        for (const ch of d.tree) { const hit = ch.points.find((p) => p.id === Number(savedExplore.kpId)); if (hit) { enterExplore(hit); break; } }
       }
     });
     fetch("/api/mastery").then((r) => r.json()).then((d) => {
@@ -54,7 +56,7 @@ function StudyInner() {
   }, []);
 
   async function open(kp, refresh = false) {
-    setBusy(true); setCurrent({ kp, explanation: null });
+    setBusy(true); setCurrent({ kp, explanation: null }); syncUrl({ kp: kp.id });
     try {
       const d = await aiFetch("/api/kp/explain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kp.id, refresh }) });
       setCurrent({ kp, explanation: d.explanation });
@@ -67,14 +69,14 @@ function StudyInner() {
   if (!tree.length) return <p className="mt-16 text-center text-stone-400">{t("还没有知识点树,请先完成")}<a href="/onboarding" className="underline">{t("考试设置")}</a>。</p>;
 
   if (exploreKp) {
-    return <ExploreSession kp={exploreKp} onBack={() => setExploreKp(null)} />;
+    return <ExploreSession kp={exploreKp} onBack={() => { setExploreKp(null); syncUrl({}); }} />;
   }
 
   if (current) {
     const e = current.explanation;
     return (
       <div className="space-y-3 md:mt-14">
-        <button className="text-sm text-stone-500" onClick={() => setCurrent(null)}>{t("← 返回知识点列表")}</button>
+        <button className="text-sm text-stone-500" onClick={() => { setCurrent(null); syncUrl({}); }}>{t("← 返回知识点列表")}</button>
         <div className="card">
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <h1 className="text-lg font-bold"><MD inline>{current.kp.title}</MD></h1>
@@ -87,7 +89,7 @@ function StudyInner() {
         {e && (
           <div className="flex gap-2">
             <a className="btn flex-1" href={`/practice?kp=${current.kp.id}&fresh=1`}>{t("✍️ 练几道题检验一下")}</a>
-            <button className="btn-ghost" onClick={() => setExploreKp(current.kp)}>{t("🔍 自由探索")}</button>
+            <button className="btn-ghost" onClick={() => enterExplore(current.kp)}>{t("🔍 自由探索")}</button>
             <button className="btn-ghost" onClick={() => open(current.kp, true)} disabled={busy}>{t("重新讲解")}</button>
           </div>
         )}

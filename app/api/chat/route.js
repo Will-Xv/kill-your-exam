@@ -8,13 +8,14 @@ import { saveChatFile } from "@/lib/files";
 import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
+const RECENT = 16; // AI 保留的【原文】轮数——显示也用它,让"看到的"= "AI 记得的原文"(更早的只在摘要里)
 
 export async function GET() {
   const { user, exam } = await requireUser();
     if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   const _chat = -user.id; // 【统一聊天】一个用户所有考试共用同一条聊天记录
-  const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT 60").all(_chat).reverse();
+  const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT ?").all(_chat, RECENT).reverse();
   return Response.json({ messages });
 }
 
@@ -28,7 +29,6 @@ export async function POST(req) {
     db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(_cid, "user", message + (attachments?.length ? " 📎" : ""));
 
     // 自动压缩上下文:保留最近 RECENT 轮原文,更早的对话滚动压缩成摘要(节省 token、不丢关键信息)
-    const RECENT = 16;
     const rows = db.prepare("SELECT id, role, content FROM chat_messages WHERE exam_id=? AND role IN ('user','model') ORDER BY id").all(_cid);
     let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(_cid) || { summary: "", last_id: 0 };
     const recent = rows.slice(-RECENT);

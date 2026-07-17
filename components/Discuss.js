@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -14,6 +14,16 @@ export default function Discuss({ questionId, attemptId, userAnswer, onApplied }
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [gmode, setGmode] = useState("discuss"); // discuss | socratic
+  const historyRef = useRef([]); useEffect(() => { historyRef.current = history; }, [history]);
+  const recordedRef = useRef(false);
+  // 任何方式离开(切走/换题/关页)都把这段讨论沉淀进掌握度——用 sendBeacon,可靠且不阻塞导航;只记一次。
+  useEffect(() => () => {
+    if (recordedRef.current) return;
+    const h = historyRef.current || [];
+    if (h.length < 2) return;
+    recordedRef.current = true;
+    try { navigator.sendBeacon("/api/questions/discuss/finalize", new Blob([JSON.stringify({ questionId, attemptId, history: h })], { type: "application/json" })); } catch {}
+  }, []); // eslint-disable-line
   async function askSocraticOpening() {
     setBusy(true);
     try {
@@ -55,6 +65,7 @@ export default function Discuss({ questionId, attemptId, userAnswer, onApplied }
         if (mn) parts.push(mn);
         setNote(parts.join(" · "));
         if (d.applied?.revised) { try { onApplied && onApplied(d.applied); } catch {} }
+        recordedRef.current = true;
       } catch {}
       setBusy(false);
     }
