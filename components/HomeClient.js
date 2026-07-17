@@ -210,13 +210,20 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             ].sort((a, b) => (a._d && b._d) ? (a._d < b._d ? -1 : a._d > b._d ? 1 : 0) : (a._d ? -1 : b._d ? 1 : 0));
             return (
             <div className="mt-2">
-              <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试/任务")}:</span>
+              <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试/作业")}:</span>
               <div className="mt-1 flex flex-col gap-1">
                 {mixed.map((it) => {
                   if (it._t === "exam") {
                     const sx = it.sx;
                     const on = sx.id === exam.id;
                     const direct = sx.depth === 0;
+                    const gening = sx.setup_state === "generating" || sx.setup_state === "draft";
+                    if (gening) return (
+                      <span key={"ex" + sx.id} style={{ marginLeft: sx.depth * 18 }} title={t("正在后台生成内容,可能要几分钟;好了会自动就绪,现在还切不进去。")}
+                        className="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-[#3d2b10]/[0.04] text-[#9a7a4a] ring-1 ring-[#e4d6ac] cursor-default animate-pulse">
+                        {!direct && <span className="opacity-50">└</span>}⏳ {sx.name} · {t("生成中…")}
+                      </span>
+                    );
                     return (
                       <button key={"ex" + sx.id} onClick={() => switchExam(sx.id)} title={on ? t("当前考试") : (direct ? t("切换到这个子考试") : t("切换到这个下级子考试"))}
                         style={{ marginLeft: sx.depth * 18 }}
