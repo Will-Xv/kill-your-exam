@@ -18,7 +18,7 @@ const ChatMsg = memo(function ChatMsg({ role, content }) {
   );
 });
 
-export default function KillerChat() {
+export default function KillerChat({ embedded = false }) {
   const t = useT();
   const descLabel = (d) => { if (d && typeof d === "object" && d.t) { let str = t(d.t); const p = d.p || {}; return str.replace(/\{(\w+)\}/g, (_, k) => (p[k] != null ? String(p[k]) : "")); } return t(d || ""); };
   const aiFetch = useAiFetch();
@@ -127,7 +127,7 @@ export default function KillerChat() {
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-black text-[#2f2413]">{t("问问杀手")}</h1>
+        {!embedded && <h1 className="text-2xl font-black text-[#2f2413]">{t("问问杀手")}</h1>}
         {messages.length > 0 && me?.isDeveloper && <button className={"btn-ghost shrink-0 text-xs " + (confirmClear ? "bg-rose-500 text-white" : "text-rose-500")} onClick={clearChat}>🗑️ {confirmClear ? t("确认清空?") : t("清空对话")}</button>}
       </div>
       <div className="nice-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-3 pb-3 min-w-0">

@@ -14,7 +14,7 @@ export default function KillerOverlay() {
         <div className="text-lg font-black text-[#2f2413]">{t("问问杀手")}</div>
         <button aria-label="close" className="grid h-9 w-9 place-items-center rounded-full bg-black/10 text-lg text-[#2f2413]" onClick={closeKiller}>✕</button>
       </div>
-      <div className="min-h-0 flex-1 px-3 pb-3 pt-1"><KillerChat /></div>
+      <div className="min-h-0 flex-1 px-3 pb-3 pt-1"><KillerChat embedded /></div>
     </div>
   );
 }
