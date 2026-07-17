@@ -46,7 +46,7 @@
 
 ## 六、学习 / 练习（`app/practice` · `app/api/questions/*`）
 - 按薄弱点出题（`lib/generators.js`：真题/网上题/AI 生成，来源标注；`gen_lessons` 出题经验）；即时批改。简答 AI 打分+点评（`answer` 路由，`crossKp` 跨点信号）。
-- **追问/争论** `questions/discuss`(+`finalize`)：只在你确有道理时改分；讨论中的理解/误区沉淀进掌握度。
+- **追问/争论** `questions/discuss`(+`finalize`)：只在你确有道理时改分；讨论中的理解/误区沉淀进掌握度。**任何方式离开都记（2026-07）**：切走/换题/关页用 sendBeacon 把这段讨论沉淀进掌握度（Discuss 不跨刷新保存，卸载记录安全）。
 - **手写作答**（触控/手写板/鼠标，橡皮擦）或拍照上传，OCR 批改；每题**草稿纸**（AI 看不到，除非点「📝发草稿纸」）。**"不会做"**按钮（记 0 分不惩罚性拉低）。
 - **作答标记** `lib/attemptTags.js`：careless/guessed/slow（校准掌握度）+ 任意自定义标签（labels，±0.4 影响掌握度矩阵）。"题目有问题"反馈 `questions/report/flag`（AI 分析错因、确有问题才删题改进）。
 - **难度档** `lib/difficultyPref.js`（1易~3难，每考试）。
@@ -95,6 +95,9 @@
 - **Judge0**：`lib/judge0.js` 按地址自动选鉴权（rapidapi→X-RapidAPI-Key；否则同时带 Authorization Bearer + X-Auth-Token）；**创建提交+轮询**（兼容禁用 wait 的托管实例）；`expected` 精确匹配（status 3=Accepted）。设置里 `judge0_url/judge0_key`（管理员填），「测试 Judge0」按钮真跑 `print(6*7)` 验证。
 - **用例申诉→AI 复核（G3b）** `appealTest`：独立核算 expected 对错，判无效则不计入（`task_test_appeals`）。删除任务；`run`(只运行)/`submit`(判分+存)/`detail`。
 - **回流掌握度（3）**：里程碑通过=understanding、未过=gap（任务自动匹配知识点）。
+- **子考试样式呈现（2026-07）**：实践任务在首页「子考试/任务」栏里以子考试样式条目列出（🛠+进度 done/total/已完成、带 ⏳截止），**与真子考试混在一起按截止日期升序排**（子考试用 `exam_date`、任务用 `due_date`，无日期排最后）；点条目 `/tasks?task=id` 直达。今日任务只要有未完成任务即显示其进度（不再限实践模式；横幅直达）。`lib/practical.listTaskSubs` 供 homeData。**刻意不建真 `exams` 行**（不进 planner/模拟/资料/竞技场，因此无自己的学习计划——Will 的设计）；旧任务自动即此形态。
+- **一次多道（多道一起 · 2026-07）**：`assign_practical_task` 支持 `topics` 数组（JSON 文本，上限6）→ 一个工具调用建多道、**只弹一次确认**（并行生成）；appGuide 要求"配方要 N 道就用 topics 一次布置，绝不一道道分开调用"——否则写确认框会一个接一个弹（此前"确认反复弹"的根因）。
+- **数学渲染（2026-07）**：任务简介/里程碑标题与描述改走 `MD`（含 KaTeX），`$...$` 正常渲染（此前是纯 `<p>` 文本、不渲染）。
 - **复习自动布置（1）**：`/tasks` 开「实践模式」→ 首页今日任务带出下一个未完成里程碑；无进行中任务后台自动生成（30 分钟限流，`maybeAutoAssign`）；开启时自动把 tasks 栏目放进这门考试首页。
 
 ## 十六、两层界面定制（`lib/uilab/*` · `lib/uiPlacement.js` · `app/api/ui-items`）
@@ -105,7 +108,7 @@
 ## 十七、杀手 / Agent（`lib/chatAgent.js` · `app/chat` · `app/api/chat/*`）
 - 私人 AI 助手，用工具运筹整套学习闭环。**工具**（functionDeclarations，约 50 个）：读写文档、RAG、联网搜索(+ingest)、出题/建树/改蓝图、发文件、UI 定制、学习模式、跨考试规划、记忆、回档…… + **砖头**（已发布的对全体开放）。
 - **系统认知** `lib/appGuide.js`（`APP_GUIDE/APP_CAPABILITIES` 功能地图，杀手据此讲解/决策——**每加功能必更新**）。
-- **后台运行**（断连可续）`chat_runs`/`chat/run`/`chat/resume`，实时进程面板。**计划确认门**：复杂/破坏性请求先出可预览的有序计划，一键批准/修改再执行（`chat_pending`/`plan_json`）；简单请求跳过。危险写操作逐条征求同意（站内横幅或推送）。**对话摘要** `chat_summary`。**附件**走 Files API（`chat/file`）。
+- **后台运行**（断连可续）`chat_runs`/`chat/run`/`chat/resume`，实时进程面板。**计划确认门**：复杂/破坏性请求先出可预览的有序计划，一键批准/修改再执行（`chat_pending`/`plan_json`）；简单请求跳过。危险写操作逐条征求同意（站内横幅或推送）。**写确认防重复执行（2026-07）**：`chat/resume` 改为【先原子占坑再执行工具】——`UPDATE chat_runs SET status=running,token=NULL WHERE id=? AND status='pending'`，并发的第二个请求（确认点两下/横幅+页面各发一个/手机通知再触发）拿到 `changes=0` 直接返回，绝不重复执行；`execTool` 报错也标 `error`、不再永久卡 `pending`（否则横幅/确认会一直纠缠）。**对话摘要** `chat_summary`。**附件**走 Files API（`chat/file`）。
 - **砖头系统** `lib/bricks/*`（`registry`+`index`）：原子能力，`brick_flags` seed 为 published，`/api/bricks` 调用。目录见文末。
 
 ## 十八、可编程学习模式 + 自动触发器（`lib/learningModes.js` + `lib/triggers.js` · `learning_modes`）
@@ -201,7 +204,7 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 
 ## 更新日志 · 2026-07-14(workflow 编排能力 + 记忆注入 + 作用域必问)
 - **当日有序仪式(gap#1)**:今日任务 item.type 扩展为 `practice/debate/socratic/explore/kp/review/free`(带 kpId/n)。`customize_daily_plan` 砖头可产出【有序 steps】(主人说"先做N道问答→辩论M轮→苏格拉底→复习"),首页 HomeClient linkFor/labelFor 逐个渲染并直达(practice→`/practice?kp`、debate/socratic→`/arena?mode=…&kp`、explore→`/study?kp&mode=explore`);竞技场页读 `?mode=`(boss/trial/debate/socratic)自动开局。done 追踪按当天该 kp 的 attempts+insights。**自动今日任务(/api/daily 从 crossExamPlan)完全不变**,只有主人主动要仪式才出现新步骤。
-- **topic-first 自由探索(gap#2,真·新学法)**:`app/api/kp/explore`(轮,回复末隐藏 `@@DEPTH:shallow|medium|deep` 驱动深度条)+ `/finalize`(recordCrossKp 沉淀理解/误区)。围绕一个知识点让考生主动发问,AI 判断懂多深:浅→苏格拉底反问、深→挑战题。组件 `components/ExploreSession.js`;学习页 `?kp=X&mode=explore` 或讲解页「🔍 自由探索」进入;作为今日任务步骤 type=explore + Recipe 方法 `explore`。
+- **topic-first 自由探索(gap#2,真·新学法)**:`app/api/kp/explore`(轮,回复末隐藏 `@@DEPTH:shallow|medium|deep` 驱动深度条 + 隐藏 `@@KP[{id,kind}]` **逐轮**把 understanding/misconception 即时 `recordCrossKp` 并入掌握度——**和竞技场一致,无论怎么退出理解度都不丢,不再依赖退出时 finalize**;`/finalize` 仅保留给"结束探索并记录"按钮作显式汇总)。**刷新保留(2026-07)**:`/study` 用 `replaceState` 让 URL 始终反映当前视图(`?kp=X&mode=explore` / `?kp=X` / 清空),刷新确定性恢复,不再靠 localStorage 匹配猜(修"从讲解页进探索、URL 带旧 kp、刷新回退到讲解"的 bug)。围绕一个知识点让考生主动发问,AI 判断懂多深:浅→苏格拉底反问、深→挑战题。组件 `components/ExploreSession.js`;学习页 `?kp=X&mode=explore` 或讲解页「🔍 自由探索」进入;作为今日任务步骤 type=explore + Recipe 方法 `explore`。
 - **表演/口语类按维度驱动下一次(gap#4)**:`perform/grade` 让 AI 为每个 rubric 维度单独打 0~100 分(schema.dimensions),存 `attempts.dims_json`;PerformTask 结果页画每维度进度条。`lib/performDims.js`(`weakestPerformDims`/`weakDimHint`)聚合弱维度(<70);`generateQuestionsForKp` 表演类命题时注入 weakDimBlock → 下次命题+rubric 重点攻弱维度。
 - **学习者历史注入(所有学习/自定义功能)**:`lib/learnerContext.js` 的 `learnerKpContext(kpId)`(掌握度+最近做过的题对错+之前讨论/观察沉淀)、`learnerExamContext(examId)`(家族薄弱点+最近误区/理解)。已注入:topic-first 探索、苏格拉底与追问讨论(discuss route)、知识点讲解(kp/explain)、竞技场全部模式+自定义玩法(arena.js)。让 AI 因材施教、不从零开始。
 - **配方作用域必问**:`recipe_save` 加 `scope`(无默认→不传就走 needsClarification 让杀手用大白话问主人"只这门考试还是以后所有考试长期通用");`save_learning_mode` 与 systemPrompt/appGuide 都加"作用域拿不准先问、别默认"规则。含章节名的分阶段流程一般只适合本考试,不含章节、按薄弱/全部选的通用方法才适合 global。
