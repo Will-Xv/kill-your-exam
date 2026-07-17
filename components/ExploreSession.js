@@ -23,7 +23,6 @@ export default function ExploreSession({ kp, onBack }) {
   const historyRef = useRef([]); useEffect(() => { historyRef.current = history; }, [history]);
   const endedRef = useRef(false); useEffect(() => { endedRef.current = ended; }, [ended]);
   const recordedRef = useRef(false);   // 只记一次,防重复计入掌握度
-  const unloadingRef = useRef(false);  // 刷新/关页 → true(此时不记,靠 localStorage 续上)
   // 用 sendBeacon 把这段探索沉淀进掌握度(退出时可靠触发,不阻塞导航);已记过/已结束/内容太少则跳过。
   const recordBeacon = () => {
     if (recordedRef.current || endedRef.current) return;
@@ -31,8 +30,8 @@ export default function ExploreSession({ kp, onBack }) {
     if (h.length < 2) return;
     recordedRef.current = true;
     try { navigator.sendBeacon("/api/kp/explore/finalize", new Blob([JSON.stringify({ kpId: kp.id, history: h })], { type: "application/json" })); } catch {}
-    try { localStorage.removeItem("kye_explore"); } catch {}
   };
+  const clearSaved = () => { try { localStorage.removeItem("kye_explore"); } catch {} };
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [history, busy]);
 
   async function turn(hist) {
@@ -84,14 +83,14 @@ export default function ExploreSession({ kp, onBack }) {
       const seen = new Set(); const parts = [];
       for (const u of ups) { if (!u || !u.title || seen.has(u.kpId)) continue; seen.add(u.kpId); parts.push(`〈${u.title}〉${u.kind === "understanding" ? "↑" : "↓"}`); }
       setNote(parts.length ? t("已据此更新熟悉程度:") + parts.join("、") : t("这段探索已记录。"));
-      setEnded(true); recordedRef.current = true;
+      setEnded(true); recordedRef.current = true; clearSaved();
     } catch {}
     setBusy(false);
   }
 
   return (
     <div className="space-y-3 md:mt-14">
-      <button className="text-sm text-stone-500" onClick={() => { recordBeacon(); onBack(); }}>{t("← 返回知识点列表")}</button>
+      <button className="text-sm text-stone-500" onClick={() => { recordBeacon(); clearSaved(); onBack(); }}>{t("← 返回知识点列表")}</button>
       <div className="card">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <h1 className="text-lg font-bold">🔍 {t("自由探索")} · <MD inline>{kp.title}</MD></h1>
@@ -123,7 +122,7 @@ export default function ExploreSession({ kp, onBack }) {
         )}
         <div className="mt-2 flex gap-2">
           {!ended ? <button type="button" className="btn-ghost text-xs" onClick={finish} disabled={busy || history.length < 2}>{t("结束探索并记录")}</button> : null}
-          <button type="button" className="btn-ghost text-xs" onClick={() => { recordBeacon(); window.location.href = `/practice?kp=${kp.id}&fresh=1`; }}>{t("✍️ 练几道题检验一下")}</button>
+          <button type="button" className="btn-ghost text-xs" onClick={() => { recordBeacon(); clearSaved(); window.location.href = `/practice?kp=${kp.id}&fresh=1`; }}>{t("✍️ 练几道题检验一下")}</button>
         </div>
       </div>
     </div>

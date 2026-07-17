@@ -33,17 +33,17 @@ function StudyInner() {
   useEffect(() => {
     fetch("/api/kp").then((r) => r.json()).then((d) => {
       setTree(d.tree); setGenerating(!!d.generating);
+      // 刷新保留:读上次的自由探索存档
+      let savedExplore = null;
+      try { const raw = localStorage.getItem("kye_explore"); if (raw) savedExplore = JSON.parse(raw); } catch {}
       if (kpParam) {
         for (const ch of d.tree) {
           const hit = ch.points.find((p) => p.id === Number(kpParam));
-          if (hit) { if (modeParam === "explore") setExploreKp(hit); else open(hit); break; }
+          // URL 的 kp 正是上次在探索的那个知识点(或显式 mode=explore)→ 恢复【探索】,而不是打开讲解
+          if (hit) { if (modeParam === "explore" || (savedExplore && Number(savedExplore.kpId) === Number(kpParam))) setExploreKp(hit); else open(hit); break; }
         }
-      } else {
-        // 刷新保留:上次正在自由探索且该知识点属于本考试 → 重新打开
-        try {
-          const raw = localStorage.getItem("kye_explore");
-          if (raw) { const sv = JSON.parse(raw); if (sv && sv.kpId) { for (const ch of d.tree) { const hit = ch.points.find((p) => p.id === Number(sv.kpId)); if (hit) { setExploreKp(hit); break; } } } }
-        } catch {}
+      } else if (savedExplore && savedExplore.kpId) {
+        for (const ch of d.tree) { const hit = ch.points.find((p) => p.id === Number(savedExplore.kpId)); if (hit) { setExploreKp(hit); break; } }
       }
     });
     fetch("/api/mastery").then((r) => r.json()).then((d) => {
