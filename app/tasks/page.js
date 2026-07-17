@@ -152,16 +152,16 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   const draftKey = `kye_task:${task.id}:${idx}`;
   const hydrated = useRef(false);
   useEffect(() => {
-    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); if (Array.isArray(d.eviAtts)) setEviAtts(d.eviAtts); } } catch {}
+    try { const raw = localStorage.getItem(draftKey); if (raw) { const d = JSON.parse(raw); if (typeof d.code === "string" && d.code) setCode(d.code); if (typeof d.evi === "string" && d.evi) setEvi(d.evi); if (Array.isArray(d.eviAtts)) setEviAtts(d.eviAtts); if (d.runOut) setRunOut(d.runOut); } } catch {}
     hydrated.current = true;
   }, []); // eslint-disable-line
   useEffect(() => {
     if (!hydrated.current) return;
     try {
       const attsSize = eviAtts.reduce((a, x) => a + (x.data ? x.data.length : 0), 0);
-      localStorage.setItem(draftKey, JSON.stringify({ code, evi, eviAtts: attsSize < 2500000 ? eviAtts : [], ts: Date.now() }));
+      localStorage.setItem(draftKey, JSON.stringify({ code, evi, eviAtts: attsSize < 2500000 ? eviAtts : [], runOut, ts: Date.now() }));
     } catch {}
-  }, [code, evi, eviAtts]); // eslint-disable-line
+  }, [code, evi, eviAtts, runOut]); // eslint-disable-line
   async function appeal(ti) {
     setAppealing(ti);
     try {

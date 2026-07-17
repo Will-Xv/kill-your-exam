@@ -56,15 +56,16 @@ export default function ArenaPage() {
         if (typeof sv.meter === "number") setMeter(sv.meter);
         if (sv.done) setDone(sv.done);
         if (typeof sv.input === "string") setInput(sv.input);
+        if (sv.runOut) setRunOut(sv.runOut);
       }
     } catch {}
   }, []);
   useEffect(() => {
     try {
-      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs: msgs.map((m) => ({ role: m.role, content: m.content })), meter, done, input }));
+      if (launch && launch.format !== "video") localStorage.setItem("kye_arena", JSON.stringify({ launch, msgs: msgs.map((m) => ({ role: m.role, content: m.content })), meter, done, input, runOut }));
       else if (!launch) localStorage.removeItem("kye_arena");
     } catch {}
-  }, [launch, msgs, meter, done, input]);
+  }, [launch, msgs, meter, done, input, runOut]);
   const loadModes = () => fetch("/api/arena/modes").then((r) => r.json()).then((d) => {
     setCustom({ play: d.play || [], exam_form: d.exam_form || [] });
     try {
