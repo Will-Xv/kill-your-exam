@@ -3,6 +3,7 @@ import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate } from "@/lib/gemini";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { learnerKpContext } from "@/lib/learnerContext";
+import { recordCrossKp } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
 
 export const maxDuration = 120;
@@ -32,6 +33,7 @@ export async function POST(req) {
 - 以事实为最高标准,绝不为迎合他把错的说成对的;他跑题(问网站功能/别的考试/闲聊)就提醒他到「问问杀手」问。
 - 简洁,用${LANGN}回复。
 【每次回复最后另起一行,输出一个隐藏标记表示你判断的当前理解深度(考生不必在意):@@DEPTH:shallow 或 @@DEPTH:medium 或 @@DEPTH:deep】
+【再另起一行,输出本轮从考生【最新这一句】里看出的知识点掌握信号(考生看不到):@@KP [{"id":知识点id,"kind":"understanding"或"misconception"}]。真正答透/说清某点=understanding;暴露明确概念错误=misconception;开场、只是在提问、或看不出就给 @@KP []。id 优先本知识点(${kp.id}=${kp.title}),他若顺带清楚体现出对别的点的理解/误区也可带上;宁缺毋滥,别把"在提问"当成掌握。】
 
 【这位考生在本知识点上的历史(考生看不到你这段;用它来因材施教:别重复他已懂的、优先戳他之前的误区、别问他早答对过的东西)】
 ${learnerKpContext(kp.id) || "(暂无历史记录)"}
@@ -49,6 +51,15 @@ ${learnerKpContext(kp.id) || "(暂无历史记录)"}
     let depth = null;
     const m = reply.match(/@@DEPTH:\s*(shallow|medium|deep)/i);
     if (m) { depth = m[1].toLowerCase(); reply = reply.replace(/@@DEPTH:\s*(shallow|medium|deep)/i, "").trim(); }
+    // 逐轮记录:把本轮看出的 understanding/misconception 即时并入掌握度(和竞技场一致——无论怎么退出,已发生的判定都已落库)
+    const kt = reply.match(/@@KP\s*(\[[\s\S]*?\])/);
+    if (kt) {
+      let sig = []; try { sig = JSON.parse(kt[1]); } catch {}
+      reply = reply.replace(kt[0], "").trim();
+      const cross = (Array.isArray(sig) ? sig : []).filter((x) => x && (x.kind === "understanding" || x.kind === "misconception"))
+        .map((x) => ({ kpId: Number(x.id), kind: x.kind, insight: x.kind === "understanding" ? "自由探索中答透了这个点" : "自由探索中暴露出这个点的概念错误" }));
+      try { if (cross.length) recordCrossKp(exam.id, null, cross, null); } catch {}
+    }
     return Response.json({ reply, depth });
   } catch (e) { return aiErrorResponse(e); }
 }
