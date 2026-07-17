@@ -20,7 +20,7 @@ export default function UploadQuizPage() {
       const r = await aiFetch("/api/quiz-upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ attachments }) });
       if (r && r.questions && r.questions.length) {
         const ids = r.questions.map((q) => q.id).join(",");
-        window.location.href = `/practice?mode=quiz&ids=${ids}`;   // 交给练习页,全套体验
+        window.location.href = `/practice?mode=quiz&ids=${ids}${r.sessionId ? "&quiz=" + r.sessionId : ""}`;   // 交给练习页,全套体验;quiz=会话id 供"重新识别"
         return;
       }
       alert(t("没识别出题目,换个更清晰的文件再试。"));

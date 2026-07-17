@@ -40,6 +40,7 @@ function PracticeInner() {
   const mode = useSearchParams().get("mode");
   const qParam = useSearchParams().get("q");
   const idsParam = useSearchParams().get("ids");   // 上传做题:把识别出的题按 id 载进来
+  const quizSid = useSearchParams().get("quiz");   // 上传做题会话id(供"重新识别")
   const storeKey = `kye_practice:${mode || "free"}:${mode === "quiz" && idsParam ? "ids" + idsParam.replace(/[^0-9]/g, "-").slice(0, 60) : qParam ? "q" + qParam : (kpParam || "all")}`;
   const [questions, setQuestions] = useState([]);
   const [idx, setIdx] = useState(0);
@@ -53,6 +54,7 @@ function PracticeInner() {
   const [note, setNote] = useState("");
   const [pendingFinalize, setPendingFinalize] = useState(0); // 后台讨论改判未完成的数量,结算页据此先 load
   const [reportOpen, setReportOpen] = useState(false);
+  const [quizFixOpen, setQuizFixOpen] = useState(false);
   const [reportNote, setReportNote] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
@@ -240,6 +242,22 @@ function PracticeInner() {
     } catch {}
     setReportOpen(false); setReportNote(""); setReportBusy(false);
   }
+  // 上传做题:重新识别原来那份上传文件(复用会话里存的文件),识别完带新题重进
+  async function reRecognize() {
+    if (!quizSid || reportBusy) return;
+    setReportBusy(true);
+    try {
+      const r = await aiFetch("/api/quiz-upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reRecognize: Number(quizSid) }) });
+      if (r && r.questions && r.questions.length) {
+        try { localStorage.removeItem(storeKey); localStorage.removeItem(storeKey + ":drafts"); localStorage.removeItem(storeKey + ":hands"); } catch {}
+        const ids = r.questions.map((x) => x.id).join(",");
+        window.location.href = `/practice?mode=quiz&ids=${ids}&quiz=${quizSid}`;
+        return;
+      }
+      alert(t("重新识别没得到题目,可能文件已过期,请重新上传。"));
+    } catch (e) {}
+    setReportBusy(false);
+  }
   async function collectDiag() {
     try {
       const n = navigator; let mic = "unknown";
@@ -274,7 +292,7 @@ function PracticeInner() {
     ? <div className="mt-16 text-center text-slate-400 space-y-3"><p>{t("🎉 没有到期的错题,今天不用重练。")}</p><a className="btn" href="/practice">{t("去做新题")}</a></div>
     : <div className="mt-16 text-center text-slate-400 space-y-3">
         <p>{note ? note + " " : <>{t("暂时没有题目。先去")}<a className="underline" href="/onboarding">{t("设置考试")}</a>{t("或")}<a className="underline" href="/study">{t("学习页")}</a>。</>}</p>
-        <button type="button" className="btn" onClick={reroll} disabled={busy}>🔄 {busy ? t("出题中…") : t("换一批")}</button>
+        {mode !== "quiz" && <button type="button" className="btn" onClick={reroll} disabled={busy}>🔄 {busy ? t("出题中…") : t("换一批")}</button>}
       </div>;
 
   if (idx >= questions.length) {
@@ -337,11 +355,11 @@ function PracticeInner() {
       <div className="space-y-3 pb-28">
         <div className="flex items-center justify-between text-sm text-slate-500">
           <span>{idx + 1} / {questions.length} · {t("表演任务")}</span>
-          <span className="flex items-center gap-2"><button type="button" className="btn-ghost px-2 py-0.5 text-xs" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button><span className="badge-model">🤖 {t("AI出题")}</span></span>
+          {mode !== "quiz" && <span className="flex items-center gap-2"><button type="button" className="btn-ghost px-2 py-0.5 text-xs" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button><span className="badge-model">🤖 {t("AI出题")}</span></span>}
         </div>
         <PerformTask key={q.id} q={q} onNext={next} onRecorded={(blob) => { performBlobRef.current = blob; }} onGraded={(d) => { performGradeRef.current = d; }} />
         <div className="flex flex-wrap gap-2">
-          <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
+          <button className="btn-ghost text-xs" onClick={() => (mode === "quiz" ? setQuizFixOpen(true) : setReportOpen(true))}>⚠️ {t("题目有问题")}</button>
           <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
         </div>
         {bugModal}
@@ -368,8 +386,8 @@ function PracticeInner() {
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>{mode === "review" ? t("🔁 错题重练 · ") : ""}{idx + 1} / {questions.length} · {t(QTYPE[q.qtype])}</span>
         <span className="flex items-center gap-1.5">
-          <button type="button" className="btn-ghost px-2 py-0.5 text-xs mr-2" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button>
-          {q.is_real ? <span className="badge-material">📜 {t("真题")}</span> : q.origin === "online" ? <span className="badge-model">🤖 {t("原创仿真")}</span> : <span className="badge-model">🤖 {t("AI出题")}</span>}
+          {mode !== "quiz" && <button type="button" className="btn-ghost px-2 py-0.5 text-xs mr-2" onClick={reroll} title={t("清掉这批,重新出题")}>🔄 {t("换一批")}</button>}
+          {mode !== "quiz" && (q.is_real ? <span className="badge-material">📜 {t("真题")}</span> : q.origin === "online" ? <span className="badge-model">🤖 {t("原创仿真")}</span> : <span className="badge-model">🤖 {t("AI出题")}</span>)}
           <SourceBadge sourceType={q.source_type} refs={q.source_refs} />
         </span>
       </div>
@@ -501,7 +519,7 @@ function PracticeInner() {
           </>
         )}
         {result && <button className="btn-ghost text-xs" onClick={() => { setNoteOpen((v) => !v); }}>📝 {noteSaved ? t("已记入笔记本 · 再记") : t("记笔记")}</button>}
-        <button className="btn-ghost text-xs" onClick={() => setReportOpen(true)}>⚠️ {t("题目有问题")}</button>
+        <button className="btn-ghost text-xs" onClick={() => (mode === "quiz" ? setQuizFixOpen(true) : setReportOpen(true))}>⚠️ {t("题目有问题")}</button>
         <button className="btn-ghost text-xs" onClick={() => { setBugDone(false); setBugOpen(true); }}>🐞 {t("反馈bug")}</button>
       </div>
       {noteOpen && (
@@ -516,6 +534,19 @@ function PracticeInner() {
         </div>
       )}
 
+      {quizFixOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setQuizFixOpen(false)}>
+          <div className="card w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold">⚠️ {t("这道题识别得不对?")}</h3>
+            <p className="text-xs text-slate-500 mt-1">{t("这些题是从你上传的文件识别来的。如果识别/切题有问题,可以让系统重新识别原来那份文件,或换一份重新上传。")}</p>
+            <div className="mt-3 flex flex-col gap-2">
+              <button className="btn py-2" disabled={reportBusy || !quizSid} onClick={reRecognize}>{reportBusy ? t("重新识别中…") : t("重新识别上传的文件")}</button>
+              <button className="btn-ghost py-2" disabled={reportBusy} onClick={() => { window.location.href = "/upload-quiz"; }}>{t("重新上传文件")}</button>
+              <button className="btn-ghost py-2 text-sm text-slate-500" onClick={() => setQuizFixOpen(false)} disabled={reportBusy}>{t("取消")}</button>
+            </div>
+          </div>
+        </div>
+      )}
       {reportOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={() => !reportBusy && setReportOpen(false)}>
           <div className="card w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
