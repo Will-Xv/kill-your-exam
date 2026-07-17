@@ -91,7 +91,7 @@
 
 ## 十五之二、上传文件做题（`app/upload-quiz` · `app/api/quiz-upload`）
 - 独立入口「上传做题」(feature `quizupload`)。传一份带题目的文件(图片/PDF/文档)→`quiz-upload` 多模态(attachParts/File API)识别出**每道题**(题干/选项/qtype),**文件没给答案就让 AI 解出正确答案**(为了判分;区别于 bank_paste 只存真题不解题)→每道题 `embed`+`cosine` **语义就近绑一个叶子知识点**(匹配不到就绑最接近的)→入 `questions`(kp_id 设好、origin=upload、is_real=1)。
-- 前端逐道作答,直接调现成 `/api/questions/answer`(MCQ 精确匹配、简答 AI 判分),**掌握度靠 `attempts.kp_id` 自动记进对应知识点**。末尾显示答对数、去 /study 看掌握度。i18n 全语言。
+- **改走练习页(2026-07)**:`/upload-quiz` 只上传+识别,拿到题 id 后跳 `/practice?mode=quiz&ids=<csv>`,把上传的题载进【练习页】复用全套体验(独立无杀手、追问/争论、草稿纸、手写、刷新恢复)。新增 `app/api/questions/byids`(按 id 顺序返回题);练习页 `mode=quiz` 分支走 byids、关预取、storeKey 含 ids 使刷新保留。掌握度仍靠 `/api/questions/answer` 的 `attempts.kp_id` 自动记进对应知识点。数学渲染:抽题提示词严禁把整句正文包进 $...$(否则 KaTeX 整段当公式),只用行内 $ 包公式本身+正确 LaTeX。
 
 ## 十五、实践任务（编程/实验 · `lib/practical.js` + `lib/judge0.js` · `app/tasks` · `app/api/tasks/*`）
 - **仅编程/STEM 专属**（不在全局默认界面里）。`assignTask` 让 AI 把主题拆里程碑：`check=run`（代码，Judge0 跑测试用例）或 `check=evidence`（重型/非代码，交成果+证据 AI 审阅）。`practical_tasks`、`task_progress(UNIQUE)`。
