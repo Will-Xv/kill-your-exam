@@ -13,9 +13,8 @@ export async function GET() {
   const { user, exam } = await requireUser();
     if (user) setReqUser(user.id);
   if (!user) return unauthorized();
-  const _ids = exam ? familyScope(exam.id) : []; _ids.push(-user.id);
-  const _scope = scopeSql(_ids); // 始终并入“无考试建考试对话”,避免建好考试后创建过程的对话消失
-  const messages = db.prepare(`SELECT * FROM chat_messages WHERE exam_id IN ${_scope} ORDER BY id DESC LIMIT 60`).all().reverse();
+  const _chat = -user.id; // 【统一聊天】一个用户所有考试共用同一条聊天记录
+  const messages = db.prepare("SELECT * FROM chat_messages WHERE exam_id=? ORDER BY id DESC LIMIT 60").all(_chat).reverse();
   return Response.json({ messages });
 }
 
@@ -24,18 +23,17 @@ export async function POST(req) {
     const { message, attachments } = await req.json();
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    const _cid = exam ? rootExamId(exam.id) : -user.id;
-    const _fids = exam ? familyScope(exam.id) : []; _fids.push(-user.id);
-    const _fscope = scopeSql(_fids);
+    const _cid = -user.id;                                   // 【统一聊天】聊天记录/摘要按用户合并
+    const _memKey = exam ? rootExamId(exam.id) : -user.id;   // 记忆仍【按考试】分开
     db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(_cid, "user", message + (attachments?.length ? " 📎" : ""));
 
     // 自动压缩上下文:保留最近 RECENT 轮原文,更早的对话滚动压缩成摘要(节省 token、不丢关键信息)
     const RECENT = 16;
-    const rows = db.prepare(`SELECT id, role, content FROM chat_messages WHERE exam_id IN ${_fscope} AND role IN ('user','model') ORDER BY id`).all();
+    const rows = db.prepare("SELECT id, role, content FROM chat_messages WHERE exam_id=? AND role IN ('user','model') ORDER BY id").all(_cid);
     let sum = db.prepare("SELECT summary, last_id FROM chat_summary WHERE exam_id=?").get(_cid) || { summary: "", last_id: 0 };
     const recent = rows.slice(-RECENT);
     // 后台抽取持久记忆事实(自我评估/偏好/目标/约束),不阻塞聊天
-    try { extractMemoryBg(user, _cid, recent.slice(-6).map((m) => (m.role === "user" ? "用户: " : "AI: ") + m.content).join("\n")); } catch {}
+    try { extractMemoryBg(user, _memKey, recent.slice(-6).map((m) => (m.role === "user" ? "用户: " : "AI: ") + m.content).join("\n")); } catch {}
     const recentMinId = recent.length ? recent[0].id : Infinity;
     const toSummarize = rows.filter((m) => m.id > (sum.last_id || 0) && m.id < recentMinId);
     // 摘要压缩改到【后台】做,不阻塞发送(用现有摘要 + 最近消息作上下文足够;新摘要留给下一次用)。
@@ -85,10 +83,9 @@ export async function DELETE() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!user.is_developer) return forbidden(); // 硬门控:只有开发者账号能清空对话,普通用户(含让杀手绕道)一律拒绝
-  const scope = scopeSql([...(exam ? familyScope(exam.id) : []), -user.id]); // 连同「无考试」哨兵对话一起清,和 GET 的范围一致
-  try { db.prepare(`DELETE FROM chat_messages WHERE exam_id IN ${scope}`).run(); } catch {}
-  try { db.prepare(`DELETE FROM chat_summary WHERE exam_id IN ${scope}`).run(); } catch {}
-  try { db.prepare(`DELETE FROM chat_runs WHERE exam_id IN ${scope}`).run(); } catch {}
-  try { db.prepare(`DELETE FROM chat_files WHERE exam_id IN ${scope}`).run(); } catch {}
+  const _chat = -user.id; // 统一聊天容器
+  try { db.prepare("DELETE FROM chat_messages WHERE exam_id=?").run(_chat); } catch {}
+  try { db.prepare("DELETE FROM chat_summary WHERE exam_id=?").run(_chat); } catch {}
+  try { db.prepare("DELETE FROM chat_runs WHERE exam_id=?").run(_chat); } catch {}
   return Response.json({ ok: true });
 }
