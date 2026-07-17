@@ -31,7 +31,29 @@ export default function ExploreSession({ kp, onBack }) {
     } catch {}
     setBusy(false);
   }
-  useEffect(() => { turn([]); /* 开场 */ }, []); // eslint-disable-line
+  // 刷新保留:挂载时若本地存了【这个知识点】的探索进度就恢复,否则正常开场
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("kye_explore");
+      if (raw) {
+        const sv = JSON.parse(raw);
+        if (sv && Number(sv.kpId) === Number(kp.id) && Array.isArray(sv.history) && sv.history.length) {
+          setHistory(sv.history);
+          if (sv.depth) setDepth(sv.depth);
+          if (sv.ended) setEnded(true);
+          if (sv.note) setNote(sv.note);
+          return; // 已恢复,不再重新开场
+        }
+      }
+    } catch {}
+    turn([]); // 开场
+  }, []); // eslint-disable-line
+  // 进度写入本地(刷新可恢复)
+  useEffect(() => {
+    try {
+      if (history.length) localStorage.setItem("kye_explore", JSON.stringify({ kpId: kp.id, history, depth, ended, note }));
+    } catch {}
+  }, [history, depth, ended, note]); // eslint-disable-line
 
   async function send() {
     const msg = input.trim();
@@ -56,7 +78,7 @@ export default function ExploreSession({ kp, onBack }) {
 
   return (
     <div className="space-y-3 md:mt-14">
-      <button className="text-sm text-stone-500" onClick={onBack}>{t("← 返回知识点列表")}</button>
+      <button className="text-sm text-stone-500" onClick={() => { try { localStorage.removeItem("kye_explore"); } catch {} onBack(); }}>{t("← 返回知识点列表")}</button>
       <div className="card">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <h1 className="text-lg font-bold">🔍 {t("自由探索")} · <MD inline>{kp.title}</MD></h1>
@@ -81,8 +103,8 @@ export default function ExploreSession({ kp, onBack }) {
         {note && <div className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{note}</div>}
         {!ended && (
           <div className="mt-3 flex gap-2">
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder={t("问点什么,或说说你的想法…")} className="flex-1 rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 placeholder:text-stone-400" disabled={busy} />
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} rows={1}
+              placeholder={t("问点什么,或说说你的想法…(Enter 发送,Shift+Enter 换行)")} className="flex-1 resize-none rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 placeholder:text-stone-400 min-h-[40px] max-h-40" disabled={busy} />
             <button onClick={send} disabled={busy || !input.trim()} className="btn px-4">{t("发送")}</button>
           </div>
         )}

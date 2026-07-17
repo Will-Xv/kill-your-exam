@@ -38,6 +38,12 @@ function StudyInner() {
           const hit = ch.points.find((p) => p.id === Number(kpParam));
           if (hit) { if (modeParam === "explore") setExploreKp(hit); else open(hit); break; }
         }
+      } else {
+        // 刷新保留:上次正在自由探索且该知识点属于本考试 → 重新打开
+        try {
+          const raw = localStorage.getItem("kye_explore");
+          if (raw) { const sv = JSON.parse(raw); if (sv && sv.kpId) { for (const ch of d.tree) { const hit = ch.points.find((p) => p.id === Number(sv.kpId)); if (hit) { setExploreKp(hit); break; } } } }
+        } catch {}
       }
     });
     fetch("/api/mastery").then((r) => r.json()).then((d) => {
