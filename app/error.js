@@ -8,11 +8,7 @@ export default function Error({ error, reset }) {
   const t = useT();
   useEffect(() => {
     try { console.error("[app error boundary]", (error && (error.stack || error.message)) || error); } catch {}
-    try {
-      const KEY = "kye_err_reload_at";
-      const last = Number(sessionStorage.getItem(KEY) || 0);
-      if (Date.now() - last > 20000) { sessionStorage.setItem(KEY, String(Date.now())); window.location.reload(); }
-    } catch {}
+    // (自动刷新已去掉:调试期让错误暴露出来,用户可手动点重试/刷新)
   }, [error]);
   return (
     <div className="mx-auto mt-20 max-w-md px-6 text-center">

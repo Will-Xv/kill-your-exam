@@ -101,7 +101,10 @@ export default function MD({ children, className = "", inline = false }) {
     const ext = h.startsWith("http");
     return <a href={h} className="font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800" {...(ext ? { target: "_blank", rel: "noreferrer" } : {})}>{children}</a>;
   };
-  const comps = inline ? { a: linkRenderer, p: ({ children }) => <>{children}</> } : { a: linkRenderer };
+  // 代码块/行内代码:长行【自动换行】,别横向溢出被裁掉(手机上尤其明显)
+  const preRenderer = ({ children, ...props }) => <pre {...props} className="my-2 overflow-x-auto rounded-lg bg-stone-100/80 p-2.5 text-[13px] leading-snug" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</pre>;
+  const codeRenderer = ({ children, className, ...props }) => <code {...props} className={className} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</code>;
+  const comps = inline ? { a: linkRenderer, code: codeRenderer, p: ({ children }) => <>{children}</> } : { a: linkRenderer, pre: preRenderer, code: codeRenderer };
   const Wrapper = inline ? "span" : "div";
   return (
     <Wrapper className={className}>
