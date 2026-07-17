@@ -65,6 +65,7 @@ export default function TasksPage() {
                   <span className="text-xs text-stone-400">{tk.done}/{tk.milestoneCount} {t("里程碑")}</span>
                 </div>
                 <p className="mt-0.5 text-xs text-stone-500 line-clamp-2">{tk.brief}</p>
+                {tk.dueDate && <p className="mt-0.5 text-xs font-medium text-amber-700">⏳ {t("截止")}: {tk.dueDate}</p>}
                 {tk.language && <span className="mt-1 inline-block rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-600">{tk.language}</span>}
               </button>
               <button onClick={(e) => del(tk.id, e)} title={t("删除")} className="shrink-0 text-xs text-stone-400 hover:text-rose-500">✕</button>
