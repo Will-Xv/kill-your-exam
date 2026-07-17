@@ -3,6 +3,7 @@ import { useT } from "@/components/I18n";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import MD from "@/components/MD";
 
 export default function TasksPage() {
   const t = useT();
@@ -67,7 +68,7 @@ export default function TasksPage() {
                   <span className="font-bold">{tk.title}</span>
                   <span className="text-xs text-stone-400">{tk.done}/{tk.milestoneCount} {t("里程碑")}</span>
                 </div>
-                <p className="mt-0.5 text-xs text-stone-500 line-clamp-2">{tk.brief}</p>
+                <div className="mt-0.5 text-xs text-stone-500 line-clamp-2"><MD inline>{tk.brief}</MD></div>
                 {tk.dueDate && <p className="mt-0.5 text-xs font-medium text-amber-700">⏳ {t("截止")}: {tk.dueDate}</p>}
                 {tk.language && <span className="mt-1 inline-block rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-600">{tk.language}</span>}
               </button>
@@ -88,7 +89,7 @@ function TaskDetail({ task, judge0, onBack, onGraded }) {
       <button onClick={onBack} className="text-sm text-stone-500">← {t("返回任务列表")}</button>
       <div className="card">
         <h1 className="text-xl font-black">{task.title}</h1>
-        <p className="mt-1 text-sm text-stone-600">{task.brief}</p>
+        <MD className="mt-1 text-sm text-stone-600 prose-zh">{task.brief}</MD>
       </div>
       {task.milestones.map((ms, i) => (
         <Milestone key={i} task={task} idx={i} ms={ms} judge0={judge0} prog={task.progress[i]} onGraded={onGraded} aiFetch={aiFetch} t={t} />
@@ -134,10 +135,10 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold">{idx + 1}. {ms.title} <span className="ml-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">{isRun ? t("代码·自动判") : t("证据·AI审阅")}</span></h2>
+        <h2 className="font-bold">{idx + 1}. <MD inline>{ms.title}</MD> <span className="ml-1 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">{isRun ? t("代码·自动判") : t("证据·AI审阅")}</span></h2>
         {statusBadge}
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-sm text-stone-600">{ms.desc}</p>
+      <MD className="mt-1 text-sm text-stone-600 prose-zh">{ms.desc}</MD>
       {isRun ? (
         <>
           <div className="mt-2 text-xs text-stone-400">{t("语言")}: {lang}{ms.tests?.length ? ` · ${ms.tests.length} ${t("个测试用例")}` : ""}</div>
