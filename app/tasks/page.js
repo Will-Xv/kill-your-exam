@@ -113,7 +113,9 @@ function TaskChat({ task }) {
   async function send() {
     const m = text.trim(); if (!m || busy) return;
     setMsgs((x) => [...x, { role: "user", content: m }]); setText(""); setBusy(true);
-    try { const r = await aiFetch("/api/tasks/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, message: m }) }); setMsgs((x) => [...x, { role: "assistant", content: r.reply || "…" }]); } catch {}
+    // 把【当前正在做的代码 + 最新运行结果】(各里程碑草稿,未提交也算)一并发给助教,让它看得到我的运行/测试结果。
+    const live = (task.milestones || []).map((_, i) => { try { const d = JSON.parse(localStorage.getItem(`kye_task:${task.id}:${i}`) || "null"); return d ? { idx: i, code: d.code, evi: d.evi, runOut: d.runOut } : null; } catch { return null; } }).filter(Boolean);
+    try { const r = await aiFetch("/api/tasks/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, message: m, live }) }); setMsgs((x) => [...x, { role: "assistant", content: r.reply || "…" }]); } catch {}
     setBusy(false);
   }
   return (
