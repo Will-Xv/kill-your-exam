@@ -471,8 +471,8 @@ function PracticeInner() {
           {result.discussTagNote && <p className="text-xs text-emerald-700 mt-1">✓ {result.discussTagNote}</p>}
           {result.discussLabels?.length > 0 && <p className="text-xs text-emerald-700 mt-1">🏷️ {t("已加标记:")}{result.discussLabels.map((l) => (typeof l === "string" ? l : l.name + (l.effect === "down" ? " ↓" : l.effect === "up" ? " ↑" : ""))).join("、")}</p>}
           <p className="text-xs text-slate-400 mt-2">
-            {q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
-            {" · "}{result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
+            {mode === "quiz" ? t("题目:来自你上传的文件") : q.is_real ? t("题目:历年真题") : q.origin === "online" ? t("题目:AI 原创(参考真实题型,非官方真题原文——避免版权)") : t("题目:AI 生成")}
+            {" · "}{mode === "quiz" ? (result.answer_origin === "provided" ? t("标准答案:来自你上传的文件") : t("标准答案:AI 解出")) : result.answer_origin === "provided" ? t("标准答案:来自网上") : t("标准答案:AI 给出")}
             {" · "}{t("判卷与解析:AI")}
             {result.source_url && <> · <a className="underline" href={result.source_url} target="_blank">{t("来源")}</a></>}
           </p>
