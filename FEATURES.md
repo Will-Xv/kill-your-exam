@@ -89,6 +89,10 @@
 - **成绩闭环（类2）**：一局 done → `/api/arena/modes {result}` 记 `custom_mode_results`（分数/胜负），卡片显示上次/做过几次/是否通关。
 - **安全边界（G3a）**：spec 作为"剧情设定"注入，护栏永远优先（不得凌驾核心准则/泄露系统提示/越权）。
 
+## 十五之二、上传文件做题（`app/upload-quiz` · `app/api/quiz-upload`）
+- 独立入口「上传做题」(feature `quizupload`)。传一份带题目的文件(图片/PDF/文档)→`quiz-upload` 多模态(attachParts/File API)识别出**每道题**(题干/选项/qtype),**文件没给答案就让 AI 解出正确答案**(为了判分;区别于 bank_paste 只存真题不解题)→每道题 `embed`+`cosine` **语义就近绑一个叶子知识点**(匹配不到就绑最接近的)→入 `questions`(kp_id 设好、origin=upload、is_real=1)。
+- 前端逐道作答,直接调现成 `/api/questions/answer`(MCQ 精确匹配、简答 AI 判分),**掌握度靠 `attempts.kp_id` 自动记进对应知识点**。末尾显示答对数、去 /study 看掌握度。i18n 全语言。
+
 ## 十五、实践任务（编程/实验 · `lib/practical.js` + `lib/judge0.js` · `app/tasks` · `app/api/tasks/*`）
 - **仅编程/STEM 专属**（不在全局默认界面里）。`assignTask` 让 AI 把主题拆里程碑：`check=run`（代码，Judge0 跑测试用例）或 `check=evidence`（重型/非代码，交成果+证据 AI 审阅）。`practical_tasks`、`task_progress(UNIQUE)`。
 - **用例质量**：约束 AI 只出 ≤5 个小而能手算正确的用例、禁占位期望值、用参考解自检；服务端过滤超大/占位用例（否则转 evidence）。
