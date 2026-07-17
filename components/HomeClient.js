@@ -151,7 +151,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     { href: "/notes", icon: "📓", title: t("笔记本"), desc: t("收藏的题+随手笔记"), grad: "from-sky-400 to-blue-500", tint: "hover:border-sky-300 hover:shadow-sky-500/15", ig: "from-sky-50 to-blue-50" },
     { href: "/performances", icon: "🎬", title: t("表演回放"), desc: t("回看录像+AI点评,可重做"), grad: "from-fuchsia-400 to-purple-500", tint: "hover:border-fuchsia-300 hover:shadow-fuchsia-500/15", ig: "from-fuchsia-50 to-purple-50" },
     { href: "/arena", icon: "🎮", title: t("竞技场"), desc: t("错题Boss战/庭审/辩论赛"), grad: "from-indigo-400 to-violet-500", tint: "hover:border-indigo-300 hover:shadow-indigo-500/15", ig: "from-indigo-50 to-violet-50" },
-    { href: "/tasks", icon: "🛠️", title: t("实践任务"), desc: t("编程/实验:动手做+判分"), grad: "from-teal-400 to-cyan-500", tint: "hover:border-teal-300 hover:shadow-teal-500/15", ig: "from-teal-50 to-cyan-50" },
+    { href: "/tasks", icon: "🛠️", title: t("实践作业"), desc: t("编程/实验:动手做+判分"), grad: "from-teal-400 to-cyan-500", tint: "hover:border-teal-300 hover:shadow-teal-500/15", ig: "from-teal-50 to-cyan-50" },
     { href: "/inbox", icon: "📬", title: t("收件箱"), desc: t("更新公告与信件"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },
     { href: "/profile", icon: "🧭", title: t("你的全部杀技"), desc: t("跨考试的你"), grad: "from-violet-400 to-purple-500", tint: "hover:border-violet-300 hover:shadow-violet-500/15", ig: "from-violet-50 to-purple-50" }
   ];
@@ -203,7 +203,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#2f2413]/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">🧩 {t("汇总复习")} · {t("含 {n} 门子考试").replace("{n}", aggregateCount)}</div>
           )}
           {((subExams && subExams.length > 0) || (taskSubs && taskSubs.length > 0)) && (() => {
-            // 子考试(用 exam_date)与实践任务(用 due)混在一起,按截止日期升序排(没日期的排最后)。
+            // 子考试(用 exam_date)与实践作业(用 due)混在一起,按截止日期升序排(没日期的排最后)。
             const mixed = [
               ...((subExams || []).map((sx) => ({ _t: "exam", _d: sx.exam_date || null, sx }))),
               ...((taskSubs || []).map((tk) => ({ _t: "task", _d: tk.due || null, tk }))),
@@ -234,7 +234,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
                   }
                   const tk = it.tk;
                   return (
-                    <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} title={t("实践任务(点开做)")}
+                    <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} title={t("实践作业(点开做)")}
                       className="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition bg-[#123a2a]/[0.06] text-[#1f5c40] ring-[#a9d6bf] hover:brightness-95">
                       🛠 {tk.title}{tk.due ? <span className="opacity-60 text-[10px]"> ⏳{tk.due.slice(5)}</span> : null}
                       <span className={"ml-1 rounded-full px-1.5 py-0.5 text-[10px] " + (tk.complete ? "bg-emerald-100 text-emerald-700" : "bg-[#123a2a]/[0.1] text-[#1f5c40]")}>
@@ -365,7 +365,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         )}
         {daily?.practical && (
           <Link href="/tasks" className="mt-2 block rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-800 ring-1 ring-teal-200 hover:brightness-95">
-            🛠️ {daily.practical.generating ? t("正在给你布置一个实践任务…") : <>{t("实践任务:")}<span className="font-semibold">{daily.practical.title}</span>{daily.practical.milestoneTitle ? " · " + daily.practical.milestoneTitle : ""}{daily.practical.total ? ` (${daily.practical.done}/${daily.practical.total})` : ""}</>}
+            🛠️ {daily.practical.generating ? t("正在给你布置一个实践作业…") : <>{t("实践作业:")}<span className="font-semibold">{daily.practical.title}</span>{daily.practical.milestoneTitle ? " · " + daily.practical.milestoneTitle : ""}{daily.practical.total ? ` (${daily.practical.done}/${daily.practical.total})` : ""}</>}
           </Link>
         )}
       </div>

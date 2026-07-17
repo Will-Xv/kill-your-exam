@@ -69,7 +69,7 @@
 - **可行性检查（类5）** `feasibility`：需时 vs 可用时，>1.2 报警 + 折中方案（快速测/直接练/延长/冲刺）。
 - **计划自评+失败预案（类15）** `lib/planReview.js`+`plan-review`：AI 审视计划哪里可能错、砍低收益、附失败预案；每日保底（daily fallback）。
 - **计划版本对比（类4）** `lib/planVersions.js`+`plan-compare`：①**保守/激进双版本**（共用同一错题本，`planVariants`）②**本周 vs 上周**快照对比（`plan_snapshots` 每周 ISO 周键 upsert，diff 薄弱/未学/待复习）。
-- **今日任务** `app/api/daily` · `daily_plans`：重练到期错题 + 薄弱知识点 + 自由练习；上传/删资料自动重排；跨考试其它考试的今日分配也带回首页；根因/资料解析横幅；开实践模式带出实践任务。
+- **今日任务** `app/api/daily` · `daily_plans`：重练到期错题 + 薄弱知识点 + 自由练习；上传/删资料自动重排；跨考试其它考试的今日分配也带回首页；根因/资料解析横幅；开实践模式带出实践作业。
 
 ## 十一、根因诊断（类11 · `lib/diagnose.js` · `app/api/diagnose`）
 - 找真正拖垮成绩的**根因知识点**、反复错误模式、是否逃避最难内容。累计使用时长满阈值（默认 2h，杀手可改，下限 1.5h）`bumpUsageAndMaybeDiagnose` 自动跑；也能立刻跑。标 `knowledge_points.root_cause`、首页横幅、写长期记忆。**模拟考交卷后自动跑**。**根因 KP 自动进计划**（A3）。砖头 `diagnose_root_cause/diagnose_config`。
@@ -94,13 +94,13 @@
 - **改走练习页(2026-07)**:`/upload-quiz` 只上传+识别,拿到题 id 后跳 `/practice?mode=quiz&ids=<csv>`,把上传的题载进【练习页】复用全套体验(独立无杀手、追问/争论、草稿纸、手写、刷新恢复)。新增 `app/api/questions/byids`(按 id 顺序返回题);练习页 `mode=quiz` 分支走 byids、关预取、storeKey 含 ids 使刷新保留。掌握度仍靠 `/api/questions/answer` 的 `attempts.kp_id` 自动记进对应知识点。数学渲染:抽题提示词严禁把整句正文包进 $...$(否则 KaTeX 整段当公式),只用行内 $ 包公式本身+正确 LaTeX。
 - **重新识别/重新上传 + 去出题标(2026-07)**:quiz 模式"题目有问题"→两选项(重新识别上传的文件 / 重新上传文件)。`quiz_sessions` 存上传文件 File API parts(约48h)+题id,URL 带 `quiz=<sid>`;`quiz-upload` 支持 `reRecognize`(复用 parts 重跑、删掉未作答的旧题)。quiz 模式隐藏「换一批」「AI出题/真题」徽章。
 
-## 十五、实践任务（编程/实验 · `lib/practical.js` + `lib/judge0.js` · `app/tasks` · `app/api/tasks/*`）
+## 十五、实践作业（编程/实验 · `lib/practical.js` + `lib/judge0.js` · `app/tasks` · `app/api/tasks/*`）
 - **仅编程/STEM 专属**（不在全局默认界面里）。`assignTask` 让 AI 把主题拆里程碑：`check=run`（代码，Judge0 跑测试用例）或 `check=evidence`（重型/非代码，交成果+证据 AI 审阅）。`practical_tasks`、`task_progress(UNIQUE)`。
 - **用例质量**：约束 AI 只出 ≤5 个小而能手算正确的用例、禁占位期望值、用参考解自检；服务端过滤超大/占位用例（否则转 evidence）。
 - **Judge0**：`lib/judge0.js` 按地址自动选鉴权（rapidapi→X-RapidAPI-Key；否则同时带 Authorization Bearer + X-Auth-Token）；**创建提交+轮询**（兼容禁用 wait 的托管实例）；`expected` 精确匹配（status 3=Accepted）。设置里 `judge0_url/judge0_key`（管理员填），「测试 Judge0」按钮真跑 `print(6*7)` 验证。
 - **用例申诉→AI 复核（G3b）** `appealTest`：独立核算 expected 对错，判无效则不计入（`task_test_appeals`）。删除任务；`run`(只运行)/`submit`(判分+存)/`detail`。
 - **回流掌握度（3）**：里程碑通过=understanding、未过=gap（任务自动匹配知识点）。
-- **子考试样式呈现（2026-07）**：实践任务在首页「子考试/任务」栏里以子考试样式条目列出（🛠+进度 done/total/已完成、带 ⏳截止），**与真子考试混在一起按截止日期升序排**（子考试用 `exam_date`、任务用 `due_date`，无日期排最后）；点条目 `/tasks?task=id` 直达。今日任务只要有未完成任务即显示其进度（不再限实践模式；横幅直达）。`lib/practical.listTaskSubs` 供 homeData。**刻意不建真 `exams` 行**（不进 planner/模拟/资料/竞技场，因此无自己的学习计划——Will 的设计）；旧任务自动即此形态。
+- **子考试样式呈现（2026-07）**：实践作业在首页「子考试/任务」栏里以子考试样式条目列出（🛠+进度 done/total/已完成、带 ⏳截止），**与真子考试混在一起按截止日期升序排**（子考试用 `exam_date`、任务用 `due_date`，无日期排最后）；点条目 `/tasks?task=id` 直达。今日任务只要有未完成任务即显示其进度（不再限实践模式；横幅直达）。`lib/practical.listTaskSubs` 供 homeData。**刻意不建真 `exams` 行**（不进 planner/模拟/资料/竞技场，因此无自己的学习计划——Will 的设计）；旧任务自动即此形态。
 - **一次多道（多道一起 · 2026-07）**：`assign_practical_task` 支持 `topics` 数组（JSON 文本，上限6）→ 一个工具调用建多道、**只弹一次确认**（并行生成）；appGuide 要求"配方要 N 道就用 topics 一次布置，绝不一道道分开调用"——否则写确认框会一个接一个弹（此前"确认反复弹"的根因）。
 - **数学渲染（2026-07）**：任务简介/里程碑标题与描述改走 `MD`（含 KaTeX），`$...$` 正常渲染（此前是纯 `<p>` 文本、不渲染）。
 - **复习自动布置（1）**：`/tasks` 开「实践模式」→ 首页今日任务带出下一个未完成里程碑；无进行中任务后台自动生成（30 分钟限流，`maybeAutoAssign`）；开启时自动把 tasks 栏目放进这门考试首页。
@@ -171,7 +171,7 @@
 ### 界面 `normalizePlacement`
 - 只把"注册表里有、布局里缺失"的项按 ref/默认桶位与**原有次序**补进来;**已存在(含用户主动隐藏)的项一律不动**;未知默认位置**跳过不硬塞**。不是重排。killer 只有 dock/float、绝不隐藏。exam-scope 布局对所有登录用户开放;发布全局默认仅 dev。
 
-### Judge0 / 实践任务
+### Judge0 / 实践作业
 - 鉴权:URL 含 rapidapi→X-RapidAPI-Key;否则**同时**带 `Authorization: Bearer` + `X-Auth-Token`。**创建提交(wait=false)+轮询 15×650ms**;`expected` 精确匹配 status3;**无 expected 时 WA(4) 也算 passed**(仅"跑通")。runTests 上限 12 例。用例生成有占位符/超大过滤(否则降级 evidence)。视频/exam_form 考核 **win=score≥80**;互动类用 AI 给的 done/win。实践模式开关**联动 tasks 栏目显隐**;自动布置 30min 限流、fire-and-forget。
 
 ### 其它易漏功能
@@ -229,7 +229,7 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **计时器**:elapsed 只在 <300s 作服务端基准(修 1008s 失真)。
 - **删除考试**:站内确认弹窗替换原生 confirm()。
 - **UI 按考试隔离 + 建考试智能整理栏目(2026-07)**:①`app/api/ui-items` GET 把自定义考核(`xform<模式id>`)按 `familyScope(activeExam)` 过滤——别的考试的庖丁/惠子/Coding-First 不再冒进本考试「栏目分配」(feature_registry/ui_custom_items 是全局的,靠 custom_modes.exam_id 归属判断)。②`lib/uiPlacement.autoAdjustExamUi`:建考试(runProvision)末尾按考试名+类型+档案 AI 判断 mock/prep/performances/tasks 4 个可选栏目是否相关,无关收 hidden、相关留可见(保守:明确 false 才收),per-exam 布局、可 undo。③自定义考核名靠 `generateModes` 的 langInstruction 生成时就用 UI 语言(不进翻译字典)。
-- **子考试完成→掌握度映射家族树(2026-07,Will 定)**:标记【真子考试】(有 `parent_exam_id`)完成时,`/api/exam/manage` complete 返回 `isSubExam`;前端弹二选一——【映射到家族知识树】或【放着不动】。选映射→ `action:map_mastery_to_family` → `lib/mastery.mapSubExamMasteryToFamily`:取子考试【自己】叶子知识点的档位(masteryMatrix 家族聚合后按 exam_id 过滤),`embed`+`cosine` 语义匹配到家族里【其它考试】(母+兄弟)的对应叶子(≥0.6),已掌握/一般→understanding、薄弱→gap 写进那些点的 `insights`(`recordCrossKp`,家族校验)。**只认真考试;实践任务(伪子考试、非 exams 行)不走这套**——它的掌握度另有逻辑:`assignTask` 用 `matchKp`(子串→embedding≥0.55)把任务绑一个叶子 kp,`gradeMilestone` 里程碑过=understanding/未过=gap 写该 kp。
+- **子考试完成→掌握度映射家族树(2026-07,Will 定)**:标记【真子考试】(有 `parent_exam_id`)完成时,`/api/exam/manage` complete 返回 `isSubExam`;前端弹二选一——【映射到家族知识树】或【放着不动】。选映射→ `action:map_mastery_to_family` → `lib/mastery.mapSubExamMasteryToFamily`:取子考试【自己】叶子知识点的档位(masteryMatrix 家族聚合后按 exam_id 过滤),`embed`+`cosine` 语义匹配到家族里【其它考试】(母+兄弟)的对应叶子(≥0.6),已掌握/一般→understanding、薄弱→gap 写进那些点的 `insights`(`recordCrossKp`,家族校验)。**只认真考试;实践作业(伪子考试、非 exams 行)不走这套**——它的掌握度另有逻辑:`assignTask` 用 `matchKp`(子串→embedding≥0.55)把任务绑一个叶子 kp,`gradeMilestone` 里程碑过=understanding/未过=gap 写该 kp。
 - **今日任务措辞**:有方法时显示方法名(Custom challenge/Practice…)而非笼统 Study。
 - **P1-3 本地化**:砖头标题48 + 写操作确认模板22(confirmDesc {t,p} 模板+占位)+ 步骤条静态提示 + onboarding 考试类型 + 方法标签,全 8 语言。
 - **P2**:错题本完整选项+高亮;辩论轮数 ×N;Materials「其他文件或说明」保存反馈;首页 kye:data-changed 自动刷新今日任务。
@@ -238,7 +238,7 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 
 ## 更新日志 · 2026-07-16(四)concierge 硬伤批 + 日期穿越(按用户)+ 定时提醒 + 截断根因
 - **自定义考核卡截断根因**:`lib/customModes.js` 注册功能卡时 label/desc 被 slice(0,20)/(0,40) 硬截。放宽到 40/80 + `create_custom_mode` schema 约束 name≤40/winDesc≤80(源头控长)+ db.js 自愈迁移 `_heal_xform_labels_v1` 回填历史卡片。`components/FitText.js` 去 `-webkit-box`/line-clamp(致 scrollHeight 测不出溢出、字号自适应从不触发)改 maxHeight+overflow。
-- **今日任务完成判定**:每类【当天目标题数】(默认 6,配方 method.count/步骤覆盖),做够才完成、显示(已做/目标);辩论/苏格拉底/探索/自定义考核=活动式做过即完成、少/不出题;`set_practical_mode` 砖头=任务优先模式(编程/vibe:主做实践任务、target 降 2)。/api/daily done 逻辑 method-aware。
+- **今日任务完成判定**:每类【当天目标题数】(默认 6,配方 method.count/步骤覆盖),做够才完成、显示(已做/目标);辩论/苏格拉底/探索/自定义考核=活动式做过即完成、少/不出题;`set_practical_mode` 砖头=任务优先模式(编程/vibe:主做实践作业、target 降 2)。/api/daily done 逻辑 method-aware。
 - **家族砖头发布**:`exam_merge`/`exam_split`/`exam_integrity_check` 加入 `_bn` + 一次性强制发布迁移,对普通用户开放。
 - **开发者日期穿越(按用户隔离)**:`lib/devtime.js`(`todayStr`/`nowMs`/`nowStamp`)读 `dev_day_offset:<uid>`;`lib/reqctx.js` AsyncLocalStorage 在 `getSessionUser` 绑定请求 userId → 偏移**只作用于当前账号,绝不全服务器**。今日任务日期键、复习到期(mastery/review 路由 `date('now')`→绑 todayStr)、倒计时(planner nowMs)、做题/洞察写入(nowStamp)全跟随。`/api/dev/date`(仅开发者,±370天)+ `/dev` "🕰️ 日期穿越"卡(全语言)。
 - **H3 定时提醒**:`reminders` 表 + `lib/reminders.js`(addReminder/deliverDue/startReminderLoop)+ 砖头 `set_reminder`/`list_reminders`(已发布)。到期投递=收件箱 + web-push;/api/daily 每次 deliverDue + 后台每分钟轮询。诚实边界:推送需先开通知,否则进收件箱。

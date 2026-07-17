@@ -90,12 +90,12 @@ export async function GET() {
     }
   } catch {}
 
-  // 复习自动布置实践任务(编程/实践类):开了实践模式就带出下一个未完成里程碑;没有进行中任务时后台自动生成一个。
+  // 复习自动布置实践作业(编程/实践类):开了实践模式就带出下一个未完成里程碑;没有进行中任务时后台自动生成一个。
   let practical = null;
   try {
     const pmode = getPracticalMode(exam.id);
     const gen = pmode ? maybeAutoAssign(user, exam) : false;   // 自动布置只在实践模式下
-    const nx = nextIncomplete(exam);                            // 进度显示:只要有未完成的实践任务就带出来(Will:今日任务要显示实践任务进度)
+    const nx = nextIncomplete(exam);                            // 进度显示:只要有未完成的实践作业就带出来(Will:今日任务要显示实践作业进度)
     if (nx) practical = { taskId: nx.taskId, title: nx.title, milestoneTitle: nx.milestoneTitle, idx: nx.idx, done: nx.doneCount, total: nx.total, href: `/tasks?task=${nx.taskId}` };
     else if (pmode && gen) practical = { generating: true, href: "/tasks" };
   } catch {}

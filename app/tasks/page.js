@@ -20,11 +20,11 @@ export default function TasksPage() {
   useEffect(() => { load(); }, []);
   const openTask = (id) => { setOpenId(id); setTask(null); fetch("/api/tasks/detail?id=" + id).then((r) => r.json()).then((d) => { setTask(d.task); setJudge0(!!d.judge0); }).catch(() => {}); };
   const sp = useSearchParams();
-  useEffect(() => { const tid = sp.get("task"); if (tid) openTask(Number(tid)); }, []); // 首页“子考试样式”的实践任务条目点进来,直接打开这条任务
+  useEffect(() => { const tid = sp.get("task"); if (tid) openTask(Number(tid)); }, []); // 首页“子考试样式”的实践作业条目点进来,直接打开这条任务
 
   async function del(id, e) {
     e.stopPropagation();
-    if (!confirm(t("删除这个实践任务?"))) return;
+    if (!confirm(t("删除这个实践作业?"))) return;
     try { await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); load(); } catch {}
   }
   async function togglePmode() {
@@ -43,22 +43,22 @@ export default function TasksPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-black">🛠️ {t("实践任务")}</h1>
+        <h1 className="text-2xl font-black">🛠️ {t("实践作业")}</h1>
         <p className="text-sm text-stone-500">{t("真去动手做——写代码、做实验。AI 拆成里程碑,能跑的代码自动判,重型的交成果+AI审阅。")}</p>
       </div>
       {!judge0 && <div className="card border-amber-300 bg-amber-50/60 text-xs text-amber-800">{t("提示:代码运行判分需要管理员在「设置」里配置 Judge0 密钥;未配置时代码里程碑无法自动运行,但证据类里程碑仍可提交、AI 审阅。")}</div>}
       <label className="card flex items-center justify-between cursor-pointer">
-        <span className="text-sm"><span className="font-medium">{t("复习时自动布置实践任务")}</span><span className="block text-xs text-stone-500">{t("开启后,首页今日任务会带出下一个未完成里程碑;没有进行中任务时自动给你出一个。")}</span></span>
+        <span className="text-sm"><span className="font-medium">{t("复习时自动布置实践作业")}</span><span className="block text-xs text-stone-500">{t("开启后,首页今日任务会带出下一个未完成里程碑;没有进行中任务时自动给你出一个。")}</span></span>
         <input type="checkbox" checked={pmode} onChange={togglePmode} className="h-5 w-5 accent-teal-600" />
       </label>
       <div className="card">
-        <label className="text-sm font-medium">{t("布置一个实践任务")}</label>
+        <label className="text-sm font-medium">{t("布置一个实践作业")}</label>
         <div className="mt-1 flex gap-2">
           <input value={topic} onChange={(e) => setTopic(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !busy && assign()} placeholder={t("主题,如 用 Python 实现快排 / 训练一个小语言模型观察过拟合")} className="flex-1 rounded-lg border border-stone-300 px-2 py-1.5 text-sm" />
           <button onClick={assign} disabled={busy} className="btn px-4">{busy ? t("生成中…") : t("布置")}</button>
         </div>
       </div>
-      {list && list.length === 0 && <div className="card text-sm text-stone-500">{t("还没有实践任务。上面填个主题让 AI 给你布置一个。")}</div>}
+      {list && list.length === 0 && <div className="card text-sm text-stone-500">{t("还没有实践作业。上面填个主题让 AI 给你布置一个。")}</div>}
       <div className="space-y-2">
         {(list || []).map((tk) => (
           <div key={tk.id} className="card hover:ring-2 hover:ring-indigo-300">
