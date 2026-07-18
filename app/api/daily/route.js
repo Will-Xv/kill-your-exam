@@ -2,6 +2,7 @@ import db, { rootExamId, familyScope } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan, currentDailyItems } from "@/lib/planner";
+import { groupNameOfExam } from "@/lib/examGroups";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
@@ -49,6 +50,7 @@ export async function GET() {
         .map((e) => {
           const top = e.tasks && e.tasks[0] ? e.tasks[0] : null;
           return { examId: e.id, name: e.name, daysLeft: e.daysLeft, allocMinutes: e.allocMinutes, due: e.due,
+            group: (() => { try { return groupNameOfExam(user.id, e.id); } catch { return null; } })(),
             top: top ? { type: top.type, title: top.title || null, count: top.count || null, minutes: top.minutes || null, href: top.href || "/practice" } : null };
         });
       if (others.length) crossExam = { totalMinutes: cp.totalMinutes, others };

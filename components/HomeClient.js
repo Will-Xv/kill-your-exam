@@ -346,15 +346,29 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
               <span className="text-xs font-semibold text-[#8a6a2c]">🗂️ {t("别的考试也别落下")}</span>
               <Link href="/plan" className="text-xs text-[#8a6a2c] underline hover:opacity-80">{t("看整体规划")} →</Link>
             </div>
-            <div className="space-y-1">
-              {crossOthers.map((e) => (
+            {(() => {
+              const rowOf = (e) => (
                 <Link key={e.examId} href={e.top?.href || "/plan"} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition hover:bg-slate-50">
                   <span className="shrink-0 rounded-full bg-[#2f2413]/[0.08] px-2 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">{e.allocMinutes}{t("分钟")}</span>
                   <span className="min-w-0 flex-1 truncate"><span className="font-medium text-[#2f2413]">{e.name}</span><span className="text-[#8a6a2c]"> · {crossTaskLabel(e.top)}</span></span>
                   {e.daysLeft != null && <span className="shrink-0 text-[11px] text-[#a98b52]">{e.daysLeft <= 0 ? t("今天") : `${e.daysLeft}${t("天")}`}</span>}
                 </Link>
-              ))}
-            </div>
+              );
+              const byG = {}; const un = [];
+              for (const e of crossOthers) { if (e.group) { (byG[e.group] = byG[e.group] || []).push(e); } else un.push(e); }
+              const gnames = Object.keys(byG);
+              return (
+                <div className="space-y-2">
+                  {gnames.map((gn) => (
+                    <div key={gn} className="rounded-2xl bg-[#3d2b10]/[0.03] p-1.5 ring-1 ring-[#e7d9b6]">
+                      <div className="px-2 pb-0.5 text-[11px] font-semibold text-[#8a6a2c]">📁 {gn}</div>
+                      <div className="space-y-1">{byG[gn].map(rowOf)}</div>
+                    </div>
+                  ))}
+                  {un.length > 0 && <div className="space-y-1">{un.map(rowOf)}</div>}
+                </div>
+              );
+            })()}
           </div>
         )}
         {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
