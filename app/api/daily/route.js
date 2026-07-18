@@ -4,7 +4,7 @@ import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan, currentDailyItems } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
-import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
+import { getPracticalMode, nextIncomplete, maybeAutoAssign, urgentCrossTasks } from "@/lib/practical";
 import { getActiveRecipe, currentPhase, methodForKp, methodLink } from "@/lib/recipes";
 import { todayStr } from "@/lib/devtime";
 import { deliverDue, startReminderLoop } from "@/lib/reminders";
@@ -97,5 +97,6 @@ export async function GET() {
     if (nx) practical = { taskId: nx.taskId, title: nx.title, milestoneTitle: nx.milestoneTitle, idx: nx.idx, done: nx.doneCount, total: nx.total, href: `/tasks?task=${nx.taskId}` };
     else if (pmode && gen) practical = { generating: true, href: "/tasks" };
   } catch {}
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, rootCauseBanner, resolveBanner, fallback, practical, recipe });
+  let urgentCross = []; try { urgentCross = urgentCrossTasks(user.id, exam.id, 3); } catch {}
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, urgentCross, rootCauseBanner, resolveBanner, fallback, practical, recipe });
 }

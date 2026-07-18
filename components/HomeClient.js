@@ -120,6 +120,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
   const crossOthers = daily?.crossExam?.others || [];
+  const crossUrgent = daily?.urgentCross || [];
   // 其他考试的今日一件事标签(客户端 i18n,考试名是动态的原样显示)
   const crossTaskLabel = (top) => !top ? t("练一练") :
     top.type === "review" ? `${t("复习到期")}${top.count ? ` (${top.count})` : ""}` :
@@ -334,7 +335,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {allDone && <span className="text-sm font-semibold text-amber-700">{t("全部完成 🎉")}</span>}
-            <Link href="/plan" className="inline-flex items-center gap-1.5 rounded-full bg-[#2f2413] px-3.5 py-1.5 text-sm font-semibold text-[#f6efdd] shadow-sm hover:opacity-90">🗺️ {t("跨考试规划")}</Link>
+            <Link href="/plan" className="inline-flex items-center gap-1.5 rounded-full bg-[#2f2413] px-3.5 py-1.5 text-sm font-semibold text-[#f6efdd] shadow-sm hover:opacity-90">📅 {t("本周计划表")}</Link>
           </div>
         </div>
         {daily?.recipe && (
@@ -367,22 +368,18 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             ))}
           </div>
         )}
-        {crossOthers.length > 0 && (
+        {crossUrgent.length > 0 && (
           <div className="mt-3 border-t border-[#e7d9b6] pt-3">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#8a6a2c]">🗂️ {t("别的考试也别落下")}</span>
-              <Link href="/plan" className="text-xs text-[#8a6a2c] underline hover:opacity-80">{t("看整体规划")} →</Link>
+            <div className="mb-1.5 text-xs font-semibold text-rose-700">⚠️ {t("别的科目快到期/逾期")}</div>
+            <div className="space-y-1">
+              {crossUrgent.map((u) => (
+                <a key={u.taskId} href={`/tasks?task=${u.taskId}`} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition hover:bg-slate-50">
+                  <span className={"shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 " + (u.overdue ? "bg-rose-100 text-rose-700 ring-rose-300" : "bg-amber-100 text-amber-800 ring-amber-300")}>{u.overdue ? t("已逾期") : t("快到期")}</span>
+                  <span className="min-w-0 flex-1 truncate"><span className="text-[#8a6a2c]">{u.examName} · </span><span className="font-medium text-[#2f2413]">{u.title}</span></span>
+                  <span className="shrink-0 text-[11px] text-[#a98b52]">⏳{u.due.slice(5)}</span>
+                </a>
+              ))}
             </div>
-            {(() => {
-              const rowOf = (e) => (
-                <Link key={e.examId} href={e.top?.href || "/plan"} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition hover:bg-slate-50">
-                  <span className="shrink-0 rounded-full bg-[#2f2413]/[0.08] px-2 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">{e.allocMinutes}{t("分钟")}</span>
-                  <span className="min-w-0 flex-1 truncate"><span className="font-medium text-[#2f2413]">{e.name}</span><span className="text-[#8a6a2c]"> · {crossTaskLabel(e.top)}</span></span>
-                  {e.daysLeft != null && <span className="shrink-0 text-[11px] text-[#a98b52]">{e.daysLeft <= 0 ? t("今天") : `${e.daysLeft}${t("天")}`}</span>}
-                </Link>
-              );
-              return (<div className="space-y-1">{crossOthers.map(rowOf)}</div>);
-            })()}
           </div>
         )}
         {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
