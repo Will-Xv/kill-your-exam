@@ -19,6 +19,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const [suggBusy, setSuggBusy] = useState(false);
   const [weakCount, setWeakCount] = useState(0);
   const [dateOpen, setDateOpen] = useState(false);
+  const [groupOpen, setGroupOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [isDev, setIsDev] = useState(initialIsDev);
   placement.useItems();
@@ -311,9 +312,31 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       {nativeShown("today") && (
       <Editable id="today">
       <div id="tour-today" className="card animate-in d1 mt-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-bold">📋 {t("今日任务")}</h2>
-          <div className="flex items-center gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <h2 className="shrink-0 font-bold">📋 {t("今日任务")}</h2>
+            {crossGroupMates.length > 0 && (() => {
+              const chips = [{ id: exam.id, name: exam.name, cur: true }, ...crossGroupMates.map((e) => ({ id: e.examId, name: e.name, cur: false }))];
+              const shown = groupOpen ? chips : chips.slice(0, 3);
+              return (
+                <div className="flex flex-wrap items-center gap-1" title={t("同组考试,点一下切换")}>
+                  {shown.map((c) => (
+                    <button key={c.id} onClick={() => !c.cur && switchExam(c.id)} disabled={c.cur}
+                      className={"max-w-[9rem] truncate rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 transition " + (c.cur ? "bg-[#2f2413] text-[#f6efdd] ring-[#2f2413] cursor-default" : "bg-[#3d2b10]/[0.06] text-[#6b4a25] ring-[#dbc999] hover:brightness-95")}>
+                      {c.name}
+                    </button>
+                  ))}
+                  {!groupOpen && chips.length > 3 && (
+                    <button onClick={() => setGroupOpen(true)} className="rounded-full bg-[#3d2b10]/[0.06] px-2 py-0.5 text-[11px] font-semibold text-[#8a6a2c] ring-1 ring-[#dbc999] hover:brightness-95" title={t("展开全部同组考试")}>… +{chips.length - 3}</button>
+                  )}
+                  {groupOpen && chips.length > 3 && (
+                    <button onClick={() => setGroupOpen(false)} className="rounded-full px-1.5 py-0.5 text-[11px] text-[#8a6a2c] hover:opacity-80">▲</button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             {allDone && <span className="text-sm font-semibold text-amber-700">{t("全部完成 🎉")}</span>}
             <Link href="/plan" className="inline-flex items-center gap-1.5 rounded-full bg-[#2f2413] px-3.5 py-1.5 text-sm font-semibold text-[#f6efdd] shadow-sm hover:opacity-90">🗺️ {t("跨考试规划")}</Link>
           </div>
@@ -346,20 +369,6 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
                 <span className="shrink-0 text-[11px] text-teal-600">{tk.complete ? t("已完成") : (tk.total ? `${tk.done}/${tk.total}` : t("待做"))}</span>
               </a>
             ))}
-          </div>
-        )}
-        {crossGroupMates.length > 0 && (
-          <div className="mt-3 rounded-2xl bg-[#3d2b10]/[0.03] p-2 ring-1 ring-[#e7d9b6]">
-            <div className="mb-1 px-1 text-xs font-semibold text-[#8a6a2c]">📁 {crossGroupName}{t(" · 本组一起管的今日任务")}</div>
-            <div className="space-y-1">
-              {crossGroupMates.map((e) => (
-                <Link key={e.examId} href={e.top?.href || "/plan"} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition hover:bg-slate-50">
-                  <span className="shrink-0 rounded-full bg-[#2f2413]/[0.08] px-2 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">{e.allocMinutes}{t("分钟")}</span>
-                  <span className="min-w-0 flex-1 truncate"><span className="font-medium text-[#2f2413]">{e.name}</span><span className="text-[#8a6a2c]"> · {crossTaskLabel(e.top)}</span></span>
-                  {e.daysLeft != null && <span className="shrink-0 text-[11px] text-[#a98b52]">{e.daysLeft <= 0 ? t("今天") : `${e.daysLeft}${t("天")}`}</span>}
-                </Link>
-              ))}
-            </div>
           </div>
         )}
         {crossOthers.length > 0 && (
