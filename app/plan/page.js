@@ -8,11 +8,12 @@ export default function PlanPage() {
   const t = useT();
   const [dayPlan, setDayPlan] = useState(undefined); // undefined=加载中, null=没有排期
   const [taskItems, setTaskItems] = useState([]);    // 带截止日期的作业(只读并进周历)
+  const [examDate, setExamDate] = useState("");
   const [dpEdit, setDpEdit] = useState(false);
   const [dpDraft, setDpDraft] = useState([]);
   const [wk, setWk] = useState(0); // 周偏移:0=本周
   const [setupOpen, setSetupOpen] = useState(false);
-  const loadDayPlan = () => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); }).catch(() => setDayPlan(null));
+  const loadDayPlan = () => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); setExamDate((d && d.examDate) || ""); }).catch(() => setDayPlan(null));
   const dpMark = (seq, done) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
   const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
   const dpClear = () => { if (!confirm(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
@@ -127,7 +128,7 @@ export default function PlanPage() {
           </div>
         </>
       )}
-      <PlanSetup open={setupOpen} onClose={() => setSetupOpen(false)} defaults={{ examDate: (view && view.examDate) || "" }} onDone={() => { setSetupOpen(false); loadDayPlan(); }} />
+      <PlanSetup open={setupOpen} onClose={() => setSetupOpen(false)} defaults={{ examDate }} onDone={() => { setSetupOpen(false); loadDayPlan(); }} />
     </div>
   );
 }
