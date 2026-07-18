@@ -209,3 +209,5 @@
 - **v7 报告其余:P1-11 原始报错 + P2-10 LaTeX 泄漏(2026-07,Will)**:①P1-11:runLoop 撞 12 步上限时那句原始「(处理步数过多,已停止)」改成友好诚实文案(「我这次做了不少步先停一下,你刚让我做的很可能已在后台完成,去追杀计划看看或说继续」);appGuide:exam_provision 立即返回、后台生成,拿到 examId 就汇报并停,【绝不循环调 exam_gen_status/web_search 轮询】(那正是撞上限的根因)。②P2-10:lib/gemini.repairJsonLatex 从只加倍 \b\f\r\t 扩到【\+任意字母(除 \n 换行、\u unicode、\" \\ \/)一律加倍】——批改/讲解反馈里 \big \text \alpha \sqrt \le \cdot \vec \sin 等 LaTeX 命令在 JSON.parse 时都能存活(之前非 bfrt 的会直接让 JSON.parse 抛错、批改失败,比泄漏更严重)。③P2-11(Study 标签偶发原始 LaTeX)= KP 标题偶尔含畸形 LaTeX,生成侧小毛病,待办。
 
 - **禁止建同名考试(2026-07,Will)**:db.examNameExists(userId,name,{parentExamId,excludeId})——同一层级(顶层 vs 顶层、同一母考试下的子考试之间)去重(去空格、忽略大小写;允许不同课都有"Quiz 1")。建考试入口都挡:exam_create、exam_provision(crossExam.js)匹配到同层同名就 throw「已经有一门同名考试…别重复建」;onboarding /api/onboarding/create 返回 400 error,前端 createExam 改普通 fetch 检查 !r.ok||d.error 弹 alert。旧的同名不追溯处理。
+
+- **根治"问进度被当成建考试"(2026-07,Will)**:bug——exam_provision 建 CSC148(ID74)后台生成中,用户问"Is it ready?",杀手把它当成"建新考试"→建了重名 ID75、静默归档 ID74。appGuide 加根治规则:主人问「好了没/ready?/建好了没/怎么样了」= 查【那门已存在考试】的生成进度,用 exam_gen_status 如实报,【绝不】理解成创建新考试去调 exam_provision/exam_create。(叠加同名拦截双保险。)
