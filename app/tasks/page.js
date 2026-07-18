@@ -206,14 +206,28 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
         <>
           <div className="mt-2 text-xs text-stone-400">{t("语言")}: {lang}{ms.tests?.length ? ` · ${ms.tests.length} ${t("个测试用例")}` : ""}</div>
           <div className="mt-1"><CodeEditor value={code} onChange={setCode} language={lang} rows={12} placeholder={t("在这里写代码…")} /></div>
-          {runOut && (runOut.notConfigured ? <p className="mt-1 text-xs text-amber-700">{t("未配置 Judge0,无法运行。")}</p> : runOut.error ? <p className="mt-1 text-xs text-rose-700">{t("运行出错")}: {runOut.error}{runOut.detail ? " · " + String(runOut.detail).slice(0, 120) : ""}</p> : runOut.results ? (
+          {runOut && (runOut.notConfigured ? <p className="mt-1 text-xs text-amber-700">{t("未配置 Judge0,无法运行。")}</p> : runOut.error ? <p className="mt-1 text-xs text-rose-700">{t("评测机(Judge0)出问题了,不是你的代码:")}{runOut.error}{runOut.detail ? " · " + String(runOut.detail).slice(0, 160) : ""}</p> : runOut.results ? (
             <div className="mt-2 space-y-1">
-              {runOut.results.map((r, ri) => (
-                <div key={ri} className={`rounded-lg px-2 py-1 text-xs ${invalid[ri] && invalid[ri].verdict === "invalid" ? "bg-stone-100 text-stone-400 line-through" : r.passed ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
-                  <span>{invalid[ri] && invalid[ri].verdict === "invalid" ? "⊘" : r.passed ? "✓" : "✗"} {t("用例")} {ri + 1}{r.stdin ? ` · in: ${r.stdin.slice(0, 30)}` : ""} {!r.passed && r.expected != null ? `· ${t("期望")} ${String(r.expected).slice(0, 40)} / ${t("实际")} ${String(r.stdout).slice(0, 40)}` : ""}{r.stderr ? ` · ${r.stderr.slice(0, 60)}` : ""}</span>
-                  {!r.passed && !invalid[ri] && <button onClick={() => appeal(ri)} disabled={appealing === ri} className="ml-2 rounded bg-white px-1.5 py-0.5 text-[10px] text-stone-600 ring-1 ring-stone-300 hover:bg-stone-50">{appealing === ri ? t("复核中…") : t("申诉此用例")}</button>}
+              {runOut.results.map((r, ri) => {
+                const inv = invalid[ri] && invalid[ri].verdict === "invalid";
+                const val = (x) => { const v = x == null ? "" : String(x); return v === "" ? t("(空)") : v; };
+                return (
+                <div key={ri} className={`rounded-lg px-2 py-1.5 text-xs ${inv ? "bg-stone-100 text-stone-400" : r.passed ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-900"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{inv ? "⊘" : r.passed ? "✓" : "✗"} {t("用例")} {ri + 1}{inv ? ` · ${t("已判无效")}` : ""}</span>
+                    {!r.passed && !inv && <button onClick={() => appeal(ri)} disabled={appealing === ri} className="ml-2 shrink-0 rounded bg-white px-1.5 py-0.5 text-[10px] text-stone-600 ring-1 ring-stone-300 hover:bg-stone-50">{appealing === ri ? t("复核中…") : t("申诉此用例")}</button>}
+                  </div>
+                  {!inv && (
+                    <div className={`mt-1 space-y-0.5 font-mono text-[11px] ${r.passed ? "opacity-70" : ""}`}>
+                      {r.stdin != null && String(r.stdin) !== "" && <div><span className="opacity-60">{t("输入")}: </span>{String(r.stdin).slice(0, 200)}</div>}
+                      {r.expected != null && <div><span className="opacity-60">{t("期望")}: </span>{val(r.expected).slice(0, 200)}</div>}
+                      <div><span className="opacity-60">{t("实际")}: </span><span className={!r.passed ? "font-semibold" : ""}>{val(r.stdout).slice(0, 200)}</span></div>
+                      {r.stderr ? <div className="text-rose-700"><span className="opacity-60">{t("报错")}: </span>{String(r.stderr).slice(0, 200)}</div> : null}
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               <div className="text-xs font-semibold">{t("通过")} {runOut.passedCount}/{runOut.total}</div>
             </div>
           ) : <p className="mt-1 text-xs text-stone-500">{runOut.stdout || runOut.stderr || runOut.compile_output || t("(无输出)")}</p>)}

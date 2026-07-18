@@ -245,3 +245,6 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **H7** 配方名引号本地化(HomeClient t("「")/t("」"),8 字典按语言给引号)。**H9** 首页 visibilitychange/focus 自动重载。**H1** 澄清:UI 服务 workflow 靠今日任务按方法编排,不额外堆按钮(误加的入口条已删)。**H2** 核实竞技场/探索本就把状态回流并驱动 planner。
 - **VersionGuard**(`components/VersionGuard.js`):检测新部署→内部跳转走整页加载,防 ChunkLoadError;配 app/error.js/global-error.js 友好兜底+自愈刷新。
 - 砖头数增至 ≈53(新增 set_reminder/list_reminders,并发布 exam_merge/split/integrity_check);新增数据表 `reminders`。
+
+- **实践作业助教诚实 + 测试细节可见 + Judge0 稳健**:助教对"过没过/通过几个"只照实际"通过 X/Y"数字说,0/6 就是没过、绝不瞎恭喜;测试每个用例都列 输入/期望/实际(空标"(空)")/报错;Judge0 故障(如 http_400)不再伪装成用户 0 分,而是明确报"评测机出问题"并带原因,明文被拒自动 base64 重试。
+- **多考试主动提示建分组·用户自选**:有多门未分组考试时主页/追杀计划提示建组;同意后由用户【勾选哪几门】进组(可命名),不自动全塞。各科知识树/掌握度仍独立不合并。

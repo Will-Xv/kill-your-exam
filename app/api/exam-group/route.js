@@ -12,16 +12,22 @@ export async function GET() {
   const tops = topExams(user.id);
   const ung = ungroupedIds(user.id);
   const dismissed = getSetting(`exam_group_prompt_dismissed:${user.id}`) === "1";
-  return Response.json({ shouldPrompt: !dismissed && tops.length >= 2 && ung.length >= 2, examCount: tops.length, ungroupedCount: ung.length });
+  return Response.json({ shouldPrompt: !dismissed && tops.length >= 2 && ung.length >= 2, examCount: tops.length, ungroupedCount: ung.length, ungrouped: ung.map((e) => ({ id: e.id, name: e.name })) });
 }
 
 export async function POST(req) {
   const { user } = await requireUser();
   if (!user) return unauthorized();
-  const { action, name } = await req.json().catch(() => ({}));
+  const { action, name, examIds } = await req.json().catch(() => ({}));
   if (action === "dismiss_forever") { try { setSetting(`exam_group_prompt_dismissed:${user.id}`, "1"); } catch {} return Response.json({ ok: true }); }
-  if (action === "group_all") {
-    const ids = ungroupedIds(user.id).map((e) => e.id);
+  if (action === "group_all" || action === "group") {
+    let ids;
+    if (Array.isArray(examIds) && examIds.length) {
+      const own = new Set(ungroupedIds(user.id).map((e) => Number(e.id)));   // 只允许自己的、未分组的顶层考试
+      ids = examIds.map(Number).filter((x) => own.has(x));
+    } else {
+      ids = ungroupedIds(user.id).map((e) => e.id);   // 没指定=全部未分组(兜底)
+    }
     if (!ids.length) return Response.json({ ok: false, note: "no_ungrouped" });
     const gid = createGroup(user.id, name || "我的考试", ids);
     return Response.json({ ok: true, groupId: gid, added: ids.length });
