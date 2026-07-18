@@ -1,4 +1,4 @@
-import db, { upsertDocument } from "@/lib/db";
+import db, { upsertDocument, examNameExists } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 
 // 快速创建考试(不跑 AI),收集完整信息。可传 examId 复用草稿避免重复创建。
@@ -26,6 +26,7 @@ export async function POST(req) {
       return Response.json({ examId });
     }
   }
+  if (examNameExists(user.id, nm, { parentExamId: null })) return Response.json({ error: `你已经有一门叫「${nm}」的考试了,换个名字,或直接打开已有的那门。` }, { status: 400 });
   // 建为「设置中」草稿(setup/draft):此时【不】归档旧考试、也不占用 active——设置完成(finalize)后才转正。
   const info = db.prepare(`INSERT INTO exams(name,exam_date,daily_minutes,exam_type,school,notes,status,assess_status,setup_state,user_id)
     VALUES(?,?,?,?,?,?,'setup',?,'draft',?)`).run(nm, examDate || null, dailyMinutes || 60, examType || null, school || null, notes || null, examType === "study" ? "done" : "pending", user.id);
