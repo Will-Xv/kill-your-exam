@@ -20,7 +20,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const [dateOpen, setDateOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
   const [sprintOpen, setSprintOpen] = useState(false);
-  const [sprintReco, setSprintReco] = useState(null); // "review"(学得差不多→快速复习) / "test"(差很多→先测再复习)
+  const [sprintReco, setSprintReco] = useState(null); // "original"(掌握≥70%→自查+模拟考) / "test"(<70%→先测试再复习)
   const [unread, setUnread] = useState(0);
   const [isDev, setIsDev] = useState(initialIsDev);
   placement.useItems();
@@ -31,7 +31,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const loadHome = () => {
     fetch("/api/exam").then((r) => r.json()).then(setData).catch(() => {});
     fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
-    fetch("/api/mastery").then((r) => r.json()).then((d) => { const m = d.matrix || []; const weak = m.filter((x) => x.level === "weak" || x.level === "unlearned").length; setWeakCount(weak); const total = m.length; const ratio = total ? (total - weak) / total : 0; setSprintReco(ratio >= 0.8 ? "original" : ratio >= 0.5 ? "review" : "test"); }).catch(() => {});
+    fetch("/api/mastery").then((r) => r.json()).then((d) => { const m = d.matrix || []; const weak = m.filter((x) => x.level === "weak" || x.level === "unlearned").length; setWeakCount(weak); const total = m.length; const ratio = total ? (total - weak) / total : 0; setSprintReco(ratio >= 0.7 ? "original" : "test"); }).catch(() => {});
   };
   useEffect(() => {
     loadHome();
@@ -268,16 +268,12 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSprintOpen(false)}>
           <div className="w-full max-w-sm rounded-2xl bg-[#fbf6e9] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-black text-red-700">⏰ {t("距考试不到一周了!")}</h2>
-            <p className="mt-1 text-sm text-[#5b431f]">{sprintReco === "original" ? t("你掌握得不错——去自查一下、再做套模拟考确认就好:") : sprintReco === "test" ? t("你还有不少没掌握——建议先测一套摸清底,再针对性攻:") : t("你掌握得差不多了——快速过一遍查漏补缺就好:")}{weakCount > 0 ? `(${t("还有")} ${weakCount} ${t("个薄弱/未学")})` : ""}</p>
+            <p className="mt-1 text-sm text-[#5b431f]">{sprintReco === "original" ? t("你掌握得不错——去自查一下、再做套模拟考确认就好:") : t("你还有不少没掌握——建议先测一套摸清底,再针对性攻:")}{weakCount > 0 ? `(${t("还有")} ${weakCount} ${t("个薄弱/未学")})` : ""}</p>
             {(() => {
-              const review = (primary) => (<a key="r" href="/practice?mode=review" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>⚡ {t("快速复习")}{primary && <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{t("推荐")}</span>}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("直接过一遍到期/薄弱的题,快速查漏补缺")}</span></a>);
-              const test = (primary) => (<a key="t" href="/mock" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>📝 {t("先测试再复习")}{primary && <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{t("推荐")}</span>}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("先做一套模拟考,再针对性攻错的地方")}</span></a>);
-              const selfcheck = (<a key="s" href="/study" className="block rounded-xl bg-[#2f2413] px-4 py-2.5 text-sm font-semibold text-[#f6efdd] hover:opacity-90">🔎 {t("去学习页自查")}<span className="mt-0.5 block text-xs font-normal opacity-80">{t("过一遍知识点,确认还欠哪儿")}</span></a>);
+              const selfcheck = (primary) => (<a key="s" href="/study" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>🔎 {t("去学习页自查")}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("过一遍知识点,确认还欠哪儿")}</span></a>);
               const mock = (primary) => (<a key="m" href="/mock" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>📝 {t("去模拟考")}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("做一套全真模拟,查漏补缺")}</span></a>);
-              let opts;
-              if (sprintReco === "original") opts = [selfcheck, mock(false)];
-              else if (sprintReco === "test") opts = [test(true), review(false)];
-              else opts = [review(true), test(false)];
+              const testFirst = (<a key="t" href="/mock" className="block rounded-xl bg-[#2f2413] px-4 py-2.5 text-sm font-semibold text-[#f6efdd] hover:opacity-90">📝 {t("先测试再复习")}<span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{t("推荐")}</span><span className="mt-0.5 block text-xs font-normal opacity-80">{t("先做一套模拟考,再针对性攻错的地方")}</span></a>);
+              const opts = sprintReco === "original" ? [selfcheck(true), mock(false)] : [testFirst, selfcheck(false)];
               return (<div className="mt-3 space-y-2">{opts}</div>);
             })()}
             <div className="mt-3 text-right">
@@ -292,8 +288,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           <p className="font-semibold text-red-700">⏰ {t("距猎杀不到一周了!")}</p>
           <p className="mt-1 text-sm text-slate-600">{t("建议现在:到「学习」页自查还欠缺/薄弱的知识点,并做一次全真模拟考,查漏补缺。")}{weakCount > 0 ? `(${t("目前还有")} ${weakCount} ${t("个薄弱/未学的知识点")})` : ""}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Link href="/practice?mode=review" className="btn py-2 text-sm">⚡ {t("快速复习")}</Link>
-            <Link href="/mock" className="btn-ghost py-2 text-sm">📝 {t("先测试再复习")}</Link>
+            <Link href="/study" className="btn py-2 text-sm">🔎 {t("去学习页自查")}</Link>
+            <Link href="/mock" className="btn-ghost py-2 text-sm">📝 {t("去模拟考")}</Link>
           </div>
         </div>
         </Editable>
