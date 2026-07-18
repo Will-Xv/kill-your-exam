@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useT } from "@/components/I18n";
 
 export default function Exams() {
@@ -32,8 +33,8 @@ export default function Exams() {
   const STATUS = { active: t("当前"), archived: t("已归档"), completed: t("已完成") };
   return (
     <div className="space-y-4 md:mt-14">
-      {confirmAsk && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmAsk(null)}>
+      {confirmAsk && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmAsk(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <p className="text-sm text-stone-700">{confirmAsk.msg}</p>
             <div className="mt-4 flex justify-end gap-2">
@@ -41,7 +42,8 @@ export default function Exams() {
               <button className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white" onClick={() => { const a = confirmAsk; setConfirmAsk(null); doManage(a.action, a.examId); }}>{t("确认")}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("追杀计划")}</h1>
