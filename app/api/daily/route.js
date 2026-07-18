@@ -8,6 +8,7 @@ import { getPracticalMode, nextIncomplete, maybeAutoAssign, urgentCrossTasks } f
 import { getActiveRecipe, currentPhase, methodForKp, methodLink } from "@/lib/recipes";
 import { todayStr } from "@/lib/devtime";
 import { deliverDue, startReminderLoop } from "@/lib/reminders";
+import { startAutoRuleLoop } from "@/lib/autoRules";
 import { setReqUser } from "@/lib/reqctx";
 
 export async function GET() {
@@ -15,7 +16,7 @@ export async function GET() {
     if (user) setReqUser(user.id);
   if (!user) return unauthorized();
   if (!exam) return Response.json({ plan: null });
-  try { startReminderLoop(); await deliverDue(user.id); } catch {}  // H3:到期提醒投递(进收件箱+尝试推送)+ 启动后台轮询
+  try { startReminderLoop(); startAutoRuleLoop(); await deliverDue(user.id); } catch {}  // H3:到期提醒投递(进收件箱+尝试推送)+ 启动后台轮询
   const today = todayStr(); // YYYY-MM-DD 本地
   // 单一数据源:今日任务直接从【跨考试规划器】为当前考试(家族根)实时生成——好逻辑(根因优先 / 含薄弱+未学 / 自由练习封顶 / 按时间分配)在生成时就内建,和「总规划」永远一致。自动计划不落缓存,保证时时同步;只有 killer 自定义的计划(set_daily_plan)才落 daily_plans 并优先。
   const { items } = currentDailyItems(user.id, exam);
