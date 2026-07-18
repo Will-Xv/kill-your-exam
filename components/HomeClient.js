@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import Leaderboard from "@/components/Leaderboard";
-import ExamGroupPrompt from "@/components/ExamGroupPrompt";
 import Link from "next/link";
 import { useT } from "@/components/I18n";
 import Tour from "@/components/Tour";
@@ -121,8 +120,6 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
   const crossOthers = daily?.crossExam?.others || [];
-  const crossGroupMates = daily?.crossExam?.groupMates || [];
-  const crossGroupName = daily?.crossExam?.groupName || null;
   // 其他考试的今日一件事标签(客户端 i18n,考试名是动态的原样显示)
   const crossTaskLabel = (top) => !top ? t("练一练") :
     top.type === "review" ? `${t("复习到期")}${top.count ? ` (${top.count})` : ""}` :
@@ -173,7 +170,6 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     <>
       <Tour />
       <LayoutLab enabled={true}>
-      <ExamGroupPrompt />
       {nativeShown("leaderboard") && <Editable id="leaderboard"><Leaderboard initial={initialLeaderboard} /></Editable>}
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       {nativeShown("hero") && (
@@ -315,8 +311,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             <h2 className="shrink-0 font-bold">📋 {t("今日任务")}</h2>
-            {crossGroupMates.length > 0 && (() => {
-              const chips = [{ id: exam.id, name: exam.name, cur: true }, ...crossGroupMates.map((e) => ({ id: e.examId, name: e.name, cur: false }))];
+            {crossOthers.length > 0 && (() => {
+              const chips = [{ id: exam.id, name: exam.name, cur: true }, ...crossOthers.map((e) => ({ id: e.examId, name: e.name, cur: false }))];
               const shown = groupOpen ? chips : chips.slice(0, 3);
               return (
                 <div className="flex flex-wrap items-center gap-1" title={t("同组考试,点一下切换")}>
@@ -385,20 +381,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
                   {e.daysLeft != null && <span className="shrink-0 text-[11px] text-[#a98b52]">{e.daysLeft <= 0 ? t("今天") : `${e.daysLeft}${t("天")}`}</span>}
                 </Link>
               );
-              const byG = {}; const un = [];
-              for (const e of crossOthers) { if (e.group) { (byG[e.group] = byG[e.group] || []).push(e); } else un.push(e); }
-              const gnames = Object.keys(byG);
-              return (
-                <div className="space-y-2">
-                  {gnames.map((gn) => (
-                    <div key={gn} className="rounded-2xl bg-[#3d2b10]/[0.03] p-1.5 ring-1 ring-[#e7d9b6]">
-                      <div className="px-2 pb-0.5 text-[11px] font-semibold text-[#8a6a2c]">📁 {gn}</div>
-                      <div className="space-y-1">{byG[gn].map(rowOf)}</div>
-                    </div>
-                  ))}
-                  {un.length > 0 && <div className="space-y-1">{un.map(rowOf)}</div>}
-                </div>
-              );
+              return (<div className="space-y-1">{crossOthers.map(rowOf)}</div>);
             })()}
           </div>
         )}

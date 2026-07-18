@@ -2,7 +2,6 @@ import db, { rootExamId, familyScope } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
 import { crossExamPlan, currentDailyItems } from "@/lib/planner";
-import { groupNameOfExam } from "@/lib/examGroups";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign } from "@/lib/practical";
@@ -44,18 +43,13 @@ export async function GET() {
     const cp = crossExamPlan(user.id, {});
     if (cp && cp.examCount > 1) {
       const fam = new Set((familyScope(exam.id) || []).map(Number)); // 当前考试所在的整棵家族树:不当作"别的考试"
-      const myGroup = (() => { try { return groupNameOfExam(user.id, exam.id); } catch { return null; } })(); // 当前考试所属分组(没有则 null)
-      const mapExam = (e) => {
+      // 所有考试算一个组:其它顶层考试都带回来(顶部切换 chips + “别的考试也别落下”共用这份)
+      const others = cp.exams.filter((e) => !fam.has(Number(e.id))).slice(0, 12).map((e) => {
         const top = e.tasks && e.tasks[0] ? e.tasks[0] : null;
         return { examId: e.id, name: e.name, daysLeft: e.daysLeft, allocMinutes: e.allocMinutes, due: e.due,
-          group: (() => { try { return groupNameOfExam(user.id, e.id); } catch { return null; } })(),
           top: top ? { type: top.type, title: top.title || null, count: top.count || null, minutes: top.minutes || null, href: top.href || "/practice" } : null };
-      };
-      const pool = cp.exams.filter((e) => !fam.has(Number(e.id))).map(mapExam);
-      // 本组(和当前考试同组)的其它考试 → 并进今日任务一起管;其余 → “别的考试也别落下”只显示非本组
-      const groupMates = myGroup ? pool.filter((e) => e.group === myGroup).slice(0, 8) : [];
-      const others = (myGroup ? pool.filter((e) => e.group !== myGroup) : pool).slice(0, 4);
-      if (others.length || groupMates.length) crossExam = { totalMinutes: cp.totalMinutes, others, groupMates, groupName: myGroup || null };
+      });
+      if (others.length) crossExam = { totalMinutes: cp.totalMinutes, others };
     }
   } catch {}
   let rootCauseBanner = null; try { rootCauseBanner = getBanner(user.id, exam.id); } catch {}

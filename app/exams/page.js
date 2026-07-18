@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
-import ExamGroupPrompt from "@/components/ExamGroupPrompt";
 
 export default function Exams() {
   const t = useT();
@@ -33,7 +32,6 @@ export default function Exams() {
   const STATUS = { active: t("当前"), archived: t("已归档"), completed: t("已完成") };
   return (
     <div className="space-y-4 md:mt-14">
-      <ExamGroupPrompt />
       {confirmAsk && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmAsk(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
