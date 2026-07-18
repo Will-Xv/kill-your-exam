@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, memo } from "react";
 import MD from "@/components/MD";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
+import PlanSetup from "@/components/PlanSetup";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import * as placement from "@/lib/uilab/placement";
 import * as lab from "@/lib/uilab/store";
@@ -57,12 +58,15 @@ export default function KillerChat({ embedded = false }) {
   }, []);
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy, pending]);
 
+  const planSeenRef = useRef(false);
+  const [planSetup, setPlanSetup] = useState(null);
   function stopPoll() { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } }
   async function pollOnce(runId) {
     try {
       const d = await fetch(`/api/chat/run?id=${runId}`).then((r) => r.json());
       const run = d.run; if (!run) return;
       setSteps(run.steps || []);
+      try { const ps = (run.steps || []).find((x) => x.kind === "plan_setup"); if (ps && !planSeenRef.current) { planSeenRef.current = true; let def = {}; try { def = JSON.parse(ps.detail || "{}"); } catch {} setPlanSetup(def || {}); } } catch {}
       // 计时基准:只在【合理范围】内用服务端 elapsedSec(供刷新后接续);过大多半是遗留/等确认很久的 run,用本地计时避免显示成 1000s+
       if ((run.status === "running" || run.status === "pending") && typeof run.elapsedSec === "number" && run.elapsedSec < 300) elapsedBaseRef.current = { serverSec: run.elapsedSec, at: Date.now() };
       if (run.status === "done") { stopPoll(); setBusy(false); setSteps([]); if (run.reply) setMessages((m) => [...m, { role: "model", content: run.reply }]); try { placement.refreshServer(); } catch {} try { lab.refreshLayoutServer(); } catch {} try { window.dispatchEvent(new CustomEvent("kye:data-changed")); } catch {} } // 杀手改完 UI 后即时刷新(导航栏/放置表/首页布局)
@@ -70,7 +74,7 @@ export default function KillerChat({ embedded = false }) {
       else if (run.status === "error") { stopPoll(); setBusy(false); setSteps([]); setMessages((m) => [...m, { role: "model", content: run.reply || "(出错了,请重试)" }]); }
     } catch {}
   }
-  function startPolling(runId) { setBusy(true); elapsedBaseRef.current = { serverSec: 0, at: Date.now() }; stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }
+  function startPolling(runId) { setBusy(true); planSeenRef.current = false; elapsedBaseRef.current = { serverSec: 0, at: Date.now() }; stopPoll(); pollOnce(runId); pollRef.current = setInterval(() => pollOnce(runId), 1200); }
 
   function autoGrow(el) {
     if (!el) return;
@@ -225,6 +229,7 @@ export default function KillerChat({ embedded = false }) {
         <textarea ref={taRef} rows={1} className="input flex-1 resize-none leading-6" style={{ maxHeight: "260px" }} value={input} onChange={(e) => { setInput(e.target.value); autoGrow(e.target); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); send(); } }} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(Enter 发送,Shift+Enter 换行)")} disabled={!!pending} />
         <button className="btn" onClick={() => send()} disabled={busy || (!input.trim() && !files.length) || !!pending}>{t("发送")}</button>
       </DropZone>
+      <PlanSetup open={!!planSetup} defaults={planSetup || {}} onClose={() => setPlanSetup(null)} onDone={() => setPlanSetup(null)} />
     </div>
   );
 }
