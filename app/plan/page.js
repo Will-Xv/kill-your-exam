@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
+import PlanSetup from "@/components/PlanSetup";
 
 // 本周计划表:按周显示的排期日历,可 ← → 前后翻周。凡是带日期的都排进来(排期条目+带截止的作业),当前周顶部显示逾期顺延。
 export default function PlanPage() {
@@ -10,6 +11,7 @@ export default function PlanPage() {
   const [dpEdit, setDpEdit] = useState(false);
   const [dpDraft, setDpDraft] = useState([]);
   const [wk, setWk] = useState(0); // 周偏移:0=本周
+  const [setupOpen, setSetupOpen] = useState(false);
   const loadDayPlan = () => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); }).catch(() => setDayPlan(null));
   const dpMark = (seq, done) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
   const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
@@ -55,6 +57,7 @@ export default function PlanPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-black text-[#2f2413]">📅 {t("本周计划表")}</h1>
+        <button onClick={() => setSetupOpen(true)} className="rounded-full bg-[#2f2413] px-3 py-1.5 text-xs font-semibold text-[#f6efdd] hover:opacity-90">🗓️ {t("排学习计划")}</button>
         {dayPlan && !dpEdit && (
           <div className="flex items-center gap-2 text-xs">
             <button onClick={() => { setDpDraft(all.map((i) => ({ seq: i.seq, day: i.day, title: i.title, examId: i.examId, taskId: i.taskId, href: i.href, done: i.done }))); setDpEdit(true); }} className="rounded-full bg-stone-100 px-2.5 py-1 ring-1 ring-stone-300 hover:bg-stone-50">✎ {t("编辑")}</button>
@@ -66,7 +69,7 @@ export default function PlanPage() {
       {dayPlan === undefined ? (
         <div className="shimmer h-24 rounded-2xl" />
       ) : (!dayPlan && taskItems.length === 0) ? (
-        <div className="card text-sm text-stone-500">{t("还没有排期。对杀手说「帮我把这几天的任务按天排开」或发一份 syllabus 让它排,没完成的会自动顺延。")}</div>
+        <div className="card text-sm text-stone-500">{t("还没有排期。")}<button onClick={() => setSetupOpen(true)} className="font-semibold text-[#2f2413] underline">{t("排一份学习计划")}</button>{t(",或对杀手说「帮我把任务按天排开」/发一份 syllabus。")}</div>
       ) : dpEdit ? (
         <div className="card space-y-1.5">
           <div className="flex items-center justify-between"><p className="text-[11px] text-stone-400">{t("改「第几天」就能调整顺序/顺延;要大改直接让杀手重排。这里编辑的是【整份】排期。")}</p><div className="flex gap-2"><button onClick={dpSaveEdit} className="rounded-full bg-[#2f2413] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90">{t("保存")}</button><button onClick={() => setDpEdit(false)} className="rounded-full px-2 py-1 text-xs text-stone-500">{t("取消")}</button></div></div>
@@ -84,12 +87,12 @@ export default function PlanPage() {
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <button onClick={() => setWk((w) => w - 1)} className="rounded-full bg-stone-100 px-3 py-1 text-sm ring-1 ring-stone-300 hover:bg-stone-50">← {t("上一周")}</button>
+            <button onClick={() => setWk((w) => w - 1)} className="rounded-full bg-[#2f2413] px-3 py-1 text-sm font-semibold text-[#f6efdd] hover:opacity-90">← {t("上一周")}</button>
             <div className="text-center">
               <div className="text-sm font-bold text-[#2f2413]">{wk === 0 ? t("本周") : wk === -1 ? t("上周") : wk === 1 ? t("下周") : weekLabel}</div>
               <div className="text-[11px] text-stone-400">{weekLabel}{wk !== 0 && <button onClick={() => setWk(0)} className="ml-2 underline hover:opacity-80">{t("回本周")}</button>}</div>
             </div>
-            <button onClick={() => setWk((w) => w + 1)} className="rounded-full bg-stone-100 px-3 py-1 text-sm ring-1 ring-stone-300 hover:bg-stone-50">{t("下一周")} →</button>
+            <button onClick={() => setWk((w) => w + 1)} className="rounded-full bg-[#2f2413] px-3 py-1 text-sm font-semibold text-[#f6efdd] hover:opacity-90">{t("下一周")} →</button>
           </div>
 
           {(overdue.length > 0 || overdueTasks.length > 0) && (
@@ -124,6 +127,7 @@ export default function PlanPage() {
           </div>
         </>
       )}
+      <PlanSetup open={setupOpen} onClose={() => setSetupOpen(false)} defaults={{ examDate: (view && view.examDate) || "" }} onDone={() => { setSetupOpen(false); loadDayPlan(); }} />
     </div>
   );
 }
