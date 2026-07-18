@@ -30,7 +30,7 @@ export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
     setBusy(false);
   }
   const Radio = ({ v, label }) => (
-    <label className={"flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm " + (mode === v ? "border-[#2f2413] bg-[#2f2413]/[0.05]" : "border-stone-200")}>
+    <label className={"flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm text-[#2f2413] " + (mode === v ? "border-[#2f2413] bg-[#2f2413]/[0.08] font-semibold" : "border-stone-300")}>
       <input type="radio" checked={mode === v} onChange={() => setMode(v)} /> {label}
     </label>
   );
@@ -41,29 +41,29 @@ export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
         <h2 className="text-lg font-black text-[#2f2413]">🗓️ {t("排一份学习计划")}</h2>
         {!result ? (
           <>
-            <p className="mt-1 text-xs text-stone-500">{t("先把这几项定好,我一次给你排出学习进程(排好后在「本周计划表」里可以再改)。")}</p>
+            <p className="mt-1 text-xs text-stone-600">{t("先把这几项定好,我一次给你排出学习进程(排好后在「本周计划表」里可以再改)。")}</p>
             <div className="mt-3 space-y-3">
               <div>
                 <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">{t("时间要求")}</div>
                 <div className="space-y-1.5">
                   <Radio v="deadline" label={t("有考试日期")} />
-                  {mode === "deadline" && <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm" />}
+                  {mode === "deadline" && <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />}
                   <Radio v="until" label={t("想学到某一天")} />
-                  {mode === "until" && <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm" />}
+                  {mode === "until" && <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />}
                   <Radio v="weeks" label={t("想用几周学完")} />
-                  {mode === "weeks" && <div className="ml-6 flex items-center gap-1 text-sm"><input type="number" min="1" value={weeks} onChange={(e) => setWeeks(e.target.value)} className="w-16 rounded-lg border border-stone-300 px-2 py-1" /> {t("周")}</div>}
+                  {mode === "weeks" && <div className="ml-6 flex items-center gap-1 text-sm"><input type="number" min="1" value={weeks} onChange={(e) => setWeeks(e.target.value)} className="w-16 rounded-lg border border-stone-300 px-2 py-1 text-[#2f2413]" /> {t("周")}</div>}
                   <Radio v="open" label={t("没有时间要求(我来估个大概)")} />
                 </div>
               </div>
               <div>
                 <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">{t("每天大约能学多久(分钟)")}</div>
-                <input type="number" min="10" step="10" value={dailyMinutes} onChange={(e) => setDailyMinutes(e.target.value)} className="w-28 rounded-lg border border-stone-300 px-2 py-1 text-sm" />
+                <input type="number" min="10" step="10" value={dailyMinutes} onChange={(e) => setDailyMinutes(e.target.value)} className="w-28 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />
               </div>
               <div>
                 <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">{t("排哪些天")}</div>
                 <div className="space-y-1.5">
                   {[["all", t("每天都排")], ["noweekend", t("跳过周末")], ["custom", t("自定义(选要跳过的日子)")]].map(([v, label]) => (
-                    <label key={v} className="flex cursor-pointer items-center gap-2 text-sm"><input type="radio" checked={days === v} onChange={() => setDays(v)} /> {label}</label>
+                    <label key={v} className="flex cursor-pointer items-center gap-2 text-sm text-[#2f2413]"><input type="radio" checked={days === v} onChange={() => setDays(v)} /> {label}</label>
                   ))}
                   {days === "custom" && (
                     <div className="ml-6 flex flex-wrap gap-1">
