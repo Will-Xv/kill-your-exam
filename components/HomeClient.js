@@ -120,6 +120,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
   const crossOthers = daily?.crossExam?.others || [];
+  const crossGroupMates = daily?.crossExam?.groupMates || [];
+  const crossGroupName = daily?.crossExam?.groupName || null;
   // 其他考试的今日一件事标签(客户端 i18n,考试名是动态的原样显示)
   const crossTaskLabel = (top) => !top ? t("练一练") :
     top.type === "review" ? `${t("复习到期")}${top.count ? ` (${top.count})` : ""}` :
@@ -344,6 +346,20 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
                 <span className="shrink-0 text-[11px] text-teal-600">{tk.complete ? t("已完成") : (tk.total ? `${tk.done}/${tk.total}` : t("待做"))}</span>
               </a>
             ))}
+          </div>
+        )}
+        {crossGroupMates.length > 0 && (
+          <div className="mt-3 rounded-2xl bg-[#3d2b10]/[0.03] p-2 ring-1 ring-[#e7d9b6]">
+            <div className="mb-1 px-1 text-xs font-semibold text-[#8a6a2c]">📁 {crossGroupName}{t(" · 本组一起管的今日任务")}</div>
+            <div className="space-y-1">
+              {crossGroupMates.map((e) => (
+                <Link key={e.examId} href={e.top?.href || "/plan"} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition hover:bg-slate-50">
+                  <span className="shrink-0 rounded-full bg-[#2f2413]/[0.08] px-2 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">{e.allocMinutes}{t("分钟")}</span>
+                  <span className="min-w-0 flex-1 truncate"><span className="font-medium text-[#2f2413]">{e.name}</span><span className="text-[#8a6a2c]"> · {crossTaskLabel(e.top)}</span></span>
+                  {e.daysLeft != null && <span className="shrink-0 text-[11px] text-[#a98b52]">{e.daysLeft <= 0 ? t("今天") : `${e.daysLeft}${t("天")}`}</span>}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
         {crossOthers.length > 0 && (
