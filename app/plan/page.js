@@ -45,7 +45,15 @@ export default function PlanPage() {
   const [recipeBusy, setRecipeBusy] = useState(false);
   const loadRecipe = () => fetch("/api/recipe").then((r) => (r.ok ? r.json() : null)).then(setRecipe).catch(() => {});
   const revertRecipeNow = () => { setRecipeBusy(true); fetch("/api/recipe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "revert" }) }).then((r) => r.json()).then(() => loadRecipe()).catch(() => {}).finally(() => setRecipeBusy(false)); };
-  useEffect(() => { load(); loadRecipe(); }, []);
+  // 跨考试按天排期(持久化·未完成自动顺延·可编辑·可让杀手重排)
+  const [dayPlan, setDayPlan] = useState(undefined); // undefined=加载中, null=没有
+  const [dpEdit, setDpEdit] = useState(false);
+  const [dpDraft, setDpDraft] = useState([]);
+  const loadDayPlan = () => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => setDayPlan(d ? d.view : null)).catch(() => setDayPlan(null));
+  const dpMark = (seq) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done: true }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
+  const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
+  const dpClear = () => { if (!confirm(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
+  useEffect(() => { load(); loadRecipe(); loadDayPlan(); }, []);
   const exams = data?.exams || [];
   const pct = (e) => (e.kpTotal ? Math.round((e.mastered / e.kpTotal) * 100) : 0);
   const urgencyColor = (d) => d == null ? "text-[#8a7a54]" : d <= 3 ? "text-rose-600" : d <= 10 ? "text-amber-600" : "text-emerald-700";
@@ -53,6 +61,65 @@ export default function PlanPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-black text-[#2f2413]">🗺️ {t("总规划")}</h1>
+
+      {/* 跨考试按天排期:未完成自动顺延(不打乱后续顺序)· 可编辑 · 可让杀手重排 */}
+      <div className="card">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-bold text-[#2f2413]">📅 {t("按天排期")}{dayPlan && dayPlan.title ? <span className="text-sm font-normal text-stone-500">:{dayPlan.title}</span> : null}</h2>
+          {dayPlan && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-stone-500">{t("已完成")} {dayPlan.doneCount}/{dayPlan.total}</span>
+              {!dpEdit ? (
+                <button onClick={() => { setDpDraft([...dayPlan.dueNow, ...dayPlan.future.flatMap((f) => f.items), ...dayPlan.done].map((i) => ({ seq: i.seq, day: i.day, title: i.title, examId: i.examId, taskId: i.taskId, done: i.done }))); setDpEdit(true); }} className="rounded-full bg-stone-100 px-2.5 py-1 ring-1 ring-stone-300 hover:bg-stone-50">✎ {t("编辑")}</button>
+              ) : (
+                <><button onClick={dpSaveEdit} className="rounded-full bg-[#2f2413] px-2.5 py-1 font-semibold text-white hover:opacity-90">{t("保存")}</button><button onClick={() => setDpEdit(false)} className="rounded-full px-2 py-1 text-stone-500">{t("取消")}</button></>
+              )}
+              <button onClick={dpClear} className="rounded-full px-2 py-1 text-rose-500 hover:underline">{t("清空")}</button>
+            </div>
+          )}
+        </div>
+        {dayPlan === undefined ? <div className="shimmer mt-2 h-10 rounded-xl" /> : !dayPlan ? (
+          <p className="mt-2 text-sm text-stone-500">{t("还没有排期。对杀手说「帮我把这几天的任务按天排开」就会生成;没完成的会自动顺延到后面,不打乱顺序。")}</p>
+        ) : dpEdit ? (
+          <div className="mt-2 space-y-1.5">
+            {dpDraft.map((it, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-sm">
+                <span className="text-[11px] text-stone-400">{t("第")}</span>
+                <input type="number" min="0" value={it.day} onChange={(e) => setDpDraft((d) => d.map((x, j) => (j === i ? { ...x, day: Math.max(0, parseInt(e.target.value || "0", 10)) } : x)))} className="w-14 rounded border border-stone-300 px-1 py-0.5 text-center" />
+                <span className="text-[11px] text-stone-400">{t("天")}</span>
+                <input value={it.title} onChange={(e) => setDpDraft((d) => d.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} className="min-w-0 flex-1 rounded border border-stone-300 px-2 py-0.5" />
+                <label className="flex shrink-0 items-center gap-1 text-[11px] text-stone-500"><input type="checkbox" checked={it.done} onChange={(e) => setDpDraft((d) => d.map((x, j) => (j === i ? { ...x, done: e.target.checked } : x)))} />{t("完成")}</label>
+                <button onClick={() => setDpDraft((d) => d.filter((_, j) => j !== i))} className="shrink-0 text-rose-400 hover:text-rose-600">✕</button>
+              </div>
+            ))}
+            <p className="text-[11px] text-stone-400">{t("改「第几天」就能调整顺序/顺延;要大改直接让杀手重排。")}</p>
+          </div>
+        ) : (
+          <div className="mt-2 space-y-3">
+            <div>
+              <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">🔥 {t("现在该做")}{dayPlan.overdueCount > 0 ? <span className="ml-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] text-rose-700">{t("含顺延")} {dayPlan.overdueCount}</span> : null}</div>
+              {dayPlan.dueNow.length === 0 ? <p className="text-xs text-emerald-600">{t("今天的都做完啦 🎉")}</p> : (
+                <div className="space-y-1">{dayPlan.dueNow.map((it) => (
+                  <label key={it.seq} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-slate-50">
+                    <input type="checkbox" checked={false} onChange={() => dpMark(it.seq)} />
+                    <span className="min-w-0 flex-1">{it.title}{it.taskId ? <a href={`/tasks?task=${it.taskId}`} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
+                    {it.date < dayPlan.today && <span className="shrink-0 text-[10px] text-rose-500">{t("原定")} {it.date.slice(5)}</span>}
+                  </label>
+                ))}</div>
+              )}
+            </div>
+            {dayPlan.future.length > 0 && (
+              <div className="border-t border-[#e7d9b6] pt-2">
+                <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">{t("接下来")}</div>
+                <div className="space-y-1.5">{dayPlan.future.map((fd) => (
+                  <div key={fd.date} className="text-sm"><span className="text-[11px] font-semibold text-stone-500">{fd.date.slice(5)}</span><span className="ml-2 text-stone-700">{fd.items.map((i) => i.title).join("、")}</span></div>
+                ))}</div>
+              </div>
+            )}
+            {dayPlan.doneCount > 0 && <div className="text-[11px] text-stone-400">✓ {t("已完成")} {dayPlan.doneCount} {t("项")}</div>}
+          </div>
+        )}
+      </div>
 
       {recipe && recipe.recipe && (
         <div className="card border-indigo-200 bg-indigo-50/50">
