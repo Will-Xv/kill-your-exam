@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Leaderboard from "@/components/Leaderboard";
+import ExamGroupPrompt from "@/components/ExamGroupPrompt";
 import Link from "next/link";
 import { useT } from "@/components/I18n";
 import Tour from "@/components/Tour";
@@ -169,6 +170,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     <>
       <Tour />
       <LayoutLab enabled={true}>
+      <ExamGroupPrompt />
       {nativeShown("leaderboard") && <Editable id="leaderboard"><Leaderboard initial={initialLeaderboard} /></Editable>}
       {/* hero:浅黄底 + 右上角手绘血刃插画 */}
       {nativeShown("hero") && (
