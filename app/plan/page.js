@@ -2,40 +2,53 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 
-// 本周计划表:按周显示的排期日历,可 ← → 前后翻周。每天列出当天安排(勾选完成),当前周顶部显示逾期顺延。
+// 本周计划表:按周显示的排期日历,可 ← → 前后翻周。凡是带日期的都排进来(排期条目+带截止的作业),当前周顶部显示逾期顺延。
 export default function PlanPage() {
   const t = useT();
   const [dayPlan, setDayPlan] = useState(undefined); // undefined=加载中, null=没有排期
+  const [taskItems, setTaskItems] = useState([]);    // 带截止日期的作业(只读并进周历)
   const [dpEdit, setDpEdit] = useState(false);
   const [dpDraft, setDpDraft] = useState([]);
-  const [wk, setWk] = useState(0); // 周偏移:0=本周, -1=上周, +1=下周
-  const loadDayPlan = () => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => setDayPlan(d ? d.view : null)).catch(() => setDayPlan(null));
+  const [wk, setWk] = useState(0); // 周偏移:0=本周
+  const loadDayPlan = () => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); }).catch(() => setDayPlan(null));
   const dpMark = (seq, done) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
   const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
   const dpClear = () => { if (!confirm(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
   useEffect(() => { loadDayPlan(); }, []);
 
   const ymd = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-  const today = dayPlan ? dayPlan.today : ymd(new Date());
-  // 选中周的周一..周日
+  const view = dayPlan || { today: ymd(new Date()), dueNow: [], future: [], done: [], overdueCount: 0 };
+  const today = view.today;
   const base = new Date(); base.setHours(0, 0, 0, 0); base.setDate(base.getDate() + wk * 7);
   const monday = new Date(base); monday.setDate(base.getDate() - ((base.getDay() + 6) % 7));
   const weekDays = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return ymd(d); });
   const WD = [t("周一"), t("周二"), t("周三"), t("周四"), t("周五"), t("周六"), t("周日")];
   const weekLabel = `${weekDays[0].slice(5)} – ${weekDays[6].slice(5)}`;
 
-  // 把所有条目按日期归类
-  const undone = dayPlan ? [...(dayPlan.dueNow || []), ...((dayPlan.future || []).flatMap((f) => f.items))] : [];
-  const done = dayPlan ? (dayPlan.done || []) : [];
+  const undone = [...(view.dueNow || []), ...((view.future || []).flatMap((f) => f.items))];
+  const done = view.done || [];
   const all = [...undone.map((x) => ({ ...x, done: false })), ...done.map((x) => ({ ...x, done: true }))];
   const onDay = (dstr) => all.filter((x) => x.date === dstr).sort((a, b) => a.seq - b.seq);
   const overdue = wk === 0 ? undone.filter((x) => x.date < today).sort((a, b) => a.day - b.day || a.seq - b.seq) : [];
+  const tasksOnDay = (dstr) => taskItems.filter((x) => x.date === dstr);
+  const overdueTasks = wk === 0 ? taskItems.filter((x) => x.date < today) : [];
 
-  const row = (it) => (
-    <label key={it.seq} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50">
-      <input type="checkbox" checked={!!it.done} onChange={() => dpMark(it.seq, !it.done)} />
-      <span className={"min-w-0 flex-1 " + (it.done ? "text-slate-400 line-through" : "")}>{it.title}{it.taskId ? <a href={`/tasks?task=${it.taskId}`} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
-    </label>
+  const goLink = (it) => it.taskId ? `/tasks?task=${it.taskId}` : (it.href || null);
+  const row = (it) => {
+    const link = goLink(it);
+    return (
+      <label key={it.seq} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50">
+        <input type="checkbox" checked={!!it.done} onChange={() => dpMark(it.seq, !it.done)} />
+        <span className={"min-w-0 flex-1 " + (it.done ? "text-slate-400 line-through" : "")}>{it.title}{link ? <a href={link} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
+      </label>
+    );
+  };
+  const taskRow = (tk) => (
+    <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50">
+      <span className="shrink-0 text-teal-600">📝</span>
+      <span className="min-w-0 flex-1 truncate"><span className="text-[#8a6a2c]">{tk.examName} · </span>{tk.title}{tk.kind === "assignment" ? <span className="ml-1 rounded bg-teal-100 px-1 text-[10px] text-teal-700">{t("作业")}</span> : null}</span>
+      <span className="shrink-0 text-xs text-teal-600 underline">{t("去做")}</span>
+    </a>
   );
 
   return (
@@ -44,7 +57,7 @@ export default function PlanPage() {
         <h1 className="text-2xl font-black text-[#2f2413]">📅 {t("本周计划表")}</h1>
         {dayPlan && !dpEdit && (
           <div className="flex items-center gap-2 text-xs">
-            <button onClick={() => { setDpDraft(all.map((i) => ({ seq: i.seq, day: i.day, title: i.title, examId: i.examId, taskId: i.taskId, done: i.done }))); setDpEdit(true); }} className="rounded-full bg-stone-100 px-2.5 py-1 ring-1 ring-stone-300 hover:bg-stone-50">✎ {t("编辑")}</button>
+            <button onClick={() => { setDpDraft(all.map((i) => ({ seq: i.seq, day: i.day, title: i.title, examId: i.examId, taskId: i.taskId, href: i.href, done: i.done }))); setDpEdit(true); }} className="rounded-full bg-stone-100 px-2.5 py-1 ring-1 ring-stone-300 hover:bg-stone-50">✎ {t("编辑")}</button>
             <button onClick={dpClear} className="rounded-full px-2 py-1 text-rose-500 hover:underline">{t("清空")}</button>
           </div>
         )}
@@ -52,7 +65,7 @@ export default function PlanPage() {
 
       {dayPlan === undefined ? (
         <div className="shimmer h-24 rounded-2xl" />
-      ) : !dayPlan ? (
+      ) : (!dayPlan && taskItems.length === 0) ? (
         <div className="card text-sm text-stone-500">{t("还没有排期。对杀手说「帮我把这几天的任务按天排开」或发一份 syllabus 让它排,没完成的会自动顺延。")}</div>
       ) : dpEdit ? (
         <div className="card space-y-1.5">
@@ -79,27 +92,32 @@ export default function PlanPage() {
             <button onClick={() => setWk((w) => w + 1)} className="rounded-full bg-stone-100 px-3 py-1 text-sm ring-1 ring-stone-300 hover:bg-stone-50">{t("下一周")} →</button>
           </div>
 
-          {overdue.length > 0 && (
+          {(overdue.length > 0 || overdueTasks.length > 0) && (
             <div className="card border-rose-200 bg-rose-50/50">
               <div className="mb-1 text-xs font-semibold text-rose-700">⚠️ {t("逾期顺延(原定更早、还没做)")}</div>
-              <div className="space-y-0.5">{overdue.map((it) => (
-                <label key={it.seq} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/60">
-                  <input type="checkbox" checked={false} onChange={() => dpMark(it.seq, true)} />
-                  <span className="min-w-0 flex-1">{it.title}{it.taskId ? <a href={`/tasks?task=${it.taskId}`} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
-                  <span className="shrink-0 text-[10px] text-rose-500">{t("原定")} {it.date.slice(5)}</span>
-                </label>
-              ))}</div>
+              <div className="space-y-0.5">
+                {overdueTasks.map(taskRow)}
+                {overdue.map((it) => {
+                  const link = goLink(it);
+                  return (
+                    <label key={it.seq} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/60">
+                      <input type="checkbox" checked={false} onChange={() => dpMark(it.seq, true)} />
+                      <span className="min-w-0 flex-1">{it.title}{link ? <a href={link} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
+                      <span className="shrink-0 text-[10px] text-rose-500">{t("原定")} {it.date.slice(5)}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           <div className="space-y-2">
             {weekDays.map((dstr, i) => {
-              const items = onDay(dstr);
-              const isToday = dstr === today;
+              const items = onDay(dstr); const tks = tasksOnDay(dstr); const isToday = dstr === today;
               return (
                 <div key={dstr} className={"card " + (isToday ? "border-amber-300 bg-amber-50/40" : "")}>
                   <div className="mb-0.5 flex items-center gap-2 text-xs font-semibold text-[#8a6a2c]">{WD[i]} <span className="text-stone-400">{dstr.slice(5)}</span>{isToday && <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">{t("今天")}</span>}</div>
-                  {items.length === 0 ? <p className="text-xs text-stone-300">—</p> : <div>{items.map(row)}</div>}
+                  {(items.length === 0 && tks.length === 0) ? <p className="text-xs text-stone-300">—</p> : <div>{items.map(row)}{tks.map(taskRow)}</div>}
                 </div>
               );
             })}
