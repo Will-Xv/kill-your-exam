@@ -16,7 +16,7 @@ export default function PlanPage() {
   const dpMark = (seq, done) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
   const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
   const dpClear = () => { if (!confirm(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
-  useEffect(() => { loadDayPlan(); }, []);
+  useEffect(() => { loadDayPlan(); try { if (new URLSearchParams(window.location.search).get("setup") === "1") setSetupOpen(true); } catch {} }, []);
 
   const ymd = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
   const view = dayPlan || { today: ymd(new Date()), dueNow: [], future: [], done: [], overdueCount: 0 };

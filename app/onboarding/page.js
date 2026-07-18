@@ -107,13 +107,13 @@ export default function Onboarding() {
       if (cl.length) { try { await fetch("/api/materials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ checklist: cl, examId }) }); } catch {} }
       await aiFetch("/api/onboarding/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId }) });
       const r = await fetch("/api/exam/related", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examName: name, targetExamId: examId }) }).then((x) => x.json()).catch(() => ({ related: [] }));
-      if (r.related?.length) { setRelated(r.related); setStep(5); setBusy(false); } else location.href = "/";
+      if (r.related?.length) { setRelated(r.related); setStep(5); setBusy(false); } else location.href = "/plan?setup=1";
     } catch { setBusy(false); }
   }
   async function borrow(fromId) {
     setBusy(true);
     await fetch("/api/exam/borrow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromExamId: fromId, toExamId: examId }) });
-    location.href = "/";
+    location.href = "/plan?setup=1";
   }
 
   const CONF = { high: t("较有把握"), medium: t("一般"), low: t("把握不大"), none: t("几乎不了解") };
@@ -256,7 +256,7 @@ export default function Onboarding() {
               <button className="btn-ghost py-2 text-sm" onClick={() => borrow(r.id)} disabled={busy}>{t("借用")}</button>
             </div>
           ))}
-          <button className="btn w-full" onClick={() => (location.href = "/")}>{t("不借用,直接开始")}</button>
+          <button className="btn w-full" onClick={() => (location.href = "/plan?setup=1")}>{t("不借用,直接开始")}</button>
         </div>
       )}
     </div>
