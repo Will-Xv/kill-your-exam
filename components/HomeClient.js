@@ -204,15 +204,13 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           {aggregating && (
             <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#2f2413]/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-[#6b4a25] ring-1 ring-[#dbc999]">🧩 {t("汇总复习")} · {t("含 {n} 门子考试").replace("{n}", aggregateCount)}</div>
           )}
-          {((subExams && subExams.length > 0) || (taskSubs && taskSubs.length > 0)) && (() => {
-            // 子考试(用 exam_date)与实践作业(用 due)混在一起,按截止日期升序排(没日期的排最后)。
-            const mixed = [
-              ...((subExams || []).map((sx) => ({ _t: "exam", _d: sx.exam_date || null, sx }))),
-              ...((taskSubs || []).map((tk) => ({ _t: "task", _d: tk.due || null, tk }))),
-            ].sort((a, b) => (a._d && b._d) ? (a._d < b._d ? -1 : a._d > b._d ? 1 : 0) : (a._d ? -1 : b._d ? 1 : 0));
+          {(subExams && subExams.length > 0) && (() => {
+            // 子考试(用 exam_date),按考试日期升序排(没日期的排最后)。实践作业已移到「今日任务」里。
+            const mixed = ((subExams || []).map((sx) => ({ _t: "exam", _d: sx.exam_date || null, sx })))
+              .sort((a, b) => (a._d && b._d) ? (a._d < b._d ? -1 : a._d > b._d ? 1 : 0) : (a._d ? -1 : b._d ? 1 : 0));
             return (
             <div className="mt-2">
-              <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试/作业")}:</span>
+              <span className="text-[11px] font-semibold text-[#8a6a2c]">{t("子考试")}:</span>
               <div className="mt-1 flex flex-col gap-1">
                 {mixed.map((it) => {
                   if (it._t === "exam") {
@@ -234,16 +232,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
                       </button>
                     );
                   }
-                  const tk = it.tk;
-                  return (
-                    <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} title={t("实践作业(点开做)")}
-                      className="inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition bg-[#123a2a]/[0.06] text-[#1f5c40] ring-[#a9d6bf] hover:brightness-95">
-                      🛠 {tk.title}{tk.due ? <span className="opacity-60 text-[10px]"> ⏳{tk.due.slice(5)}</span> : null}
-                      <span className={"ml-1 rounded-full px-1.5 py-0.5 text-[10px] " + (tk.complete ? "bg-emerald-100 text-emerald-700" : "bg-[#123a2a]/[0.1] text-[#1f5c40]")}>
-                        {tk.complete ? t("已完成") : (tk.total ? `${tk.done}/${tk.total}` : t("待做"))}
-                      </span>
-                    </a>
-                  );
+                  return null;
                 })}
               </div>
             </div>
@@ -342,6 +331,21 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             ))}
           </div>
         )}
+        {taskSubs && taskSubs.length > 0 && (
+          <div className="mt-1 space-y-1">
+            {taskSubs.map((tk) => (
+              <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition ${tk.complete ? "text-slate-400" : "hover:bg-slate-50"}`}>
+                <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs ${tk.complete ? "border-teal-500 bg-teal-500 text-white" : "border-teal-300 text-teal-600"}`}>{tk.complete ? "✓" : "🛠"}</span>
+                <span className="min-w-0 flex-1">
+                  <span className={tk.complete ? "line-through" : "font-medium"}>{tk.title}</span>
+                  <span className="ml-1.5 whitespace-nowrap rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">{t("作业")}</span>
+                  {tk.due ? <span className="ml-1 whitespace-nowrap text-[11px] text-[#a98b52]">⏳{t("截止")} {tk.due.slice(5)}</span> : null}
+                </span>
+                <span className="shrink-0 text-[11px] text-teal-600">{tk.complete ? t("已完成") : (tk.total ? `${tk.done}/${tk.total}` : t("待做"))}</span>
+              </a>
+            ))}
+          </div>
+        )}
         {crossOthers.length > 0 && (
           <div className="mt-3 border-t border-[#e7d9b6] pt-3">
             <div className="mb-1.5 flex items-center justify-between">
@@ -379,10 +383,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             🛟 {t("今天真没时间?至少做这一件保底,其余明天顺延:")}<span className="font-semibold">{labelFor(daily.fallback.item)}</span>
           </Link>
         )}
-        {daily?.practical && (
-          <Link href="/tasks" className="mt-2 block rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-800 ring-1 ring-teal-200 hover:brightness-95">
-            🛠️ {daily.practical.generating ? t("正在给你布置一个实践作业…") : <>{t("实践作业:")}<span className="font-semibold">{daily.practical.title}</span>{daily.practical.milestoneTitle ? " · " + daily.practical.milestoneTitle : ""}{daily.practical.total ? ` (${daily.practical.done}/${daily.practical.total})` : ""}</>}
-          </Link>
+        {daily?.practical && daily.practical.generating && (
+          <div className="mt-2 block rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-800 ring-1 ring-teal-200">
+            🛠️ {t("正在给你布置一个实践作业…")}
+          </div>
         )}
       </div>
       </Editable>
