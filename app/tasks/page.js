@@ -66,9 +66,9 @@ export default function TasksPage() {
           <div key={tk.id} className="card hover:ring-2 hover:ring-indigo-300">
             <div className="flex items-start justify-between gap-2">
               <button onClick={() => openTask(tk.id)} className="flex-1 text-left">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">{tk.title}</span>
-                  <span className="text-xs text-stone-400">{tk.done}/{tk.milestoneCount} {t("里程碑")}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold">{tk.title}{tk.kind === "assignment" && <span className="ml-1.5 align-middle rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">{t("作业")}</span>}</span>
+                  <span className="shrink-0 text-xs text-stone-400">{tk.kind === "assignment" ? (tk.complete ? t("已完成") : t("待做")) : `${tk.done}/${tk.milestoneCount} ${t("里程碑")}`}</span>
                 </div>
                 <div className="mt-0.5 text-xs text-stone-500 line-clamp-2"><MD inline>{tk.brief}</MD></div>
                 {tk.dueDate && <p className="mt-0.5 text-xs font-medium text-amber-700">⏳ {t("截止")}: {tk.dueDate}</p>}
@@ -90,8 +90,12 @@ function TaskDetail({ task, judge0, onBack, onGraded }) {
     <div className="space-y-3">
       <button onClick={onBack} className="text-sm text-stone-500">← {t("返回任务列表")}</button>
       <div className="card">
-        <h1 className="text-xl font-black">{task.title}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-xl font-black">{task.title}{task.kind === "assignment" && <span className="ml-2 align-middle rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-semibold text-teal-700">{t("作业")}</span>}</h1>
+          {task.kind === "assignment" && <AssignDone task={task} onGraded={onGraded} aiFetch={aiFetch} t={t} />}
+        </div>
         <MD className="mt-1 text-sm text-stone-600 prose-zh">{task.brief}</MD>
+        {task.kind === "assignment" && <p className="mt-1 text-xs text-stone-400">{t("这是作业助手型作业:下面用『作业助手』陪你做(可传/贴文件),做完点上面『标记完成』就清空对话。")}</p>}
       </div>
       {task.milestones.map((ms, i) => (
         <Milestone key={i} task={task} idx={i} ms={ms} judge0={judge0} prog={task.progress[i]} onGraded={onGraded} aiFetch={aiFetch} t={t} />
@@ -101,21 +105,36 @@ function TaskDetail({ task, judge0, onBack, onGraded }) {
   );
 }
 
+function AssignDone({ task, onGraded, aiFetch, t }) {
+  const done = !!task.completed_at;
+  const [busy, setBusy] = useState(false);
+  async function toggle() {
+    if (busy) return; setBusy(true);
+    try { await aiFetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markDone: !done, taskId: task.id }) }); onGraded(); } catch {}
+    setBusy(false);
+  }
+  return done
+    ? <button onClick={toggle} disabled={busy} className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-300 hover:bg-emerald-50">✓ {t("已完成")} · {t("取消")}</button>
+    : <button onClick={toggle} disabled={busy} className="shrink-0 rounded-full bg-[#2f2413] px-3 py-1 text-xs font-semibold text-white hover:opacity-90">{busy ? "…" : t("标记完成")}</button>;
+}
+
 function TaskChat({ task }) {
   const t = useT();
   const aiFetch = useAiFetch();
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState([]);
   const boxRef = useRef(null);
   useEffect(() => { fetch(`/api/tasks/chat?taskId=${task.id}`).then((r) => r.json()).then((d) => setMsgs(d.messages || [])).catch(() => {}); }, [task.id]);
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy]);
   async function send() {
-    const m = text.trim(); if (!m || busy) return;
-    setMsgs((x) => [...x, { role: "user", content: m }]); setText(""); setBusy(true);
+    const m = text.trim(); if ((!m && !files.length) || busy) return;
+    const atts = await filesToAttachments(files);
+    setMsgs((x) => [...x, { role: "user", content: m + (atts.length ? " 📎" + atts.length : "") }]); setText(""); setFiles([]); setBusy(true);
     // 把【当前正在做的代码 + 最新运行结果】(各里程碑草稿,未提交也算)一并发给助教,让它看得到我的运行/测试结果。
     const live = (task.milestones || []).map((_, i) => { try { const d = JSON.parse(localStorage.getItem(`kye_task:${task.id}:${i}`) || "null"); return d ? { idx: i, code: d.code, evi: d.evi, runOut: d.runOut, runInput: d.runInput } : null; } catch { return null; } }).filter(Boolean);
-    try { const r = await aiFetch("/api/tasks/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, message: m, live }) }); setMsgs((x) => [...x, { role: "assistant", content: r.reply || "…" }]); } catch {}
+    try { const r = await aiFetch("/api/tasks/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, message: m || "(见附件)", live, attachments: atts }) }); setMsgs((x) => [...x, { role: "assistant", content: r.reply || "…" }]); } catch {}
     setBusy(false);
   }
   return (
@@ -132,8 +151,10 @@ function TaskChat({ task }) {
         ))}
         {busy && <div className="animate-pulse text-xs text-stone-400">{t("思考中…")}</div>}
       </div>
-      <div className="mt-2 flex gap-2">
-        <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={t("问点什么…(Enter 发送)")} className="flex-1 resize-none rounded-xl border border-stone-200 px-3 py-2 text-sm focus:border-amber-400 focus:outline-none" />
+      {files.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{files.map((f, i) => (<span key={i} className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] text-stone-600">📎 {f.name}<button onClick={() => setFiles((x) => x.filter((_, j) => j !== i))} className="text-stone-400 hover:text-rose-500">✕</button></span>))}</div>}
+      <div className="mt-2 flex items-end gap-2">
+        <label className="shrink-0 cursor-pointer rounded-xl border border-stone-200 px-2.5 py-2 text-sm text-stone-500 hover:bg-stone-50" title={t("传/贴文件")}>📎<input type="file" multiple className="hidden" onChange={(e) => { setFiles((x) => [...x, ...Array.from(e.target.files || [])]); e.target.value = ""; }} /></label>
+        <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} onPaste={(e) => { const fs = Array.from(e.clipboardData?.files || []); if (fs.length) { e.preventDefault(); setFiles((x) => [...x, ...fs]); } }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder={t("问点什么,或传/贴文件…(Enter 发送)")} className="flex-1 resize-none rounded-xl border border-stone-200 px-3 py-2 text-sm focus:border-amber-400 focus:outline-none" />
         <button className="btn px-4" disabled={busy} onClick={send}>{t("发送")}</button>
       </div>
     </div>

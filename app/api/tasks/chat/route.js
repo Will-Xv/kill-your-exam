@@ -19,11 +19,11 @@ export async function POST(req) {
   try {
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
-    const { taskId, message, live } = await req.json();
+    const { taskId, message, live, attachments } = await req.json();
     const task = getTask(Number(taskId));
     if (!task || !exam || !inScope(exam.id, task.exam_id)) return forbidden();
-    if (!String(message || "").trim()) return Response.json({ reply: "" });
-    const r = await taskChatTurn(user, task, message, Array.isArray(live) ? live : []);
+    if (!String(message || "").trim() && !(Array.isArray(attachments) && attachments.length)) return Response.json({ reply: "" });
+    const r = await taskChatTurn(user, task, message, Array.isArray(live) ? live : [], Array.isArray(attachments) ? attachments : []);
     return Response.json(r);
   } catch (e) { return aiErrorResponse(e); }
 }

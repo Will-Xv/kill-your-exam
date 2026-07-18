@@ -1,6 +1,6 @@
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { assignTask, listTasks, deleteTask, getPracticalMode, setPracticalMode } from "@/lib/practical";
+import { assignTask, listTasks, deleteTask, getPracticalMode, setPracticalMode, createAssignment, markAssignmentDone } from "@/lib/practical";
 import { inScope } from "@/lib/db";
 import { getTask } from "@/lib/practical";
 import { judge0Config } from "@/lib/judge0";
@@ -21,6 +21,15 @@ export async function POST(req) {
     if (!exam) return Response.json({ error: "no_exam" }, { status: 400 });
     const b = await req.json();
     if (b.setMode !== undefined) return Response.json({ ok: true, practicalMode: setPracticalMode(exam.id, user.id, !!b.setMode) });
+    if (b.createAssignment) {
+      const r = await createAssignment(user, exam, { title: b.title, brief: b.brief, dueDate: b.dueDate });
+      return Response.json(r);
+    }
+    if (b.markDone !== undefined && b.taskId) {
+      const tk = getTask(Number(b.taskId));
+      if (!tk || !inScope(exam.id, tk.exam_id)) return Response.json({ ok: false });
+      return Response.json({ ok: markAssignmentDone(Number(b.taskId), !!b.markDone) });
+    }
     if (b.delete) {
       const tk = getTask(Number(b.delete));
       if (!tk || !inScope(exam.id, tk.exam_id)) return Response.json({ ok: false });
