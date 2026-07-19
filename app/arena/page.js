@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog, alertDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useState, useRef, useEffect } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -119,11 +120,11 @@ export default function ArenaPage() {
   const launchCustom = (m) => { const l = { key: "custom:" + m.id, id: m.id, emoji: m.emoji, title: m.name, meterLabel: m.meter_label || "进度", down: m.meter_dir === "down", format: m.format, spec: m.spec, winDesc: m.win_desc }; if (m.format === "video") { setLaunch(l); } else { start(l); } };
   async function genModes() {
     setGenBusy(true);
-    try { const r = await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generate: true, count: 3 }) }); loadModes(); if (r && r.created) alert(t("已生成为独立考核栏目(在首页/更多功能里):") + " " + r.created.map((m) => m.name).join("、")); } catch {}
+    try { const r = await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generate: true, count: 3 }) }); loadModes(); if (r && r.created) alertDialog(t("已生成为独立考核栏目(在首页/更多功能里):") + " " + r.created.map((m) => m.name).join("、")); } catch {}
     setGenBusy(false);
   }
   async function del(id) {
-    if (!confirm(t("删除这个自定义模式?"))) return;
+    if (!await confirmDialog(t("删除这个自定义模式?"))) return;
     try { await fetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); loadModes(); } catch {}
   }
 
@@ -310,7 +311,7 @@ function Creator({ t, aiFetch, onCreated }) {
   async function create() {
     if (!name.trim() || !spec.trim()) return;
     setBusy(true);
-    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); if (kind === "exam_form") alert(t("已存进竞技场,随时能来这里选。想把它(或竞技场里任何栏目)放到首页/导航栏,直接跟杀手说让它挪就行。")); onCreated(); } catch {}
+    try { await aiFetch("/api/arena/modes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, name, spec, meterLabel, winDesc, meterDir: dir, format: kind === "exam_form" ? format : "interactive" }) }); if (kind === "exam_form") alertDialog(t("已存进竞技场,随时能来这里选。想把它(或竞技场里任何栏目)放到首页/导航栏,直接跟杀手说让它挪就行。")); onCreated(); } catch {}
     setBusy(false);
   }
   return (

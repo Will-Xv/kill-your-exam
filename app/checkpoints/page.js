@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 
@@ -17,7 +18,7 @@ export default function Checkpoints() {
   useEffect(() => { load(); }, []);
 
   async function rollback(id, label) {
-    if (!confirm(t("确定回档撤销这次「{x}」?这会把相关考试还原到该操作【执行前】的状态,当前之后的改动会被覆盖。").replace("{x}", label))) return;
+    if (!await confirmDialog(t("确定回档撤销这次「{x}」?这会把相关考试还原到该操作【执行前】的状态,当前之后的改动会被覆盖。").replace("{x}", label))) return;
     setBusy(id); setMsg("");
     try {
       const d = await fetch("/api/checkpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "rollback", checkpointId: id }) }).then((r) => r.json());
@@ -36,7 +37,7 @@ export default function Checkpoints() {
     setBusy(0);
   }
   async function clearAll() {
-    if (!confirm(t("清空全部回档存档点?清空后就不能再撤销之前的操作了。"))) return;
+    if (!await confirmDialog(t("清空全部回档存档点?清空后就不能再撤销之前的操作了。"))) return;
     setBusy(-1);
     try { await fetch("/api/checkpoints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }); await load(); } catch {}
     setBusy(0);

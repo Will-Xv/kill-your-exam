@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 
 // 开发者:按题目 id 检查/修复一道题(看/改原始 JSON、标记问题、删除)。/bugs 里可用 ?q=<id> 直达。
@@ -28,7 +29,7 @@ export default function QuestionTool({ t }) {
 
   async function act(action) {
     if (!q) return;
-    if (action === "delete" && !confirm(t("确定永久删除这道题?(做过它的记录会保留,但题目消失)"))) return;
+    if (action === "delete" && !await confirmDialog(t("确定永久删除这道题?(做过它的记录会保留,但题目消失)"))) return;
     setBusy(true); setMsg("");
     try {
       const r = await fetch("/api/dev/question", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: q.id, action, body, answer }) });

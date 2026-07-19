@@ -1,4 +1,5 @@
 "use client";
+import { alertDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -29,7 +30,7 @@ export default function LangTransferPage() {
   }
   async function analyze() {
     setBusy("an");
-    try { const r = await aiFetch("/api/lang-transfer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "analyze" }) }); await load(); if (r && r.reason === "no_new_wrong") alert(t("暂时没有新的错题可分析(先去做几道语言题)。")); }
+    try { const r = await aiFetch("/api/lang-transfer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "analyze" }) }); await load(); if (r && r.reason === "no_new_wrong") alertDialog(t("暂时没有新的错题可分析(先去做几道语言题)。")); }
     catch {}
     setBusy("");
   }

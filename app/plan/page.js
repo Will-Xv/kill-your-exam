@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import PlanSetup from "@/components/PlanSetup";
@@ -16,7 +17,7 @@ export default function PlanPage() {
   const loadDayPlan = (openSetupAfter = false) => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); setExamDate((d && d.examDate) || ""); if (openSetupAfter) setSetupOpen(true); }).catch(() => setDayPlan(null));
   const dpMark = (seq, done) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
   const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
-  const dpClear = () => { if (!confirm(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
+  const dpClear = async () => { if (!await confirmDialog(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
   useEffect(() => { let wantSetup = false; try { wantSetup = new URLSearchParams(window.location.search).get("setup") === "1"; } catch {} loadDayPlan(wantSetup); }, []);
 
   const ymd = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;

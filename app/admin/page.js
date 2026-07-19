@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import React, { useEffect, useState } from "react";
 import DevSwitcher from "@/components/DevSwitcher";
@@ -47,7 +48,7 @@ export default function Admin() {
   });
   useEffect(() => { load(); }, []);
   async function act(action, userId) {
-    if (action === "delete" && !confirm(t("确定删除该账号?30 天内可恢复,30 天后永久清除。"))) return;
+    if (action === "delete" && !await confirmDialog(t("确定删除该账号?30 天内可恢复,30 天后永久清除。"))) return;
     await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, userId }) });
     load();
   }

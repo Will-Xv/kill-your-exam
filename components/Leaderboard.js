@@ -1,4 +1,5 @@
 "use client";
+import { alertDialog } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import Link from "next/link";
@@ -19,7 +20,7 @@ export default function Leaderboard({ initial = null, full = false }) {
 
   async function taunt(uid) {
     setBusyId(uid);
-    try { await fetch("/api/taunt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send", toUserId: uid }) }); alert(t("嘲讽已送出!")); } catch {}
+    try { await fetch("/api/taunt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send", toUserId: uid }) }); alertDialog(t("嘲讽已送出!")); } catch {}
     setBusyId(0);
   }
 

@@ -1,4 +1,5 @@
 "use client";
+import { alertDialog } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -67,7 +68,7 @@ export default function Onboarding() {
       const r = await fetch("/api/onboarding/create", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ examId, name, examDate, dailyMinutes, examType, school, notes }) });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok || d.error) { alert(d.error || t("创建失败,请重试")); setBusy(false); return; }
+      if (!r.ok || d.error) { alertDialog(d.error || t("创建失败,请重试")); setBusy(false); return; }
       setExamId(d.examId);
       if (examType === "language" && (langBg.native || langBg.known || langBg.target)) {
         try { await fetch("/api/lang-transfer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "background", background: { native: langBg.native, known: langBg.known.split(/[,，、]/).map((x) => x.trim()).filter(Boolean), target: langBg.target || name } }) }); } catch {}

@@ -1,4 +1,5 @@
 "use client";
+import { alertDialog } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -23,7 +24,7 @@ export default function UploadQuizPage() {
         window.location.href = `/practice?mode=quiz&ids=${ids}${r.sessionId ? "&quiz=" + r.sessionId : ""}`;   // 交给练习页,全套体验;quiz=会话id 供"重新识别"
         return;
       }
-      alert(t("没识别出题目,换个更清晰的文件再试。"));
+      alertDialog(t("没识别出题目,换个更清晰的文件再试。"));
     } catch (err) { /* aiFetch 已弹错误框 */ }
     setBusy(false);
   }

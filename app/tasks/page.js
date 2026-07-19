@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog, alertDialog, promptDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -27,7 +28,7 @@ export default function TasksPage() {
 
   async function del(id, e) {
     e.stopPropagation();
-    if (!confirm(t("删除这个实践作业?"))) return;
+    if (!await confirmDialog(t("删除这个实践作业?"))) return;
     try { await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delete: id }) }); load(); } catch {}
   }
   async function togglePmode() {
@@ -191,10 +192,10 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   async function appeal(ti) {
     setAppealing(ti);
     try {
-      const note = prompt(t("(可选)说说你觉得这个用例哪里不对:")) || "";
+      const note = (await promptDialog(t("(可选)说说你觉得这个用例哪里不对:"))) || "";
       const r = await aiFetch("/api/tasks/appeal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, idx, testIndex: ti, note }) });
-      if (r.verdict === "invalid") alert(t("申诉成立:该用例已判无效,不再计入判分。") + (r.note ? "\n" + r.note : ""));
-      else alert(t("复核后认为该用例是对的。") + (r.note ? "\n" + r.note : ""));
+      if (r.verdict === "invalid") alertDialog(t("申诉成立:该用例已判无效,不再计入判分。") + (r.note ? "\n" + r.note : ""));
+      else alertDialog(t("复核后认为该用例是对的。") + (r.note ? "\n" + r.note : ""));
       onGraded();
     } catch {}
     setAppealing(-1);
@@ -212,7 +213,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
   }
   async function submit() {
     setBusy("submit");
-    try { const r = await aiFetch("/api/tasks/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, idx, submission: isRun ? code : evi, language: lang, attachments: isRun ? undefined : eviAtts }) }); if (r.needKey) alert(t("需要管理员在设置里配置 Judge0 密钥才能运行判分。")); else onGraded(); } catch {}
+    try { const r = await aiFetch("/api/tasks/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ taskId: task.id, idx, submission: isRun ? code : evi, language: lang, attachments: isRun ? undefined : eviAtts }) }); if (r.needKey) alertDialog(t("需要管理员在设置里配置 Judge0 密钥才能运行判分。")); else onGraded(); } catch {}
     setBusy("");
   }
 

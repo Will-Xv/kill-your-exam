@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -67,7 +68,7 @@ export default function Materials() {
     setOpenBusy(false);
   }
   async function del(id) {
-    if (!confirm(t("确定删除这份资料?相关检索内容也会移除。"))) return;
+    if (!await confirmDialog(t("确定删除这份资料?相关检索内容也会移除。"))) return;
     await fetch("/api/materials/upload", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     load();
   }

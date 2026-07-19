@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 // 栏目分配面板:五列(导航栏/更多/更多功能/首页大模块/隐藏),把功能当卡片在列之间拖(带跟手 + 落位动画)。
 // 拖完即时生效在开发者自己视图;点「发布」后所有用户生效。第三阶段杀手也走同一放置表。
 import { useState, useRef, useEffect } from "react";
@@ -85,9 +86,9 @@ export default function ItemLibrary({ onClose }) {
               <button onClick={() => setBp("mobile")} style={{ ...btn, borderRadius: 0, background: bp === "mobile" ? "#2f2413" : "#fff", color: bp === "mobile" ? "#f6efdd" : "#3d2b10" }}>{t("手机")}</button>
             </div>
             <button onClick={() => { placement.applyToExam(); onClose(); }} style={{ ...btn, background: "#2f7a3d", color: "#fff" }}>✓ {t("应用到当前考试")}</button>
-            {S.examPlacement && <button onClick={() => { if (window.confirm(t("重置本考试布局?回到默认布局。"))) placement.resetExam(); }} style={{ ...btn, background: "#fff", color: "#3d2b10", border: "1px solid #e4d5af" }}>{t("重置本考试")}</button>}
-            {S.canPublish && <button onClick={() => { if (window.confirm(t("发布为默认?所有用户的功能位置都会按这个。"))) placement.publish(); }} style={{ ...btn, background: "#9e140c", color: "#fff" }}>🌐 {t("发布为默认")}</button>}
-            {S.canPublish && S.publishedDefault && <button onClick={() => { if (window.confirm(t("取消发布?所有用户恢复默认。"))) placement.unpublish(); }} style={{ ...btn, background: "#fff", color: "#9e140c", border: "1px solid #e4d5af" }}>{t("取消发布")}</button>}
+            {S.examPlacement && <button onClick={async () => { if (await confirmDialog(t("重置本考试布局?回到默认布局。"))) placement.resetExam(); }} style={{ ...btn, background: "#fff", color: "#3d2b10", border: "1px solid #e4d5af" }}>{t("重置本考试")}</button>}
+            {S.canPublish && <button onClick={async () => { if (await confirmDialog(t("发布为默认?所有用户的功能位置都会按这个。"))) placement.publish(); }} style={{ ...btn, background: "#9e140c", color: "#fff" }}>🌐 {t("发布为默认")}</button>}
+            {S.canPublish && S.publishedDefault && <button onClick={async () => { if (await confirmDialog(t("取消发布?所有用户恢复默认。"))) placement.unpublish(); }} style={{ ...btn, background: "#fff", color: "#9e140c", border: "1px solid #e4d5af" }}>{t("取消发布")}</button>}
             <button onClick={() => { placement.resetWorking(); }} style={{ ...btn, background: "#fff", color: "#3d2b10", border: "1px solid #e4d5af" }}>{t("重置")}</button>
             <button onClick={onClose} style={{ ...btn, background: "#2f2413", color: "#f6efdd" }}>{t("关闭")}</button>
           </div>

@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
 import MD from "@/components/MD";
@@ -23,7 +24,7 @@ export default function NotesPage() {
     setEditId(null); load();
   }
   async function del(id) {
-    if (!confirm(t("删除这条笔记?"))) return;
+    if (!await confirmDialog(t("删除这条笔记?"))) return;
     await fetch("/api/notes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     load();
   }

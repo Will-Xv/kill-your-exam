@@ -1,4 +1,5 @@
 "use client";
+import { alertDialog } from "@/components/ui/dialog";
 import { useEffect, useState, Suspense, useRef } from "react";
 import PerformTask from "@/components/PerformTask";
 import HandwritePad from "@/components/HandwritePad";
@@ -239,7 +240,7 @@ function PracticeInner() {
     setReportBusy(true);
     try {
       const d = await aiFetch("/api/questions/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, note: reportNote }) });
-      alert(d.acted ? t("AI 确认这题确有问题,已移除并改进出题。感谢!") : t("AI 没发现这题有明显问题,已忽略(未删除)。若确有问题,请补充说明再提交。"));
+      alertDialog(d.acted ? t("AI 确认这题确有问题,已移除并改进出题。感谢!") : t("AI 没发现这题有明显问题,已忽略(未删除)。若确有问题,请补充说明再提交。"));
       if (d.acted) { setReportOpen(false); setReportNote(""); setReportBusy(false); next(); return; } // 题目已被移除 -> 直接跳到下一题
     } catch {}
     setReportOpen(false); setReportNote(""); setReportBusy(false);
@@ -256,7 +257,7 @@ function PracticeInner() {
         window.location.href = `/practice?mode=quiz&ids=${ids}&quiz=${quizSid}`;
         return;
       }
-      alert(t("重新识别没得到题目,可能文件已过期,请重新上传。"));
+      alertDialog(t("重新识别没得到题目,可能文件已过期,请重新上传。"));
     } catch (e) {}
     setReportBusy(false);
   }

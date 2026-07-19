@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
 import SourceConfidence from "@/components/SourceConfidence";
@@ -186,7 +187,7 @@ export default function Mock() {
     setBusy(false);
   }
   async function submit() {
-    if (!confirm(t("确定交卷?"))) return;
+    if (!await confirmDialog(t("确定交卷?"))) return;
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) });

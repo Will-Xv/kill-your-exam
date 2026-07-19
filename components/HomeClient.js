@@ -1,4 +1,5 @@
 "use client";
+import { confirmDialog, alertDialog } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Leaderboard from "@/components/Leaderboard";
@@ -64,25 +65,25 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   }
 
   async function markComplete() {
-    if (!confirm(t("标记为已完成?记录会保留,这门考试仍可正常练习/切换,只是不再显示倒计时。"))) return;
+    if (!await confirmDialog(t("标记为已完成?记录会保留,这门考试仍可正常练习/切换,只是不再显示倒计时。"))) return;
     const eid = data?.exam?.id;
     try {
       const r = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", examId: eid }) });
-      if (!r.ok) { const tx = await r.text().catch(() => ""); alert(t("标记失败:") + " HTTP " + r.status + " " + tx); return; }
+      if (!r.ok) { const tx = await r.text().catch(() => ""); alertDialog(t("标记失败:") + " HTTP " + r.status + " " + tx); return; }
       const d = await r.json().catch(() => ({}));
-      if (d && d.ok === false) { alert(t("标记失败:") + " " + (d.error || "")); return; }
+      if (d && d.ok === false) { alertDialog(t("标记失败:") + " " + (d.error || "")); return; }
       // 真子考试完成→让用户选:把进度映射进家族知识树,还是放着不动。
       if (d && d.isSubExam) {
-        if (confirm(t("这门子考试已完成。要把它的掌握度映射到家族知识树(母考试和同家族其它考试的对应知识点)吗?点\u201c取消\u201d则放着不动。"))) {
+        if (await confirmDialog(t("这门子考试已完成。要把它的掌握度映射到家族知识树(母考试和同家族其它考试的对应知识点)吗?点\u201c取消\u201d则放着不动。"))) {
           try {
             const mr = await fetch("/api/exam/manage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "map_mastery_to_family", examId: eid }) }).then((x) => x.json());
-            if (mr && mr.ok) alert(mr.mapped ? t("已把 {n} 个知识点的掌握度映射进家族知识树。").replace("{n}", mr.mapped) : (mr.note || t("没有可映射的知识点。")));
-            else alert(t("映射失败:") + " " + ((mr && mr.reason) || ""));
-          } catch (e) { alert(t("映射失败:") + " " + ((e && e.message) || e)); }
+            if (mr && mr.ok) alertDialog(mr.mapped ? t("已把 {n} 个知识点的掌握度映射进家族知识树。").replace("{n}", mr.mapped) : (mr.note || t("没有可映射的知识点。")));
+            else alertDialog(t("映射失败:") + " " + ((mr && mr.reason) || ""));
+          } catch (e) { alertDialog(t("映射失败:") + " " + ((e && e.message) || e)); }
         }
       }
       location.reload();
-    } catch (e) { alert(t("标记失败:") + " " + ((e && e.message) || e)); }
+    } catch (e) { alertDialog(t("标记失败:") + " " + ((e && e.message) || e)); }
   }
   async function dismissDiag() {
     setDaily((d) => (d ? { ...d, rootCauseBanner: null } : d));
