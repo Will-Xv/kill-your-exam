@@ -22,7 +22,7 @@ export async function GET() {
   const { items } = currentDailyItems(user.id, exam);
   // done 状态由真实数据动态计算,不依赖打卡
   const due = dueReviewCount(exam.id);
-  const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id=? AND mode!='resolved' AND date(created_at,'localtime')=date('now','localtime')`).get(exam.id).n;
+  const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id=? AND mode='practice' AND date(created_at,'localtime')=date('now','localtime')`).get(exam.id).n; // 自由练习计数:只算真正的自由练习(mode='practice'),不含错题复习(review)和单个薄弱点练习(kp)
   const enriched = items.map((it) => {
     if (it.type === "review") return { ...it, due, done: due === 0 };
     if (["kp", "practice", "debate", "socratic", "explore"].includes(it.type) && it.kpId) {

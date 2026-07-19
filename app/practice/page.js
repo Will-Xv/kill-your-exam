@@ -183,7 +183,8 @@ function PracticeInner() {
       let handURL = hands[q.id] || null;
       if (!dontKnow && !handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
       if (!dontKnow && handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
-      const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments, dontKnow }) });
+      const attemptMode = mode === "review" ? "review" : (kpParam ? "kp" : "practice"); // 错题→review、单个薄弱点→kp、自由练习(含 kps 锚定)→practice;供自由练习计数只算 practice
+      const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments, dontKnow, mode: attemptMode }) });
       const mn = fmtMastery(d.masteryUpdates); setResult(mn ? { ...d, masteryNote: mn } : d); setDone((m) => ({ ...m, [q.id]: !!d.correct }));
       if (handURL) setHands((hh) => ({ ...hh, [q.id]: handURL }));
     } catch (e) { setGradeErr(t("提交失败,请重试(若反复失败,截图发我)。") + " " + (e?.message || "")); }
