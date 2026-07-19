@@ -58,6 +58,11 @@ export function useAiFetch() {
         throw new Error("ai-error");
       }
     }
+    if (res.status === 401) {
+      // 会话失效(如登录态过期/被清):给出恢复路径,自动跳登录页,而不是静默报 unauthorized
+      try { if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) window.location.href = "/login?expired=1"; } catch {}
+      throw new Error("unauthorized");
+    }
     if (!res.ok) {
       const t = await res.text().catch(() => "");
       throw new Error(t || `HTTP ${res.status}`);

@@ -16,6 +16,9 @@ export default function Login() {
 
   useEffect(() => { fetch("/api/geo").then((r) => r.json()).then((d) => setIsCN(!!d.cn)).catch(() => {}); }, []);
   useEffect(() => {
+    try { if (new URLSearchParams(window.location.search).get("expired")) setErr(t("登录状态已过期,请重新登录。")); } catch {}
+  }, []);
+  useEffect(() => {
     const e = new URLSearchParams(window.location.search).get("err");
     if (!e) return;
     const map = {
