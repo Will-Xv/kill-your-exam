@@ -227,3 +227,5 @@
 - **杀手布局认知补全(2026-07,Will)**:根因=喂给杀手的布局认知残缺——布局有两套(ui_read 的功能放置表 + ui_home_layout 首页分区),而 ui_read 从不报【杀手自己在哪】(killerHome)和导航条位置(navDock),readHomeLayout 又硬编码"右侧常驻"。修:ui_read case 补上 killer(电脑/手机各在常驻侧栏/浮动/导航/更多/大模块哪处,人话)+ nav(导航条位置)+ homeLayout(首页分区模板及杀手占哪格,或默认),描述改为"读它含你自己的位置/导航/首页布局,回答'我在哪/布局怎样'前必须先读";ui_home_layout_read 的中文 note 已改结构化。★JS 双引号串里别写内层双引号。
 
 - **杀手知道当前设备、感知设备切换(2026-07,Will)**:KillerChat 每条消息带 device(window.innerWidth>=768→desktop/mobile);/api/chat 注入 deviceNote——告诉杀手这条是电脑还是手机发的,回答界面/布局/"我在哪"按该设备那套说(电脑手机的杀手位置/导航/布局不同),且【若本条设备和上条不同=主人换设备了(如电脑→手机),以现在这台为准,别被上文另一台迷惑】。配合 ui_read 现在分电脑/手机报位置。
+
+- **修 ui_read 的 item placement 与实际布局对不上(2026-07,Will)**:根因=两者同源(都读 ui_item_placement setting),但客户端渲染(uilab/placement.applyServerPlacement)会先跑 normalizePlacement(把没显式摆放的功能补到默认位置、并入注册表),而 ui_read/basePlacement 报的是【原始存储、未归一化】——所以新功能/未摆放项在界面上有、ui_read 里却看不到或位置不同。修:chatAgent ui_read 也 normalizePlacement(basePlacement(exam.id), 全部feature_id, 全局ui_item_placement) 后再报,和实际渲染一致。
