@@ -11,7 +11,8 @@ export async function POST(req) {
     if (!user) return unauthorized();
     const { taskId, idx, testIndex, note } = await req.json();
     const task = getTask(Number(taskId));
-    if (!task || !exam || !inScope(exam.id, task.exam_id)) return forbidden();
+    if (!task || task.user_id !== user.id) return forbidden();
+    if (!exam || !inScope(exam.id, task.exam_id)) setActiveExam(user.id, task.exam_id);
     const r = await appealTest(user, task, Number(idx), Number(testIndex), String(note || "").slice(0, 400));
     return Response.json(r);
   } catch (e) { return aiErrorResponse(e); }

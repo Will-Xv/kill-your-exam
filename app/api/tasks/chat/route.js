@@ -1,4 +1,4 @@
-import { inScope } from "@/lib/db";
+import { inScope, setActiveExam } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { getTask, taskChatHistory, taskChatTurn } from "@/lib/practical";
 import { aiErrorResponse } from "@/lib/errors";
@@ -11,7 +11,7 @@ export async function GET(req) {
   if (!user) return unauthorized();
   const taskId = Number(new URL(req.url).searchParams.get("taskId"));
   const task = getTask(taskId);
-  if (!task || !exam || !inScope(exam.id, task.exam_id)) return Response.json({ messages: [] });
+  if (!task || task.user_id !== user.id) return Response.json({ messages: [] });
   return Response.json({ messages: taskChatHistory(taskId) });
 }
 
@@ -21,7 +21,8 @@ export async function POST(req) {
     if (!user) return unauthorized();
     const { taskId, message, live, attachments } = await req.json();
     const task = getTask(Number(taskId));
-    if (!task || !exam || !inScope(exam.id, task.exam_id)) return forbidden();
+    if (!task || task.user_id !== user.id) return forbidden();
+    if (!exam || !inScope(exam.id, task.exam_id)) setActiveExam(user.id, task.exam_id);
     if (!String(message || "").trim() && !(Array.isArray(attachments) && attachments.length)) return Response.json({ reply: "" });
     const r = await taskChatTurn(user, task, message, Array.isArray(live) ? live : [], Array.isArray(attachments) ? attachments : []);
     return Response.json(r);

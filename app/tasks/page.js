@@ -17,10 +17,11 @@ export default function TasksPage() {
   const [busy, setBusy] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [task, setTask] = useState(null);
+  const [openErr, setOpenErr] = useState(false);
 
   const load = () => fetch("/api/tasks").then((r) => r.json()).then((d) => { setList(d.tasks || []); setJudge0(!!d.judge0); setPmode(!!d.practicalMode); }).catch(() => setList([]));
   useEffect(() => { load(); }, []);
-  const openTask = (id) => { setOpenId(id); setTask(null); fetch("/api/tasks/detail?id=" + id).then((r) => r.json()).then((d) => { setTask(d.task); setJudge0(!!d.judge0); }).catch(() => {}); };
+  const openTask = (id) => { setOpenId(id); setTask(null); setOpenErr(false); fetch("/api/tasks/detail?id=" + id).then((r) => r.json()).then((d) => { if (d && d.task) { setTask(d.task); setJudge0(!!d.judge0); } else { setOpenErr(true); } }).catch(() => setOpenErr(true)); };
   const sp = useSearchParams();
   useEffect(() => { const tid = sp.get("task"); if (tid) openTask(Number(tid)); }, []); // 首页“子考试样式”的实践作业条目点进来,直接打开这条任务
 
@@ -40,6 +41,7 @@ export default function TasksPage() {
   }
 
   if (openId && task) return <TaskDetail task={task} judge0={judge0} onBack={() => { setOpenId(null); setTask(null); load(); }} onGraded={() => openTask(openId)} />;
+  if (openId && openErr) return <div className="p-4"><button onClick={() => { setOpenId(null); setTask(null); setOpenErr(false); load(); }} className="text-sm text-stone-500 underline">← {t("返回")}</button><p className="mt-3 text-sm text-stone-500">{t("打不开这个作业(可能已被删除)。")}</p></div>;
   if (openId && !task) return <div className="p-4 text-sm text-stone-400">{t("加载中…")}</div>;
 
   return (
