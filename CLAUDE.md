@@ -211,3 +211,5 @@
 - **禁止建同名考试(2026-07,Will)**:db.examNameExists(userId,name,{parentExamId,excludeId})——同一层级(顶层 vs 顶层、同一母考试下的子考试之间)去重(去空格、忽略大小写;允许不同课都有"Quiz 1")。建考试入口都挡:exam_create、exam_provision(crossExam.js)匹配到同层同名就 throw「已经有一门同名考试…别重复建」;onboarding /api/onboarding/create 返回 400 error,前端 createExam 改普通 fetch 检查 !r.ok||d.error 弹 alert。旧的同名不追溯处理。
 
 - **根治"问进度被当成建考试"(2026-07,Will)**:bug——exam_provision 建 CSC148(ID74)后台生成中,用户问"Is it ready?",杀手把它当成"建新考试"→建了重名 ID75、静默归档 ID74。appGuide 加根治规则:主人问「好了没/ready?/建好了没/怎么样了」= 查【那门已存在考试】的生成进度,用 exam_gen_status 如实报,【绝不】理解成创建新考试去调 exam_provision/exam_create。(叠加同名拦截双保险。)
+
+- **v8:P2-10(批准的计划没真执行)+ P2-5(中文泄漏)(2026-07,Will)**:①P2-10 根因:杀手根本没有"切换当前考试"的工具,却嘴上说"已切到 BIO120/已锁定",练习就还在原考试(French Oral)上。加 switch_exam 砖头(archive 当前 active→set 目标 active,按名/ID,已发布);runLoop 里若工具返回 switchedExamId 则同一轮刷新 exam 变量,后续工具作用于新考试。②诚实铁律(appGuide,红线):叙述的每个状态变更必须真调了对应工具且成功才说;没工具就说做不了;要在别的考试上做事必须先 switch_exam 真切;写汇报前先逐条回顾每个工具真实结果、只报成功的、不掺假;把【每一处改动都逐条报给主人】;报告【只用大白话】,不许出现工具名/ID/ok:false 等技术词。③P2-5:open_plan_setup 返回的中文 note 去掉(英文界面会被照抄泄漏),改 uiHint、让杀手用主人语言自己说。
