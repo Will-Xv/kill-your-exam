@@ -8,7 +8,7 @@ export default function Exams() {
   const t = useT();
   const [exams, setExams] = useState(null);
   const [confirmAsk, setConfirmAsk] = useState(null); // {action, examId, msg} 站内确认
-  const load = () => fetch("/api/exam/list").then((r) => r.json()).then((d) => setExams(d.exams));
+  const load = () => fetch("/api/exam/list").then((r) => (r.ok ? r.json() : null)).then((d) => setExams(Array.isArray(d && d.exams) ? d.exams : [])).catch(() => setExams([])); // 响应异常(401/错误)也稳成空列表,不卡在"加载中…"
   useEffect(() => { load(); }, []);
   useEffect(() => { if (!exams?.some((e) => e.setup_state === "generating")) return; const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [exams]);
   async function switchTo(id) {
