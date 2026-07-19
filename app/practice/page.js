@@ -37,11 +37,12 @@ function PracticeInner() {
   const t = useT();
   const aiFetch = useAiFetch();
   const kpParam = useSearchParams().get("kp");
+  const kpsParam = useSearchParams().get("kps");   // 自由练习按任务日期锚定的一组知识点
   const mode = useSearchParams().get("mode");
   const qParam = useSearchParams().get("q");
   const idsParam = useSearchParams().get("ids");   // 上传做题:把识别出的题按 id 载进来
   const quizSid = useSearchParams().get("quiz");   // 上传做题会话id(供"重新识别")
-  const storeKey = `kye_practice:${mode || "free"}:${mode === "quiz" && idsParam ? "ids" + idsParam.replace(/[^0-9]/g, "-").slice(0, 60) : qParam ? "q" + qParam : (kpParam || "all")}`;
+  const storeKey = `kye_practice:${mode || "free"}:${mode === "quiz" && idsParam ? "ids" + idsParam.replace(/[^0-9]/g, "-").slice(0, 60) : qParam ? "q" + qParam : (kpParam || (kpsParam ? "kps" + kpsParam.replace(/[^0-9]/g, "-").slice(0, 40) : "all"))}`;
   const [questions, setQuestions] = useState([]);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState([]);
@@ -89,7 +90,7 @@ function PracticeInner() {
     if (qParam) { const d = await aiFetch(`/api/questions/get?id=${Number(qParam)}`); return { questions: d.question ? [d.question] : [], note: "" }; }
     if (mode === "review") { const d = await aiFetch("/api/review"); return { questions: d.questions || [], note: "" }; }
     if (mode === "quiz" && idsParam) { const d = await aiFetch(`/api/questions/byids?ids=${encodeURIComponent(idsParam)}`); return { questions: d.questions || [], note: "" }; }
-    const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, count: 5, exclude }) });
+    const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, kpIds: kpsParam ? kpsParam.split(",").map(Number).filter(Boolean) : undefined, count: 5, exclude }) });
     return { questions: d.questions || [], note: d.note || "" };
   }
   // 后台预取下一批(在用户做题时就同时把下一批找好,换一批/再来一轮时零等待)。exclude=当前屏上的题,保证预取到的是新题。

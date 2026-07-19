@@ -139,6 +139,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     : it.type === "socratic" ? `/arena?mode=socratic&kp=${it.kpId}`
     : it.type === "explore" ? `/study?kp=${it.kpId}&mode=explore`
     : it.type === "kp" ? `/study?kp=${it.kpId}`
+    : it.type === "free" && it.kpIds && it.kpIds.length ? `/practice?fresh=1&kps=${it.kpIds.join(",")}`
     : "/practice?fresh=1");
   const labelFor = (it) =>
     it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
@@ -146,8 +147,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
-    it.type === "kp" ? `${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) : t("学习")}${it.target != null ? ` (${it.count || 0}/${it.target})` : ""}: ${it.chapter ? it.chapter + " · " : ""}${it.title}` :
-    `${t("自由练习")} (${it.count}/${it.target})`;
+    it.type === "kp" ? `${it.root ? t("🔴根因薄弱点") + " " : it.weak ? t("🔴薄弱点") + " " : ""}${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) : t("学习")}${it.target != null ? ` (${it.count || 0}/${it.target})` : ""}: ${it.chapter ? it.chapter + " · " : ""}${it.title}` :
+    (it.anchor ? `${t("自由练习")} · ${t("攻最近考核的薄弱点")}${it.anchor.name ? ` — ${it.anchor.name}${it.anchor.date ? `(${String(it.anchor.date).slice(5)})` : ""}` : ""} (${it.count || 0}/${it.target})` : `${t("自由练习")} (${it.count}/${it.target})`);
 
   const features = [
     { href: "/study", icon: "📖", title: t("学习"), desc: t("跟 AI 学知识点 + 练习"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },

@@ -50,12 +50,17 @@ async function searchOnline(exam, kp, chapter, count, langRule) {
 export async function POST(req) {
   try {
     const _t0 = Date.now();
-    const { kpId, count = 5, reuse = true, exclude = [] } = await req.json();
+    let { kpId, count = 5, reuse = true, exclude = [], kpIds } = await req.json();
     const _log = (via) => { try { console.error(`[generate] via=${via} ms=${Date.now() - _t0} exam=${exam?.id} kp=${kpId}`); } catch {} };
     const excl = (Array.isArray(exclude) ? exclude : []).map(Number).filter(Number.isFinite);
     let { user, exam } = await requireUser();
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
+    // 自由练习按任务日期锚定的一组知识点:没指定单个 kp 时,从这组里随机取一个出题(多批覆盖整组),严格按锚定的知识点练。
+    if (!kpId && Array.isArray(kpIds) && kpIds.length) {
+      const valid = kpIds.map(Number).filter((n) => { if (!Number.isFinite(n)) return false; const k = db.prepare("SELECT exam_id FROM knowledge_points WHERE id=?").get(n); return k && inScope(exam.id, k.exam_id); });
+      if (valid.length) kpId = valid[Math.floor(Math.random() * valid.length)];
+    }
     // 汇总复习:若请求的知识点属于当前母考试作用域内的某个子考试,就切到该子考试的语境下出题(素材/名称/语言都用子考试的)。
     if (kpId) {
       const _kp = db.prepare("SELECT id, exam_id FROM knowledge_points WHERE id=?").get(Number(kpId));
