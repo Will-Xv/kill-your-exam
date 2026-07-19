@@ -1,7 +1,7 @@
 import { requireUser, unauthorized } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
 import { assignTask, listTasks, deleteTask, getPracticalMode, setPracticalMode, createAssignment, markAssignmentDone } from "@/lib/practical";
-import { inScope } from "@/lib/db";
+import { inScope, setActiveExam } from "@/lib/db";
 import { getTask } from "@/lib/practical";
 import { judge0Config } from "@/lib/judge0";
 
@@ -27,12 +27,14 @@ export async function POST(req) {
     }
     if (b.markDone !== undefined && b.taskId) {
       const tk = getTask(Number(b.taskId));
-      if (!tk || tk.user_id !== user.id) return Response.json({ ok: false });
+      if (!tk) return Response.json({ ok: false });
+      if ((!inScope(exam.id, tk.exam_id)) && !setActiveExam(user.id, tk.exam_id)) return Response.json({ ok: false });
       return Response.json({ ok: markAssignmentDone(Number(b.taskId), !!b.markDone) });
     }
     if (b.delete) {
       const tk = getTask(Number(b.delete));
-      if (!tk || tk.user_id !== user.id) return Response.json({ ok: false });
+      if (!tk) return Response.json({ ok: false });
+      if ((!inScope(exam.id, tk.exam_id)) && !setActiveExam(user.id, tk.exam_id)) return Response.json({ ok: false });
       return Response.json({ ok: deleteTask(user, b.delete) });
     }
     const r = await assignTask(user, exam, { topic: String(b.topic || "").slice(0, 160), kpId: b.kpId });
