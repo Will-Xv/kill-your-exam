@@ -14,6 +14,11 @@ function wrapBareRuns(s) {
     const trail = (m.match(/\s*$/) || [""])[0];
     const core = m.trim();
     if (!core || !/[\\^_]/.test(core)) return m;
+    // P3-2:文件名/标识符不是数学——别把 *MAT137_2526Syllabus-2.pdf* 这类下划线串当 LaTeX 包进 $...$
+    if (!/\\[a-zA-Z]/.test(core)) {
+      if (/\.[A-Za-z]{1,5}(\b|$)/.test(core)) return m;      // 带扩展名 → 文件名
+      if (/_[A-Za-z0-9]*[A-Za-z]{2,}/.test(core)) return m;  // 下划线后接单词(snake_case/文件名),非真数学下标
+    }
     return lead + "$" + core + "$" + trail;
   });
 }
