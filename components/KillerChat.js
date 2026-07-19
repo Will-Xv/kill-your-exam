@@ -95,7 +95,7 @@ export default function KillerChat({ embedded = false }) {
     setMessages((m) => [...m, { role: "user", content: text + (attachments.length ? " 📎" + attachments.length : "") }]);
     setBusy(true); setSteps([]);
     try {
-      const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments, page: (typeof window !== "undefined" ? (window.location.pathname + window.location.search) : "") }) });
+      const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments, page: (typeof window !== "undefined" ? (window.location.pathname + window.location.search) : ""), device: (typeof window !== "undefined" ? (window.innerWidth >= 768 ? "desktop" : "mobile") : "") }) });
       if (d.runId) startPolling(d.runId);
       else { setBusy(false); setMessages((m) => [...m, { role: "tool_note", content: t("没能开始:") + (d.error || t("未知原因")) }]); }
     } catch (e) {

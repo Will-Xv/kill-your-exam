@@ -225,3 +225,5 @@
 - **改进:去类型硬规则,改让杀手知道每个栏目干什么(2026-07,Will 洞察)**:Will 指出根因是"杀手只认名字、不知道栏目功能"。autoAdjustExamUi 去掉按类型的硬覆盖(performances/quizupload force),只留一条数据事实兜底(已有 practical_tasks 就保留 tasks 栏)+ 更清楚的功能判据提示。chatAgent 注入 featureCatalog():从 lib/uilab/items.js 的 FEATURE_ITEMS(id/label/desc)生成"各栏目是干什么的+何时用得上"表,尤其点明 performances 只对表演/口语类有用、tasks 只对会动手做的有用、quizupload 几乎所有笔试都用得上——让杀手按【功能】判断收放,而非硬规则/只看名字。
 
 - **杀手布局认知补全(2026-07,Will)**:根因=喂给杀手的布局认知残缺——布局有两套(ui_read 的功能放置表 + ui_home_layout 首页分区),而 ui_read 从不报【杀手自己在哪】(killerHome)和导航条位置(navDock),readHomeLayout 又硬编码"右侧常驻"。修:ui_read case 补上 killer(电脑/手机各在常驻侧栏/浮动/导航/更多/大模块哪处,人话)+ nav(导航条位置)+ homeLayout(首页分区模板及杀手占哪格,或默认),描述改为"读它含你自己的位置/导航/首页布局,回答'我在哪/布局怎样'前必须先读";ui_home_layout_read 的中文 note 已改结构化。★JS 双引号串里别写内层双引号。
+
+- **杀手知道当前设备、感知设备切换(2026-07,Will)**:KillerChat 每条消息带 device(window.innerWidth>=768→desktop/mobile);/api/chat 注入 deviceNote——告诉杀手这条是电脑还是手机发的,回答界面/布局/"我在哪"按该设备那套说(电脑手机的杀手位置/导航/布局不同),且【若本条设备和上条不同=主人换设备了(如电脑→手机),以现在这台为准,别被上文另一台迷惑】。配合 ui_read 现在分电脑/手机报位置。

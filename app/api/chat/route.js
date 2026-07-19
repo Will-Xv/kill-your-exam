@@ -23,7 +23,7 @@ import { pageDescription as _pageDesc } from "@/lib/pageContext";
 
 export async function POST(req) {
   try {
-    const { message, attachments, page } = await req.json();
+    const { message, attachments, page, device } = await req.json();
     const { user, exam } = await requireUser();
     if (!user) return unauthorized();
     const _cid = -user.id;                                   // 【统一聊天】聊天记录/摘要按用户合并
@@ -62,6 +62,8 @@ export async function POST(req) {
     let uploadedNote = "";
     let pageNote = "";
     try { if (page) { const pg = _pageDesc(page); if (pg) pageNote = `\n(系统提示:主人现在打开/正看的页面是 ${pg.path} —— ${pg.desc} 据此理解他说的"这个/这里/当前页/刚才那个"指的是什么;这是文字说明、不是截图,别假装看到画面。)`; } } catch {}
+    let deviceNote = "";
+    try { if (device === "desktop" || device === "mobile") { const dz = device === "desktop" ? "电脑(桌面端,大屏)" : "手机(移动端,小屏)"; deviceNote = `\n(系统提示:主人这条消息是用【${dz}】发的。回答界面/布局/"我在哪"这类问题时按【这个设备】的那一套说(电脑和手机的杀手位置、导航、布局可能不同)。★如果这条的设备和上一条【不一样】,说明主人【换设备了】(如从电脑切到手机),就以【现在这台】为准,别被上文里另一台的描述迷惑。)`; } } catch {}
     if (exam && Array.isArray(attachments) && attachments.length) {
       const names = [];
       for (const a of attachments.slice(0, 4)) {
@@ -75,7 +77,7 @@ export async function POST(req) {
       if (names.length) uploadedNote = `\n(系统提示:主人这条消息附带了 ${names.length} 个文件:${names.join("、")}。你能直接读它们来回答;如果这些是本考试的学习资料、且主人想留存,可以用 save_attachment_as_material 把它们存进资料库——存之前先问一句主人要不要存,除非主人已明确说要存。)`;
     }
     const ap = await attachParts(attachments);
-    const sysNote = uploadedNote + pageNote;
+    const sysNote = uploadedNote + pageNote + deviceNote;
     if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: message + sysNote }, ...ap];
     else if (sysNote && contents.length) contents[contents.length - 1].parts = [{ text: message + sysNote }];
     const runId = startRun(exam, user, contents);
