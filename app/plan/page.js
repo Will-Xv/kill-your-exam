@@ -22,7 +22,7 @@ export default function PlanPage() {
   const ymd = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
   const view = dayPlan || { today: ymd(new Date()), dueNow: [], future: [], done: [], overdueCount: 0 };
   const today = view.today;
-  const base = new Date(); base.setHours(0, 0, 0, 0); base.setDate(base.getDate() + wk * 7);
+  const [_ty, _tm, _td] = String(today).split("-").map(Number); const base = new Date(_ty || 1970, (_tm || 1) - 1, _td || 1); base.setDate(base.getDate() + wk * 7); // 用服务端虚拟今天(dev 日期穿越也一致)
   const monday = new Date(base); monday.setDate(base.getDate() - ((base.getDay() + 6) % 7));
   const weekDays = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return ymd(d); });
   const WD = [t("周一"), t("周二"), t("周三"), t("周四"), t("周五"), t("周六"), t("周日")];

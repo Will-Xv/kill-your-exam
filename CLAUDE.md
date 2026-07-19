@@ -215,3 +215,5 @@
 - **v8:P2-10(批准的计划没真执行)+ P2-5(中文泄漏)(2026-07,Will)**:①P2-10 根因:杀手根本没有"切换当前考试"的工具,却嘴上说"已切到 BIO120/已锁定",练习就还在原考试(French Oral)上。加 switch_exam 砖头(archive 当前 active→set 目标 active,按名/ID,已发布);runLoop 里若工具返回 switchedExamId 则同一轮刷新 exam 变量,后续工具作用于新考试。②诚实铁律(appGuide,红线):叙述的每个状态变更必须真调了对应工具且成功才说;没工具就说做不了;要在别的考试上做事必须先 switch_exam 真切;写汇报前先逐条回顾每个工具真实结果、只报成功的、不掺假;把【每一处改动都逐条报给主人】;报告【只用大白话】,不许出现工具名/ID/ok:false 等技术词。③P2-5:open_plan_setup 返回的中文 note 去掉(英文界面会被照抄泄漏),改 uiHint、让杀手用主人语言自己说。
 
 - **根治栏目名冒中文(P2-2/5/6/8)(2026-07,Will)**:根因=杀手对栏目名的认知是中文的(appGuide 把导航写成"追杀计划(Murder Plan)"等),英文界面照搬。不靠"别中英并列"的压制规则(Will 否掉),改【根治】:chatAgent 按 user.lang 用翻译字典动态生成栏目真实名对照(追杀计划=Murder Plan、本周计划表=Weekly plan…),非中文界面注入系统提示前置于 APP_GUIDE,叮嘱"对主人只用界面名"。appGuide /plan 描述更新为"本周计划表/Weekly plan"(旧名跨考试规划/Cross-Exam Planner 已弃)。open_plan_setup 的中文 note 已去(P2-5)。
+
+- **v8 P2-9/P2-11:虚拟日期跨组件一致(2026-07,Will)**:dev 日期穿越下,/plan 周历默认"本周"和首页倒计时用了真实 Date.now()、没跟虚拟今天。修:/plan 周基准改用 view.today(服务端 todayStr,含 devtime 偏移);HomeClient 倒计时 days 用 daily.plan.date(虚拟今天)算,没加载到才回退真实今天。真实用户无穿越时 = 真实今天,零回归。

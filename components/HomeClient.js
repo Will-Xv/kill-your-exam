@@ -117,7 +117,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   }
 
   const { exam, stats, topExam, subExams, taskSubs, aggregating, aggregateCount } = data;
-  const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date) - Date.now()) / 86400000) : null;
+  const _vToday = daily?.plan?.date || null; // 服务端虚拟今天(dev 日期穿越生效);没加载到就用真实今天
+  const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date + "T00:00:00") - (_vToday ? new Date(_vToday + "T00:00:00") : new Date())) / 86400000) : null;
   useEffect(() => { if (exam.completed_at || days == null || days < 0 || days >= 7) return; try { const k = `kye_sprint:${exam.id}:${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) setSprintOpen(true); } catch {} }, [exam.id, days, exam.completed_at]);
   const completeBtn = <button className="rounded-full bg-[#2f2413] px-2.5 py-0.5 text-xs font-medium text-[#f6efdd] hover:opacity-90" onClick={markComplete}>✅ {t("标记为已完成")}</button>;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
