@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Leaderboard from "@/components/Leaderboard";
 import Link from "next/link";
 import { useT } from "@/components/I18n";
@@ -21,6 +22,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const [groupOpen, setGroupOpen] = useState(false);
   const [sprintOpen, setSprintOpen] = useState(false);
   const [sprintReco, setSprintReco] = useState(null); // "original"(掌握≥70%→自查+模拟考) / "test"(<70%→先测试再复习)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [unread, setUnread] = useState(0);
   const [isDev, setIsDev] = useState(initialIsDev);
   placement.useItems();
@@ -266,11 +269,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       </Editable>
       )}
 
-      {sprintOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSprintOpen(false)}>
+      {sprintOpen && mounted && createPortal((
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={() => setSprintOpen(false)}>
           <div className="w-full max-w-sm rounded-2xl bg-[#fbf6e9] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-black text-red-700">⏰ {t("距考试不到一周了!")}</h2>
-            <p className="mt-1 text-sm text-[#5b431f]">{sprintReco === "original" ? t("你掌握得不错——去自查一下、再做套模拟考确认就好:") : t("你还有不少没掌握——建议先测一套摸清底,再针对性攻:")}{weakCount > 0 ? `(${t("还有")} ${weakCount} ${t("个薄弱/未学")})` : ""}</p>
+            <p className="mt-1 text-sm text-[#5b431f]">{sprintReco === "original" ? t("你掌握得不错——去自查一下、再做套模拟考确认就好:") : t("你还有不少没掌握——建议先测一套摸清底,再针对性攻:")}{weakCount > 0 ? ` (${t("还有 {n} 个薄弱/未学").replace("{n}", weakCount)})` : ""}</p>
             {(() => {
               const selfcheck = (primary) => (<a key="s" href="/study" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>🔎 {t("去学习页自查")}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("过一遍知识点,确认还欠哪儿")}</span></a>);
               const mock = (primary) => (<a key="m" href="/mock" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>📝 {t("去模拟考")}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("做一套全真模拟,查漏补缺")}</span></a>);
@@ -283,7 +286,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
       {!exam.completed_at && days != null && days >= 0 && days < 7 && (
         <Editable id="weekwarn">
         <div className="animate-in card mt-4 border border-red-300 bg-red-50/80">
