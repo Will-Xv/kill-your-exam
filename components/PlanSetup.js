@@ -15,6 +15,7 @@ export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
   const [skip, setSkip] = useState([]); // 自定义:要跳过的周几 0..6
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [showTimeOpts, setShowTimeOpts] = useState(!defaults.examDate); // 已知考试日期→默认收起时间要求,只让改真正需要的
   if (!open) return null;
 
   const WD = [[1, t("周一")], [2, t("周二")], [3, t("周三")], [4, t("周四")], [5, t("周五")], [6, t("周六")], [0, t("周日")]];
@@ -45,15 +46,22 @@ export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
             <div className="mt-3 space-y-3">
               <div>
                 <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">{t("时间要求")}</div>
-                <div className="space-y-1.5">
-                  <Radio v="deadline" label={t("有考试日期")} />
-                  {mode === "deadline" && <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />}
-                  <Radio v="until" label={t("想学到某一天")} />
-                  {mode === "until" && <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />}
-                  <Radio v="weeks" label={t("想用几周学完")} />
-                  {mode === "weeks" && <div className="ml-6 flex items-center gap-1 text-sm"><input type="number" min="1" value={weeks} onChange={(e) => setWeeks(e.target.value)} className="w-16 rounded-lg border border-stone-300 px-2 py-1 text-[#2f2413]" /> {t("周")}</div>}
-                  <Radio v="open" label={t("没有时间要求(我来估个大概)")} />
-                </div>
+                {defaults.examDate && !showTimeOpts ? (
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#2f2413]">
+                    <span>📅 {t("按你的考试日期")} <span className="font-semibold">{defaults.examDate}</span> {t("排")}</span>
+                    <button onClick={() => setShowTimeOpts(true)} className="text-xs text-[#8a6a2c] underline hover:opacity-80">{t("换个时间要求")}</button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Radio v="deadline" label={t("有考试日期")} />
+                    {mode === "deadline" && <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />}
+                    <Radio v="until" label={t("想学到某一天")} />
+                    {mode === "until" && <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="ml-6 rounded-lg border border-stone-300 px-2 py-1 text-sm text-[#2f2413]" />}
+                    <Radio v="weeks" label={t("想用几周学完")} />
+                    {mode === "weeks" && <div className="ml-6 flex items-center gap-1 text-sm"><input type="number" min="1" value={weeks} onChange={(e) => setWeeks(e.target.value)} className="w-16 rounded-lg border border-stone-300 px-2 py-1 text-[#2f2413]" /> {t("周")}</div>}
+                    <Radio v="open" label={t("没有时间要求(我来估个大概)")} />
+                  </div>
+                )}
               </div>
               <div>
                 <div className="mb-1 text-xs font-semibold text-[#8a6a2c]">{t("每天大约能学多久(分钟)")}</div>
