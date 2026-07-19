@@ -4,7 +4,7 @@ import { useT } from "@/components/I18n";
 
 // 排学习计划弹窗:把该确定的都问完(时间要求/每天学多久/排哪些天)→ 一次性生成学习进程,写进按天排期。
 // props: { open, onClose, defaults:{examDate, dailyMinutes}, onDone(result) }
-export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
+export default function PlanSetup({ open, onClose, defaults = {}, onDone, inline = false }) {
   const t = useT();
   const [mode, setMode] = useState(defaults.examDate ? "deadline" : "open"); // deadline/until/weeks/open
   const [examDate, setExamDate] = useState(defaults.examDate || "");
@@ -36,9 +36,8 @@ export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
     </label>
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fbf6e9] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+  const Card = (
+      <div className={inline ? "rounded-2xl border border-[#e4d5af] bg-[#fbf6e9] p-4 shadow-sm" : "max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fbf6e9] p-5 shadow-xl"} onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-black text-[#2f2413]">🗓️ {t("排一份学习计划")}</h2>
         {!result ? (
           <>
@@ -107,6 +106,8 @@ export default function PlanSetup({ open, onClose, defaults = {}, onDone }) {
           </div>
         )}
       </div>
-    </div>
+  );
+  return inline ? Card : (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>{Card}</div>
   );
 }

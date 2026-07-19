@@ -27,6 +27,7 @@ export async function GET(req) {
   let steps = []; try { steps = JSON.parse(run.steps_json || "[]"); } catch {}
   let actions = null; try { actions = run.actions_json ? JSON.parse(run.actions_json) : null; } catch {}
   let plan = null; try { plan = run.plan_json ? JSON.parse(run.plan_json) : null; } catch {}
+  let form = null; try { form = run.form_json ? JSON.parse(run.form_json) : null; } catch {}
   let elapsedSec = null; try { const e = db.prepare("SELECT (julianday('now') - julianday(created_at)) * 86400 AS e FROM chat_runs WHERE id=?").get(run.id)?.e; if (e != null) elapsedSec = Math.max(0, Math.round(e)); } catch {}
-  return Response.json({ run: { id: run.id, status: run.status, steps, reply: run.reply || null, token: run.token || null, actions, pendingKind: run.pending_kind || null, plan, elapsedSec } });
+  return Response.json({ run: { id: run.id, status: run.status, steps, reply: run.reply || null, token: run.token || null, actions, pendingKind: run.pending_kind || null, plan, form, elapsedSec } });
 }

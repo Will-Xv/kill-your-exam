@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise } from "@/lib/chatAgent";
+import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise, resumeForm } from "@/lib/chatAgent";
 import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
@@ -12,7 +12,7 @@ export async function POST(req) {
     const { user, exam } = await requireUser();
     if (user) setReqUser(user.id);
     if (!user) return unauthorized();
-    const { token, approvals, action, feedback } = await req.json();
+    const { token, approvals, action, feedback, formValues } = await req.json();
     const run = db.prepare("SELECT * FROM chat_runs WHERE token=?").get(token);
     if (!run || run.user_id !== user.id) return forbidden();
     if (run.status !== "pending") return Response.json({ runId: run.id });
@@ -21,6 +21,12 @@ export async function POST(req) {
     if (run.pending_kind === "plan") {
       if (action === "revise") resumePlanRevise(run, exam, user, feedback || "");
       else resumePlanApprove(run, exam, user);
+      return Response.json({ runId: run.id });
+    }
+
+    // 参数表单门
+    if (run.pending_kind === "form") {
+      resumeForm(run, exam, user, formValues || {});
       return Response.json({ runId: run.id });
     }
 
