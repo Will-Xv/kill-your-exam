@@ -271,7 +271,7 @@
 ### 2026-07-19 补充(同批次后半程)
 - **元规则我又漏过一次**:改了功能只补了 FEATURES/CLAUDE、忘了同步 appGuide(合并日期决策门、exam_create 的 examDate、plan_overview 的 mustCover 都漏了)。**三处必须一起改,别攒到最后**——Will 已经因此点过名。
 - **内容归属守门**:`lib/scopeGuard.js`,在 `execTool` 里对 `assign_practical_task / generate_question_set / add_knowledge_point` 前置拦截;尺子是**课纲(知识点树)**不是学科。确认框加 `intoExam` 标签。
-- **提醒只走推送**:`deliverDue`/`autoRules` 的 reminder 不再进收件箱;`pushStatus` 注入 systemPrompt,没开推送必须提前说明。收件箱只留可留存信件(公告/回信/本周计划汇总)。
+- **提醒的投递(Will 中途改过一次主意,最终版)**:**收件箱留一份 + 应用外推送**。理由:只走推送的话,主人没开通知时提醒到点就无声消失、一点痕迹都没有。★`pushUser` 返回 `{sent}`,**没真发出去就别标 `delivered`**、留着重试;**逾期超 24 小时作废**(过一天没意义 + 防无限堆积)。`sendLetter` 按 `key` 幂等,所以重试不会把收件箱刷屏。`pushStatus` 注入 systemPrompt,让杀手别把提醒说成"一定准时弹窗"。
 - **小改要有小改的砖头**:Will 明确指出"P4-11 你是不是就是改提示词了?我觉得需要加小改的砖头"。⇒ 新增零 AI 的 `reorder_daily_plan`。**凡是"只改一小点"的需求,都该有一个不跑 AI 的就地砖头**,而不是让 `customize_daily_plan` 整份重生成再靠提示词约束。
 - **别把"改"和"重排"混在一个砖头里**:Will 追问"customize 本来不就是用户要改今日任务吗?你改成当前生效的,那用户想要一个新的有对应砖头吗?"——确实没有(`refresh_daily_plan` 只是清掉自定义回到自动,不带用户要求)。⇒ 拆成 `adjust_daily_plan`(以**当前生效**的任务为底、保留已微调题数)和 `customize_daily_plan`(**重算**一份)。**改动幅度不同就该是不同的砖头**,共用一个实现函数(`planWithAI(args, ctx, fromCurrent)`)即可。
 - **不替用户做决定**:`exam_merge` 两边日期不同时**拒绝执行并回问**(合并 vs 父子结构;合并用哪个日期)。Will:"不应该替用户做决定"。
