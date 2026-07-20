@@ -11,7 +11,7 @@ import { filesToAttachments } from "@/lib/attach";
 import Discuss from "@/components/Discuss";
 import { idbGet, idbSet, idbDel } from "@/lib/idb";
 
-const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
+const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 const KEY = "mock";
 
 // 草稿纸(所有题都有,含选择题):手写演算,不计入作答、AI 看不到。

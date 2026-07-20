@@ -170,7 +170,7 @@ export default function KillerChat({ embedded = false }) {
             <p className="text-sm font-semibold text-amber-900">📋 {t("杀手拟好了执行计划,同意就开始,或说说要改哪里:")}</p>
             {pending.plan?.summary && <p className="text-sm text-amber-800 mt-1">{pending.plan.summary}</p>}
             <ol className="mt-2 space-y-1 text-sm list-decimal list-inside">
-              {(pending.plan?.steps || []).map((st, i) => <li key={i}><b>{st.title}</b>{st.detail ? " — " + st.detail : ""}</li>)}
+              {(pending.plan?.steps || []).map((st, i) => <li key={i}><b><MD inline>{st.title}</MD></b>{st.detail ? <> — <MD inline>{st.detail}</MD></> : null}</li>)}
             </ol>
             <textarea className="input mt-3" rows={2} value={planFeedback} onChange={(e) => setPlanFeedback(e.target.value)} placeholder={t("想改动的地方(可留空直接同意)…例如:不要删记录、第 2 步和第 3 步对调")} />
             <div className="mt-2 flex gap-2">
@@ -220,7 +220,7 @@ export default function KillerChat({ embedded = false }) {
                   <p className="text-xs font-bold text-amber-800">📋 {t("执行计划")}</p>
                   {plan.summary && <p className="text-xs text-amber-700 mt-0.5">{plan.summary}</p>}
                   <ol className="mt-1 space-y-0.5 text-xs text-slate-600 list-decimal list-inside">
-                    {(plan.steps || []).map((st, i) => <li key={i}><b>{st.title}</b>{st.detail ? " — " + st.detail : ""}</li>)}
+                    {(plan.steps || []).map((st, i) => <li key={i}><b><MD inline>{st.title}</MD></b>{st.detail ? <> — <MD inline>{st.detail}</MD></> : null}</li>)}
                   </ol>
                 </div>
               )}

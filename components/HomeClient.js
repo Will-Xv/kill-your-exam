@@ -374,7 +374,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
               <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition ${tk.complete ? "text-slate-400" : "hover:bg-slate-50"}`}>
                 <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs ${tk.complete ? "border-teal-500 bg-teal-500 text-white" : "border-teal-300 text-teal-600"}`}>{tk.complete ? "✓" : "🛠"}</span>
                 <span className="min-w-0 flex-1">
-                  <span className={tk.complete ? "line-through" : "font-medium"}>{tk.title}</span>
+                  <span className={tk.complete ? "line-through" : "font-medium"}><MD inline>{tk.title}</MD></span>
                   <span className="ml-1.5 whitespace-nowrap rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">{t("作业")}</span>
                   {tk.due ? <span className="ml-1 whitespace-nowrap text-[11px] text-[#a98b52]">⏳{t("截止")} {tk.due.slice(5)}</span> : null}
                 </span>
@@ -390,7 +390,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
               {crossUrgent.map((u) => (
                 <a key={u.taskId} href={`/tasks?task=${u.taskId}`} className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition hover:bg-slate-50">
                   <span className={"shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 " + (u.overdue ? "bg-rose-100 text-rose-700 ring-rose-300" : "bg-amber-100 text-amber-800 ring-amber-300")}>{u.overdue ? t("已逾期") : t("快到期")}</span>
-                  <span className="min-w-0 flex-1 truncate"><span className="text-[#8a6a2c]">{u.examName} · </span><span className="font-medium text-[#2f2413]">{u.title}</span></span>
+                  <span className="min-w-0 flex-1 truncate"><span className="text-[#8a6a2c]">{u.examName} · </span><span className="font-medium text-[#2f2413]"><MD inline>{u.title}</MD></span></span>
                   <span className="shrink-0 text-[11px] text-[#a98b52]">⏳{u.due.slice(5)}</span>
                 </a>
               ))}

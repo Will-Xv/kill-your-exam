@@ -4,6 +4,7 @@ import { useT } from "@/components/I18n";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import SourceConfidence from "@/components/SourceConfidence";
 import QuestionBank from "@/components/QuestionBank";
+import MD from "@/components/MD";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 
@@ -53,7 +54,7 @@ export default function Blueprint() {
             <div className="space-y-1 text-sm">
               {(bp.plan || []).map((p, i) => (
                 <div key={i} className="flex justify-between border-b border-stone-100 py-1">
-                  <span>{p.chapter ? <span className="text-stone-400">{p.chapter} / </span> : null}{p.kpTitle}</span>
+                  <span>{p.chapter ? <span className="text-stone-400"><MD inline>{p.chapter}</MD> / </span> : null}<MD inline>{p.kpTitle}</MD></span>
                   <span className="text-stone-500">{p.count} {t("题")}</span>
                 </div>
               ))}
