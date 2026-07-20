@@ -40,6 +40,14 @@ export default function ItemLibrary({ onClose }) {
     colItems[c.where] = entries.map((e) => getItem(e.item)).filter((it) => it && !MINE_FIXED.includes(it.id));
   }
   colItems.hidden = [...colItems.hidden, ...assignable.filter((it) => !inThisBp.has(it.id))];
+  // 固定项(首页、我的)保底:老用户的存量放置表里可能没有它们,别让它们掉进「隐藏」列显得可以藏起来——
+  // 一律确保出现在自己所属的那一列(可以在列内拖动排序,拖不出去)。
+  for (const it of assignable) {
+    if (!it.pinned || !colItems[it.pinned]) continue;
+    colItems.hidden = colItems.hidden.filter((x) => x.id !== it.id);
+    for (const c of COLS) if (c.where !== it.pinned) colItems[c.where] = colItems[c.where].filter((x) => x.id !== it.id);
+    if (!colItems[it.pinned].some((x) => x.id === it.id)) colItems[it.pinned] = [...colItems[it.pinned], it];
+  }
 
   const sig = JSON.stringify(pl[bp] || []) + "|" + bp;
   useFlip(rootRef, sig, { override: flipOverride });
@@ -69,7 +77,7 @@ export default function ItemLibrary({ onClose }) {
       const target = colAt(ev.clientX, ev.clientY);
       const it = getItem(id) || {};
       let allowed = !!target;
-      if (target && it.pinned && it.pinned !== target) allowed = false;              // 固定项(首页)只能留在导航栏
+      if (target && it.pinned && it.pinned !== target) allowed = false;              // 固定项(首页 / 我的)只能留在导航栏
       if (target && it.moduleOnly && target !== "zone" && target !== "hidden") allowed = false; // 原生模块只能进 首页大模块/隐藏
       if (allowed && clone) flipOverride.current[id] = clone.getBoundingClientRect();
       if (clone) clone.remove();
