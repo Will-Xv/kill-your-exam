@@ -267,3 +267,11 @@
 - `toolLabel` 曾在开头先调 `describe()`,而 `describe` 对原生工具返回**原始函数名**(truthy)就提前 return,导致它自己的友好名永远走不到(P3-5)。工具标签要**自己的 case 优先、describe 只作兜底**。
 - 最终回复要**只取非 thought 片段**(`replyText`):模型思考片段会复述系统提示词/工具日志,混进 `res.text` 就是 P3-1 那种整段内部内容泄露。
 - 合并/整理某科目前必须先 `find_similar_exams` 把**全部**同名/疑似重复项揪出来逐条确认(P2-13 漏了一条重复的 Term Test 1)。
+
+### 2026-07-19 补充(同批次后半程)
+- **元规则我又漏过一次**:改了功能只补了 FEATURES/CLAUDE、忘了同步 appGuide(合并日期决策门、exam_create 的 examDate、plan_overview 的 mustCover 都漏了)。**三处必须一起改,别攒到最后**——Will 已经因此点过名。
+- **内容归属守门**:`lib/scopeGuard.js`,在 `execTool` 里对 `assign_practical_task / generate_question_set / add_knowledge_point` 前置拦截;尺子是**课纲(知识点树)**不是学科。确认框加 `intoExam` 标签。
+- **提醒只走推送**:`deliverDue`/`autoRules` 的 reminder 不再进收件箱;`pushStatus` 注入 systemPrompt,没开推送必须提前说明。收件箱只留可留存信件(公告/回信/本周计划汇总)。
+- **小改要有小改的砖头**:Will 明确指出"P4-11 你是不是就是改提示词了?我觉得需要加小改的砖头"。⇒ 新增零 AI 的 `reorder_daily_plan`。**凡是"只改一小点"的需求,都该有一个不跑 AI 的就地砖头**,而不是让 `customize_daily_plan` 整份重生成再靠提示词约束。
+- **不替用户做决定**:`exam_merge` 两边日期不同时**拒绝执行并回问**(合并 vs 父子结构;合并用哪个日期)。Will:"不应该替用户做决定"。
+- **改动日志不截断**:`act_log_json` 去掉 80 条上限——确认恢复复用同一个 run,**超时重试会不断往同一份日志里累加**,而超时多次恰恰说明这轮复杂、更不能丢。
