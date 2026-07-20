@@ -330,3 +330,15 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **存量迁移**:`lib/db.js` 迁移把所有 `ui_item_placement` / `ui_placement:<examId>` 里 `where==="more"` 的项**直接改写成 `morefeatures`**;`applyMove` 也把 `more` 强制归一到 `morefeatures`,今后不会再有东西落进 more。
 - **手动定制 UI(ItemLibrary)**:去掉「更多菜单」列;**不加「我的」列**(它的内容是固定的),并把 `MINE_FIXED` 那批项从整个面板里排除,避免被当成可摆放项。
 
+### 手动建考试下线 · 建考试只由杀手做(2026-07-19)
+- **删除** `app/onboarding`(手动填表建考试页)与 `app/api/onboarding/*`(仅它自己在用)。
+- **新用户导引结束后直接落到【没有考试的首页】**(`Tour` 不再跳 `/onboarding`),首页空状态的按钮改成 **`openKiller()`**「告诉杀手你要考什么」。
+- **追杀计划(/exams)**:去掉「+ 新考试」与「继续设置」;顶部加一条虚线提示「要加新考试?直接跟杀手说…」(点它叫出杀手);旧的未建完考试显示「这门还没建完」+「让杀手补完」按钮。
+- 学习页/练习页的空状态也不再指向手动建考试,改为提示找杀手。
+- appGuide 增加对应规则:建考试只由 `exam_provision` 做;补完旧考试要**先问清缺什么**(缺得多用 `ask_user_form` 一次问全);★**别在主人没开口时自己弹表单打断他**,正在进行别的对话时先把手上的事说完、先问一句再弹。
+
+### 本周计划表与今日任务同源(2026-07-19)
+- **退役 `build_study_plan`**(把知识点按天均匀铺):它把知识点钉死在日期上,而新知识是**按完成推进**;而且核实发现 `currentDailyItems` 与 `dayPlan` **从来互不引用**,本就是两套平行系统。
+- **`planner.cycleDeadlines`**:用**和今日任务同一套判定**(范围=该考核自己的知识点、学完=做够 8 题)给出每个考核**「这天之前要学完什么」**(已学完 x/y、还剩几个、剩哪些)。
+- `/api/day-plan` 返回 `deadlines` + `todayItems`;`/plan` 在考核当天渲染红色「这天之前要学完」块,在**今天**那格渲染实时的今日三条(只读、可点进)。**不做任何"预计哪天学哪个"的推算**。
+- **`lib/dailyLabels.js`**:今日任务的链接与文案抽成共享模块,**首页与周计划共用同一份**,从机制上保证口径一致。

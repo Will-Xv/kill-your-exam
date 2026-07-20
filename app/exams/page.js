@@ -1,5 +1,6 @@
 "use client";
 import { alertDialog } from "@/components/ui/dialog";
+import { openKiller } from "@/lib/killerUi";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/components/I18n";
@@ -48,8 +49,11 @@ export default function Exams() {
       )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("追杀计划")}</h1>
-        <a href="/onboarding" className="btn py-2 text-sm">+ {t("新考试")}</a>
       </div>
+      {/* 手动建考试已下线:告诉主人去找杀手建 */}
+      <button onClick={openKiller} className="w-full rounded-2xl border border-dashed border-[#dbc999] bg-[#f6efdc]/60 px-4 py-3 text-left text-sm text-[#8a6a2c] transition hover:bg-[#f3ecda]">
+        ➕ {t("要加新考试?直接跟杀手说你要考什么,它会帮你建好。")}
+      </button>
       {live.map((e) => {
         const setup = e.status === "setup";
         const generating = e.setup_state === "generating";
@@ -58,10 +62,10 @@ export default function Exams() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold">{e.name} {e.completed_at && <span className="badge-material">✅ {t("已完成")}</span>}</p>
-              <p className="text-xs text-stone-400">{generating ? "⏳ " + (e.setup_progress ? t(e.setup_progress) : t("生成中…")) : setup ? "🚧 " + t("正在设置") : e.completed_at ? "✅ " + t("已完成") : (e.exam_date || t("未设日期")) + " · " + (STATUS[e.status] || e.status)}</p>
+              <p className="text-xs text-stone-400">{generating ? "⏳ " + (e.setup_progress ? t(e.setup_progress) : t("生成中…")) : setup ? "🚧 " + t("这门还没建完") : e.completed_at ? "✅ " + t("已完成") : (e.exam_date || t("未设日期")) + " · " + (STATUS[e.status] || e.status)}</p>
             </div>
             {generating ? <span className="text-xs text-amber-600 animate-pulse">{t("AI 后台生成中")}</span>
-              : setup ? <button className="btn py-2 text-sm" onClick={() => (location.href = `/onboarding?resume=${e.id}`)}>{t("继续设置")}</button>
+              : setup ? <button className="btn py-2 text-sm" onClick={openKiller}>{t("让杀手补完")}</button>
               : e.status !== "active" ? <button className="btn-ghost py-2 text-sm" onClick={() => switchTo(e.id)}>{t("切换到这个")}</button> : null}
           </div>
           <div className="mt-2 flex gap-3 text-xs">

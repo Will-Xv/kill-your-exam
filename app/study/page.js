@@ -66,7 +66,7 @@ function StudyInner() {
 
   if (generating) return <p className="mt-16 text-center text-amber-600 animate-pulse">🔧 {t("知识树重建中…完成后会自动出现,请稍候刷新")}</p>;
   if (!tree) return <p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>;
-  if (!tree.length) return <p className="mt-16 text-center text-stone-400">{t("还没有知识点树,请先完成")}<a href="/onboarding" className="underline">{t("考试设置")}</a>。</p>;
+  if (!tree.length) return <p className="mt-16 text-center text-stone-400">{t("还没有知识点树——跟杀手说你要考什么,它会帮你建好。")}</p>;
 
   if (exploreKp) {
     return <ExploreSession kp={exploreKp} onBack={() => { setExploreKp(null); syncUrl({}); }} />;

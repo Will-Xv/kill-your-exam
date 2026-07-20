@@ -43,7 +43,7 @@ export default function Tour() {
   function done(redirect, read) {
     fetch("/api/guide", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: mode, read }) }).catch(() => {});
     setMode(null);
-    if (redirect) location.href = "/onboarding";
+    if (redirect) location.href = "/"; // 手动建考试已删除:导引结束直接回首页(空状态),让主人直接跟杀手说要考什么
   }
   function next() { if (last) done(mode === "tour" && !hasExam, true); else setStep(step + 1); }
   function skip() { done(false, false); }

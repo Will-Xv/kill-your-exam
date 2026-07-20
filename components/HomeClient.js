@@ -13,6 +13,7 @@ import FeatureModule from "@/components/uilab/FeatureModule";
 import FitText from "@/components/FitText";
 import MD from "@/components/MD";
 import { dailyLink, dailyLabel } from "@/lib/dailyLabels";
+import { openKiller } from "@/lib/killerUi";
 // 已并入导航栏「我的」菜单的栏目:不再出现在首页「更多功能」网格里(「更多☰」菜单已取消,存量放在 more 的也并进这个网格)
 const MINE_IDS_HOME = ["profile", "inbox", "settings", "feedback", "checkpoints", "admin", "dev", "bugs"];
 
@@ -118,7 +119,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           <div className="animate-in grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-amber-500 to-amber-600 text-4xl shadow-xl shadow-amber-500/30">📘</div>
           <h1 className="animate-in d1 mt-6 text-3xl font-black">{t("欢迎!先设置一门考试")}</h1>
           <p className="animate-in d2 mt-3 text-[#cdbfa0]">{t("还没有设置考试。花 5 分钟告诉我你要考什么,")}{t("我会先坦白我知道什么、不知道什么。")}</p>
-          <Link href="/onboarding" className="btn animate-in d3 mt-7 text-base">🚀 {t("开始设置考试")}</Link>
+          <button onClick={openKiller} className="btn animate-in d3 mt-7 text-base">🚀 {t("告诉杀手你要考什么")}</button>
         </div>
       </>
     );
