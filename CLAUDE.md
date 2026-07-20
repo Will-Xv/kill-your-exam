@@ -273,5 +273,6 @@
 - **内容归属守门**:`lib/scopeGuard.js`,在 `execTool` 里对 `assign_practical_task / generate_question_set / add_knowledge_point` 前置拦截;尺子是**课纲(知识点树)**不是学科。确认框加 `intoExam` 标签。
 - **提醒只走推送**:`deliverDue`/`autoRules` 的 reminder 不再进收件箱;`pushStatus` 注入 systemPrompt,没开推送必须提前说明。收件箱只留可留存信件(公告/回信/本周计划汇总)。
 - **小改要有小改的砖头**:Will 明确指出"P4-11 你是不是就是改提示词了?我觉得需要加小改的砖头"。⇒ 新增零 AI 的 `reorder_daily_plan`。**凡是"只改一小点"的需求,都该有一个不跑 AI 的就地砖头**,而不是让 `customize_daily_plan` 整份重生成再靠提示词约束。
+- **别把"改"和"重排"混在一个砖头里**:Will 追问"customize 本来不就是用户要改今日任务吗?你改成当前生效的,那用户想要一个新的有对应砖头吗?"——确实没有(`refresh_daily_plan` 只是清掉自定义回到自动,不带用户要求)。⇒ 拆成 `adjust_daily_plan`(以**当前生效**的任务为底、保留已微调题数)和 `customize_daily_plan`(**重算**一份)。**改动幅度不同就该是不同的砖头**,共用一个实现函数(`planWithAI(args, ctx, fromCurrent)`)即可。
 - **不替用户做决定**:`exam_merge` 两边日期不同时**拒绝执行并回问**(合并 vs 父子结构;合并用哪个日期)。Will:"不应该替用户做决定"。
 - **改动日志不截断**:`act_log_json` 去掉 80 条上限——确认恢复复用同一个 run,**超时重试会不断往同一份日志里累加**,而超时多次恰恰说明这轮复杂、更不能丢。
