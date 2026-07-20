@@ -12,6 +12,8 @@ import { getItem, itemVisibleTo } from "@/lib/uilab/items";
 import FeatureModule from "@/components/uilab/FeatureModule";
 import FitText from "@/components/FitText";
 import MD from "@/components/MD";
+// 已并入导航栏「我的」菜单的栏目:不再出现在首页「更多功能」网格里(「更多☰」菜单已取消,存量放在 more 的也并进这个网格)
+const MINE_IDS_HOME = ["profile", "inbox", "settings", "feedback", "checkpoints", "admin", "dev", "bugs"];
 
 export default function HomeClient({ initialLeaderboard = null, initialIsDev = false, initialData = null }) {
   const t = useT();
@@ -168,13 +170,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     { href: "/performances", icon: "🎬", title: t("表演回放"), desc: t("回看录像+AI点评,可重做"), grad: "from-fuchsia-400 to-purple-500", tint: "hover:border-fuchsia-300 hover:shadow-fuchsia-500/15", ig: "from-fuchsia-50 to-purple-50" },
     { href: "/arena", icon: "🎮", title: t("竞技场"), desc: t("错题Boss战/庭审/辩论赛"), grad: "from-indigo-400 to-violet-500", tint: "hover:border-indigo-300 hover:shadow-indigo-500/15", ig: "from-indigo-50 to-violet-50" },
     { href: "/tasks", icon: "🛠️", title: t("实践作业"), desc: t("编程/实验:动手做+判分"), grad: "from-teal-400 to-cyan-500", tint: "hover:border-teal-300 hover:shadow-teal-500/15", ig: "from-teal-50 to-cyan-50" },
-    { href: "/inbox", icon: "📬", title: t("收件箱"), desc: t("更新公告与信件"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },
-    { href: "/profile", icon: "🧭", title: t("你的全部杀技"), desc: t("跨考试的你"), grad: "from-violet-400 to-purple-500", tint: "hover:border-violet-300 hover:shadow-violet-500/15", ig: "from-violet-50 to-purple-50" }
   ];
 
   const __bp = pbDesktop ? "desktop" : "mobile";
   const gridCards = placement.active()
-    ? placement.itemsIn(__bp, "morefeatures", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, { isDeveloper: isDev })).map((it) => ({ href: it.href, icon: it.icon, title: t(it.label), desc: t(it.desc) }))
+    ? [...placement.itemsIn(__bp, "morefeatures", placement.renderPlacement()), ...placement.itemsIn(__bp, "more", placement.renderPlacement())].map((e) => getItem(e.item)).filter((it) => it && it.href && !MINE_IDS_HOME.includes(it.id) && itemVisibleTo(it, { isDeveloper: isDev })).map((it) => ({ href: it.href, icon: it.icon, title: t(it.label), desc: t(it.desc) }))
     : features.map((f) => ({ href: f.href, icon: f.icon, title: f.title, desc: f.desc, grad: f.grad, tint: f.tint, ig: f.ig }));
   const zoneModules = placement.active()
     ? placement.itemsIn(__bp, "zone", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && !it.native && itemVisibleTo(it, { isDeveloper: isDev }))

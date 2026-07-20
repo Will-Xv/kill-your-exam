@@ -15,21 +15,13 @@ const primary = [
   { href: "/materials", label: "补充资料", icon: "📎" },
   { href: "/study", label: "学习", icon: "📖" }
 ];
-const more = [
-  { href: "/mock", label: "模拟考", icon: "📝", desc: "限时全真模拟" },
-  { href: "/prep", label: "屠杀准备", icon: "🎒", desc: "考务/应试自测" },
-  { href: "/mistakes", label: "错题本", icon: "📕", desc: "重练做错的题" },
-  { href: "/notes", label: "笔记本", icon: "📓", desc: "收藏的题+随手笔记" },
-  { href: "/profile", label: "你的全部杀技", icon: "🧭", desc: "跨考试综合评估" },
-  { href: "/checkpoints", label: "回档", icon: "↩️", desc: "撤销结构类大改" },
-  { href: "/settings", label: "设置", icon: "⚙️", desc: "语言/档案/导出" },
-  { href: "/feedback", label: "意见反馈", icon: "✉️", desc: "给开发者反馈" }
-];
+// 「我的」菜单固定内容(收件箱/设置/意见反馈/回档)——不参与放置表,始终跟着「我的」走。
+const MINE_IDS = ["profile", "inbox", "settings", "feedback", "checkpoints", "admin", "dev", "bugs"];
 
 export default function Nav() {
   const t = useT();
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  const [mineOpen, setMineOpen] = useState(false);
   const [me, setMe] = useState(null);
   const S = lab.useUiLab();
   placement.useItems(); useStats();
@@ -37,7 +29,7 @@ export default function Nav() {
   const onHome = path === "/";
   useEffect(() => { navigator.serviceWorker?.register("/sw.js").catch(() => {}); }, []);
   useEffect(() => { fetch("/api/me").then((r) => r.ok ? r.json() : null).then((d) => setMe(d?.user)).catch(() => {}); }, []);
-  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => { setMineOpen(false); }, [path]);
   useEffect(() => {
     lab.initClient();
     if (typeof window === "undefined") return;
@@ -84,9 +76,9 @@ export default function Nav() {
   const itemBase = vertical
     ? "flex flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-[10px] font-medium transition"
     : "flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition md:flex-none md:flex-row md:gap-1.5 md:px-4 md:py-2 md:text-sm";
-  const navItems = pact ? placement.itemsIn(bp, "nav", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : primary;
-  const moreItems = pact ? placement.itemsIn(bp, "more", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && it.href && itemVisibleTo(it, me)) : [...more, ...extra];
-  const moreHasBadge = pact && moreItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
+  const navItems = pact ? placement.itemsIn(bp, "nav", placement.renderPlacement()).map((e) => getItem(e.item)).filter((it) => it && (it.href || it.menu) && itemVisibleTo(it, me)) : [...primary, getItem("mine")].filter(Boolean);
+  const mineItems = MINE_IDS.map((id) => getItem(id)).filter((it) => it && it.href && itemVisibleTo(it, me));
+  const mineHasBadge = mineItems.some((it) => it.badge && (statValue(it.badge) || 0) > 0);
 
   const gestureBase = () => { const start = navRef.current.getBoundingClientRect(); const others = collectRects(navRef.current); lab.pushHistory(); return { start, others }; };
   const begin = (e, handler) => {
@@ -106,11 +98,11 @@ export default function Nav() {
 
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)}>
+      {mineOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMineOpen(false)}>
           <div className="absolute bottom-16 left-1/2 w-[92%] max-w-md -translate-x-1/2 md:top-16 md:bottom-auto" onClick={(e) => e.stopPropagation()}>
             <div className="card grid grid-cols-2 gap-2 shadow-2xl animate-in">
-              {moreItems.map((it) => { const bv = it.badge ? (statValue(it.badge) || 0) : 0; return (
+              {mineItems.map((it) => { const bv = it.badge ? (statValue(it.badge) || 0) : 0; return (
                 <Link key={it.href} href={it.href} className={`flex items-start gap-2 rounded-2xl p-3 transition ${active(it.href) ? "bg-[#efe0bd] text-[#6b4a25]" : "hover:bg-[#efe6cf]"}`}>
                   <span className="relative text-xl">{it.icon}{bv > 0 && <span className="absolute -right-1.5 -top-1 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#f6efdc]">{bv}</span>}</span>
                   <span><span className="block text-sm font-semibold">{t(it.label)}</span><span className="block text-xs text-[#8a7a54]">{t(it.desc)}</span></span>
@@ -122,16 +114,18 @@ export default function Nav() {
       )}
       <nav className={`fixed z-50 ${navPosCls} ${!vertical && dockLeft && !p && !lab.contentToRender() ? "md:pr-[460px] lg:pr-[500px]" : ""}`}>
         <div ref={navRef} data-snap style={navStyle} className={innerCls}>
-          {navItems.map((it) => (
+          {navItems.map((it) => (it.menu ? (
+            <button key={it.id} onClick={() => setMineOpen((v) => !v)}
+              className={`${itemBase} min-w-0 ${mineOpen || mineItems.some((m) => active(m.href)) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
+              <span className="relative text-lg md:text-base shrink-0">{it.icon}{mineHasBadge && <span className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#f6efdc]" />}</span>
+              <span className="block max-w-full truncate text-center md:max-w-[140px] md:text-left">{t(it.label)}</span>
+            </button>
+          ) : (
             <Link key={it.href} href={it.href}
               className={`${itemBase} min-w-0 ${active(it.href) ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
               <span className="text-lg md:text-base shrink-0">{it.icon}</span><span className="block max-w-full truncate text-center md:max-w-[140px] md:text-left">{t(it.label)}</span>
             </Link>
-          ))}
-          <button onClick={() => setOpen(!open)}
-            className={`${itemBase} ${open ? "text-[#6b4a25] md:bg-[#efe0bd]" : "text-[#8a6a2c] hover:text-[#2f2413]"}`}>
-            <span className="relative text-lg md:text-base">☰{moreHasBadge && <span className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#f6efdc]" />}</span><span>{t("更多")}</span>
-          </button>
+          )))}
           {editing && (
             <>
               <div onPointerDown={mvN} title={t("拖动移动导航栏")} style={{ position: "absolute", inset: 0, zIndex: 20, cursor: "move", borderRadius: 9999 }} />

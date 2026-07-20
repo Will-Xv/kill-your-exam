@@ -322,3 +322,11 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 ### 合并考试的日期(不替主人做主)
 - `exam_merge`:日期相同或只有一方有 → 直接合并并继承那个日期;**两边都有且不同 → 拒绝合并**,回去问主人(要合并成一门还是要父子结构 `exam_set_parent`?合并的话用哪个日期?),答复后经新入参 `examDate` 再合并。`exam_create` 新增 `examDate` 入参(留空的考试首页没倒计时、跨考试排期会漏排)。
 - `plan_overview` 返回 `mustCover`(所有分到时间的考试 + 标出当前正开着的那门)+ 附注"一门都不许漏,确实不排也要明说为什么"(P4-8 核查结论:`allocate` 并不丢考试,是叙述时漏的)。
+
+### 导航栏改版:新增「我的」·取消「更多 ☰」(2026-07-19)
+- **新增 `mine`(我的)**:`lib/uilab/items.js` 里是个**菜单型项**(没有 `href`,带 `menu` 数组),`pinned:"nav"`。内容固定:你的全部杀技 / 收件箱 / 设置 / 意见反馈 / 回档(+ 管理员/开发者的 管理面板 / 开发者工具 / Bug 反馈,按 `itemVisibleTo` 过滤)。带 `badge:"inboxUnread"`,有未读会显红点。
+- **可挪不可删**:`placementCore.PINNED = { home:"nav", mine:"nav" }`,`applyMove` 里固定项若目标容器不是它的 `pinned` 直接忽略 ⇒ 编辑器拖不出去、杀手 `ui_move_item` 也挪不走;`ui_remove_feature` 对 `home/mine` 明确拒绝。
+- **取消「更多 ☰」**:`Nav.js` 删掉 ☰ 按钮与下拉面板;默认放置表里 `mock/prep` 改到 `morefeatures`,`profile` 进「我的」。
+- **存量迁移**:`lib/db.js` 迁移把所有 `ui_item_placement` / `ui_placement:<examId>` 里 `where==="more"` 的项**直接改写成 `morefeatures`**;`applyMove` 也把 `more` 强制归一到 `morefeatures`,今后不会再有东西落进 more。
+- **手动定制 UI(ItemLibrary)**:去掉「更多菜单」列;**不加「我的」列**(它的内容是固定的),并把 `MINE_FIXED` 那批项从整个面板里排除,避免被当成可摆放项。
+

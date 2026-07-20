@@ -9,9 +9,11 @@ import { allItems, getItem, itemVisibleTo } from "@/lib/uilab/items";
 import { useT } from "@/components/I18n";
 import { useFlip } from "@/lib/uilab/flip";
 
+// 「我的」菜单里的内容是【固定的】,不参与手动摆放,所以面板里一概不显示。
+// (「更多☰」已取消:存量放在 more 里的项,在面板里并进「更多功能」列一起管。)
+const MINE_FIXED = ["profile", "inbox", "settings", "feedback", "checkpoints", "admin", "dev", "bugs"];
 const COLS = [
   { where: "nav", label: "导航栏", hint: "顶部按钮" },
-  { where: "more", label: "更多菜单", hint: "☰ 下拉" },
   { where: "morefeatures", label: "更多功能", hint: "首页卡片" },
   { where: "zone", label: "首页大模块", hint: "像排行榜" },
   { where: "hidden", label: "隐藏", hint: "不显示" }
@@ -28,10 +30,15 @@ export default function ItemLibrary({ onClose }) {
   useEffect(() => { setMounted(true); placement.startEditFromCurrent(); fetch("/api/me").then((r) => r.json()).then((d) => setMe(d.user || {})).catch(() => {}); }, []);
 
   const pl = placement.placementNow();
-  const assignable = allItems().filter((it) => itemVisibleTo(it, me)); // 功能项 + 原生模块都进板子
+  const assignable = allItems().filter((it) => itemVisibleTo(it, me) && !MINE_FIXED.includes(it.id)); // 功能项 + 原生模块都进板子(「我的」里的固定项除外)
   const inThisBp = new Set((pl[bp] || []).map((e) => e.item));
   const colItems = {};
-  for (const c of COLS) colItems[c.where] = placement.itemsIn(bp, c.where, pl).map((e) => getItem(e.item)).filter(Boolean);
+  for (const c of COLS) {
+    const entries = c.where === "morefeatures"
+      ? [...placement.itemsIn(bp, "morefeatures", pl), ...placement.itemsIn(bp, "more", pl)] // 「更多☰」已取消:存量的 more 项并进这一列
+      : placement.itemsIn(bp, c.where, pl);
+    colItems[c.where] = entries.map((e) => getItem(e.item)).filter((it) => it && !MINE_FIXED.includes(it.id));
+  }
   colItems.hidden = [...colItems.hidden, ...assignable.filter((it) => !inThisBp.has(it.id))];
 
   const sig = JSON.stringify(pl[bp] || []) + "|" + bp;
