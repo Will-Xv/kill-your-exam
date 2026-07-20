@@ -1,6 +1,5 @@
 "use client";
 import { alertDialog } from "@/components/ui/dialog";
-import { openKiller } from "@/lib/killerUi";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/components/I18n";
@@ -65,7 +64,7 @@ export default function Exams() {
               <p className="text-xs text-stone-400">{generating ? "⏳ " + (e.setup_progress ? t(e.setup_progress) : t("生成中…")) : setup ? "🚧 " + t("这门还没建完") : e.completed_at ? "✅ " + t("已完成") : (e.exam_date || t("未设日期")) + " · " + (STATUS[e.status] || e.status)}</p>
             </div>
             {generating ? <span className="text-xs text-amber-600 animate-pulse">{t("AI 后台生成中")}</span>
-              : setup ? <button className="btn py-2 text-sm" onClick={openKiller}>{t("让杀手补完")}</button>
+              : setup ? <span className="text-xs text-amber-700">{t("跟杀手说一声,让它补完")}</span>
               : e.status !== "active" ? <button className="btn-ghost py-2 text-sm" onClick={() => switchTo(e.id)}>{t("切换到这个")}</button> : null}
           </div>
           <div className="mt-2 flex gap-3 text-xs">
