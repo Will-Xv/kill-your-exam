@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise, resumeForm } from "@/lib/chatAgent";
+import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise, resumeForm, recordAct, toolLabelPublic } from "@/lib/chatAgent";
 import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
@@ -44,9 +44,11 @@ export async function POST(req) {
         const c = calls[idx];
         let result;
         if (isWrite(c.name)) {
-          if (approvals && approvals[idx]) { result = await execTool(c.name, c.args || {}, exam, user); if (result?.note) toolNotes.push(result.note); }
+          if (approvals && approvals[idx]) { result = await execTool(c.name, c.args || {}, exam, user, run.id); if (result?.note) toolNotes.push(result.note); }
           else { result = { declined: true, note: "考生拒绝了这个操作" }; }
-        } else { result = await execTool(c.name, c.args || {}, exam, user); if (result?.note) toolNotes.push(result.note); }
+        } else { result = await execTool(c.name, c.args || {}, exam, user, run.id); if (result?.note) toolNotes.push(result.note); }
+        // 记进【本轮真实改动日志】:用户批准后真正执行的写操作、被拒绝的、以及读操作,都如实留痕
+        try { recordAct(run.id, { label: toolLabelPublic(c.name, c.args || {}), write: isWrite(c.name), ok: !(result && (result.error || result.ok === false || result.declined)), note: (result && result.note) || "", error: (result && result.error) || "" }); } catch {}
         parts.push({ functionResponse: { name: c.name, response: { result } } });
       }
       contents.push({ role: "user", parts });
