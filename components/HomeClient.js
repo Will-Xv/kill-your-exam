@@ -157,7 +157,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     it.type === "newkp" ? (it.cycleDone
         ? `${t("本周期的新知识都学完了")} ✓${it.ahead ? ` · ${t("可选·超前学:")}${it.ahead.chapter ? it.ahead.chapter + " · " : ""}${it.ahead.title}` : ""}`
         : `${t("学新知识:")}${it.chapter ? it.chapter + " · " : ""}${it.title} (${t("今日")} ${it.count || 0}/${it.dailyTarget} · ${t("该知识点")} ${it.kpDone || 0}/${it.kpTarget})`) :
-    `${t("自由练习薄弱点")} (${it.count || 0}/${it.target})${it.outOfCycle ? ` · ${t("补旧薄弱·不在本次考核范围")}` : ""}`;
+    `${t("自由练习薄弱点")} (${it.count || 0}/${it.target})${it.outOfCycle ? ` · ${(it.anchor && it.anchor.name) ? t("补旧薄弱·不在「{n}」的范围内").replace("{n}", it.anchor.name) : t("补旧薄弱·不在本次考核范围")}` : ""}`;
 
   const features = [
     { href: "/study", icon: "📖", title: t("学习"), desc: t("跟 AI 学知识点 + 练习"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },

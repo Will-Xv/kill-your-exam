@@ -229,3 +229,41 @@
 - **杀手知道当前设备、感知设备切换(2026-07,Will)**:KillerChat 每条消息带 device(window.innerWidth>=768→desktop/mobile);/api/chat 注入 deviceNote——告诉杀手这条是电脑还是手机发的,回答界面/布局/"我在哪"按该设备那套说(电脑手机的杀手位置/导航/布局不同),且【若本条设备和上条不同=主人换设备了(如电脑→手机),以现在这台为准,别被上文另一台迷惑】。配合 ui_read 现在分电脑/手机报位置。
 
 - **修 ui_read 的 item placement 与实际布局对不上(2026-07,Will)**:根因=两者同源(都读 ui_item_placement setting),但客户端渲染(uilab/placement.applyServerPlacement)会先跑 normalizePlacement(把没显式摆放的功能补到默认位置、并入注册表),而 ui_read/basePlacement 报的是【原始存储、未归一化】——所以新功能/未摆放项在界面上有、ui_read 里却看不到或位置不同。修:chatAgent ui_read 也 normalizePlacement(basePlacement(exam.id), 全部feature_id, 全局ui_item_placement) 后再报,和实际渲染一致。
+
+
+## 2026-07-19 v9~v11 测试回归批(Will 反复强调的方法论 + 硬教训)
+
+### ★ 方法论(Will 明确要求,比具体修复更重要)
+- **非硬伤先讨论、别一刀切**:测试报告里不是硬伤的条目,先跟 Will 讨论、找根本原因,不要每条都加一条提示词规则草草了事。("绝对不能所有问题都一刀切,而不是找根本原因")
+- **是系统 bug 就别指望提示词**:Will 直接质疑过"如果是系统的 bug,加规则真的有用吗"。判断顺序永远是:先找程序层根因 → 程序写死 → 提示词只作说明/兜底。
+- **改提示词时写"是什么/怎么用",不要写"你必须调用 X"**:Will 明确要求把命令式改成说明性。
+- **杀手不是角色扮演**:这是严肃学习软件,"主人/杀手"只是称呼。排计划/报进度/列步骤必须干净好读,别堆角色台词。
+
+### 反虚报:本轮真实改动记录(程序写死)
+- `chat_runs.act_log_json` + `recordAct` + `actsBlock(runId)`;**每次调模型前**拼进系统指令,**空也注入**。resume 清 `steps_json` 但**不清** act_log ⇒ 整轮累积到最终回复。
+- 日志只存可读标签(`toolLabelPublic`),不存内部工具名。
+- 教训:P4-12(编造"上一个 AI 撒谎、合并没执行")、P4-14(声称挪了导航栏其实没挪)证明**只靠红线提示词治不住虚报**。
+
+### ⚠️ Reset 的血泪教训(我自己造成的严重回归)
+- `resetUserData` 用"遍历所有表按 user_id/exam_id 删"的通用清扫是对的,但**必须跳过 `sessions`**——删了会把账号登出,表现为全站 401 + `/dev` 说"developers only" + `/exams` 卡死(v11 的 P4-1/P4-2/P4-3 三条其实是同一个根因)。
+- 用户行按 Will 要求**删掉再用同 id + 同登录重建**(保留 id/username/password_hash/salt/is_admin/is_developer/lang/email/google_sub/name/avatar_url,其余回默认)⇒ 真正的"同 ID 新账号",且重置后重走新手导引。
+- 只有开发者能重置(`/api/dev/reset` 对非开发者 forbidden),重建时 `is_developer` 必须带回。
+
+### 前端易踩
+- `position:fixed` 被**带 transform 的祖先**困住 ⇒ 弹窗跑到页面中部、没有全屏遮罩。首页冲刺弹窗、/exams 确认框都栽过,统一用 `createPortal(..., document.body)`。
+- **短标题里的公式**:先 `slice` 截断再交给 MD 渲染会把 `$...$` 切断 ⇒ 原样露出 LaTeX。要用"不切断公式"的安全截断(`safeCut`)。
+- **原生 `confirm/alert/prompt` 一律不用**:会挡住自动化测试(点了没反应看起来像死按钮)、样式不统一、无法本地化。统一走 `components/ui/dialog.js`。
+- 词典缺键会**静默回退成中文**——`"确定"` 就是 8 个词典全缺才只有它露中文。加界面文案时务必 8 个词典一起加。
+
+### devtime / 虚拟日期
+- `dayOffset()` 靠 `currentUserId()`(reqctx)。**任何用到 `todayStr()` 的 API 路由都必须先 `setReqUser(user.id)`**,否则拿不到用户的日期穿越偏移、悄悄退回真实日期(周计划的"今天"就这么错过)。
+
+### 每日练习(2026-07-19 重构,Will 定的规则)
+- 固定三条:到期错题 / 自由练习薄弱点(只根因+薄弱) / 学一个新知识(按单元顺序、8 题算学完、跨知识点日配额、**打勾≠知识点学完**、本周期无新知识则自动完成+下周期作可选超前学)。
+- 回捞旧薄弱时**必须点名具体是哪个考核**(assignment/quiz/term test 名),不能只说"不在本次考核范围"。
+- 实践模式**也是这三条**——Will:"在自由练习里面学一些莫名其妙的新题太奇怪了"。
+
+### 其它根因备忘
+- `toolLabel` 曾在开头先调 `describe()`,而 `describe` 对原生工具返回**原始函数名**(truthy)就提前 return,导致它自己的友好名永远走不到(P3-5)。工具标签要**自己的 case 优先、describe 只作兜底**。
+- 最终回复要**只取非 thought 片段**(`replyText`):模型思考片段会复述系统提示词/工具日志,混进 `res.text` 就是 P3-1 那种整段内部内容泄露。
+- 合并/整理某科目前必须先 `find_similar_exams` 把**全部**同名/疑似重复项揪出来逐条确认(P2-13 漏了一条重复的 Term Test 1)。
