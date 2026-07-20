@@ -193,7 +193,7 @@ export default function KillerChat({ embedded = false }) {
               {pending.actions.map((a) => (
                 <label key={a.idx} className="flex items-start gap-2 text-sm">
                   <input type="checkbox" checked={pending.approve[a.idx]} onChange={(e) => setPending((p) => ({ ...p, approve: { ...p.approve, [a.idx]: e.target.checked } }))} className="mt-1" />
-                  <span>{descLabel(a.desc)}</span>
+                  <span>{descLabel(a.desc)}{a.intoExam ? <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">{t("加到")}《{a.intoExam}》</span> : null}</span>
                 </label>
               ))}
             </div>
