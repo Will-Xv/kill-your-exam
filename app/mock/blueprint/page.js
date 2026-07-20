@@ -39,7 +39,9 @@ export default function Blueprint() {
             <div className="mt-2 flex flex-wrap gap-3 text-sm text-stone-600">
               {bp.totalQuestions ? <span>📝 {bp.totalQuestions} {t("题")}</span> : null}
               {bp.totalMarks ? <span>🎯 {t("总分")} {bp.totalMarks}</span> : null}
-              {bp.durationMin ? <span>⏱️ {bp.durationMin} {t("分钟")}</span> : null}
+              {bp.durationMin
+                ? <span>⏱️ {bp.durationMin} {t("分钟")}</span>
+                : <span className="text-amber-700">⏱️ {t("考试时长未知 — 告诉杀手真实时长,模拟考才好按真实时间来")}</span>}
             </div>
             {bp.qtypeMarks && (
               <div className="mt-2 text-xs text-stone-500">{t("每题分值")}: {Object.entries(bp.qtypeMarks).filter(([, v]) => v).map(([k, v]) => `${t(QT[k] || k)} ${v}`).join(" · ")}</div>
