@@ -50,10 +50,10 @@ export default function Exams() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t("追杀计划")}</h1>
       </div>
-      {/* 手动建考试已下线:告诉主人去找杀手建 */}
-      <button onClick={openKiller} className="w-full rounded-2xl border border-dashed border-[#dbc999] bg-[#f6efdc]/60 px-4 py-3 text-left text-sm text-[#8a6a2c] transition hover:bg-[#f3ecda]">
+      {/* 手动建考试已下线:纯文字提示,不做成可点的 */}
+      <p className="rounded-2xl border border-dashed border-[#dbc999] bg-[#f6efdc]/60 px-4 py-3 text-sm text-[#8a6a2c]">
         ➕ {t("要加新考试?直接跟杀手说你要考什么,它会帮你建好。")}
-      </button>
+      </p>
       {live.map((e) => {
         const setup = e.status === "setup";
         const generating = e.setup_state === "generating";
