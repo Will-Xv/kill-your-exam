@@ -144,6 +144,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     : it.type === "socratic" ? `/arena?mode=socratic&kp=${it.kpId}`
     : it.type === "explore" ? `/study?kp=${it.kpId}&mode=explore`
     : it.type === "kp" ? `/study?kp=${it.kpId}`
+    : it.type === "newkp" ? (it.kpId ? `/practice?kp=${it.kpId}&fresh=1` : (it.ahead && it.ahead.kpId ? `/practice?kp=${it.ahead.kpId}&fresh=1` : "/study"))
     : it.type === "free" && it.kpIds && it.kpIds.length ? `/practice?fresh=1&kps=${it.kpIds.join(",")}`
     : "/practice?fresh=1");
   const labelFor = (it) =>
@@ -153,7 +154,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
     it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
     it.type === "kp" ? `${it.root ? t("🔴根因薄弱点") + " " : it.weak ? t("🔴薄弱点") + " " : ""}${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) : t("学习")}${it.target != null ? ` (${it.count || 0}/${it.target})` : ""}: ${it.chapter ? it.chapter + " · " : ""}${it.title}` :
-    (it.anchor ? `${t("自由练习")} · ${t("攻最近考核的薄弱点")}${it.anchor.name ? ` — ${it.anchor.name}${it.anchor.date ? `(${String(it.anchor.date).slice(5)})` : ""}` : ""} (${it.count || 0}/${it.target})` : `${t("自由练习")} (${it.count}/${it.target})`);
+    it.type === "newkp" ? (it.cycleDone
+        ? `${t("本周期的新知识都学完了")} ✓${it.ahead ? ` · ${t("可选·超前学:")}${it.ahead.chapter ? it.ahead.chapter + " · " : ""}${it.ahead.title}` : ""}`
+        : `${t("学新知识:")}${it.chapter ? it.chapter + " · " : ""}${it.title} (${t("今日")} ${it.count || 0}/${it.dailyTarget} · ${t("该知识点")} ${it.kpDone || 0}/${it.kpTarget})`) :
+    `${t("自由练习薄弱点")} (${it.count || 0}/${it.target})${it.outOfCycle ? ` · ${t("补旧薄弱·不在本次考核范围")}` : ""}`;
 
   const features = [
     { href: "/study", icon: "📖", title: t("学习"), desc: t("跟 AI 学知识点 + 练习"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },

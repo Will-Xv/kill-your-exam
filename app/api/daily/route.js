@@ -22,7 +22,9 @@ export async function GET() {
   const { items } = currentDailyItems(user.id, exam);
   // done 状态由真实数据动态计算,不依赖打卡
   const due = dueReviewCount(exam.id);
-  const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id=? AND mode='practice' AND date(created_at,'localtime')=date('now','localtime')`).get(exam.id).n; // 自由练习计数:只算真正的自由练习(mode='practice'),不含错题复习(review)和单个薄弱点练习(kp)
+  const _famSql = "(" + ((familyScope(exam.id) || []).map(Number).join(",") || "0") + ")"; // 家族范围:母考试的知识点挂在子考试上,只按 exam.id 会漏
+  const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id IN ${_famSql} AND mode='practice' AND date(created_at,'localtime')=date('now','localtime')`).get().n; // 自由练习薄弱点的计数:只算 mode='practice'(不含错题复习 review、也不含新知识那条的 kp)
+  const todayNewKp = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id IN ${_famSql} AND mode='kp' AND date(created_at,'localtime')=date('now','localtime')`).get().n; // 学新知识的【今日配额】进度:跨知识点累计(一个知识点学完了,剩下的题接着在下一个上做)
   const enriched = items.map((it) => {
     if (it.type === "review") return { ...it, due, done: due === 0 };
     if (["kp", "practice", "debate", "socratic", "explore"].includes(it.type) && it.kpId) {
@@ -35,6 +37,11 @@ export async function GET() {
       return { ...it, count: n, insCount: ins, target, done: n >= target };
     }
     if (it.type === "free") return { ...it, count: todayAttempts, done: todayAttempts >= it.target };
+    if (it.type === "newkp") {
+      // 本周期已经没有新知识 → 今日这条自动算完成(下个周期的只作可选·超前学,不计入完成)
+      if (it.cycleDone) return { ...it, count: todayNewKp, done: true };
+      return { ...it, count: todayNewKp, target: it.dailyTarget, done: todayNewKp >= it.dailyTarget };
+    }
     return it;
   });
   const streak = db.prepare(`SELECT COUNT(DISTINCT date(created_at,'localtime')) n FROM attempts WHERE exam_id=? AND mode!='resolved'`).get(exam.id).n;
@@ -71,7 +78,7 @@ export async function GET() {
       recipe = { name: rc.name, phase: cur ? cur.phase.name : null, phaseIndex: cur ? cur.index : 0, phaseTotal: cur ? cur.total : 0, method: cur && cur.phase.method ? cur.phase.method.type : null, allDone: cur ? !!cur.allDone : false };
       let mmById = {}; try { const { masteryMatrix } = await import("@/lib/mastery"); for (const m of masteryMatrix(exam.id)) mmById[m.id] = m; } catch {}
       for (const it of enriched) {
-        if (it.type === "kp" && it.kpId) {
+        if (it.type === "newkp" && it.kpId) { // 学习配方的方法现在作用在【学新知识】这条上(原来单列的薄弱点任务已合并进自由练习)
           const kpObj = mmById[it.kpId] || { id: it.kpId, chapter: it.chapter };
           const m = methodForKp(user.id, exam.id, kpObj);
           if (m) {
@@ -80,7 +87,7 @@ export async function GET() {
             if (["socratic", "debate", "explore", "custom_mode"].includes(m.method)) {
               // 非做题方法(对话/对战/探索/自定义考核):做过一次这个活动就算完成,不用题数目标
               it.activity = true; it.target = null; it.done = ((it.count || 0) + (it.insCount || 0)) > 0;
-            } else if (link.count != null && (it.type === "kp" || it.type === "practice")) {
+            } else if (link.count != null && (it.type === "newkp" || it.type === "practice")) {
               it.target = link.count; it.done = (it.count || 0) >= it.target; // 练习类:做够目标题数
             }
           }
