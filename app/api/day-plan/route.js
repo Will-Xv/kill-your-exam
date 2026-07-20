@@ -1,6 +1,8 @@
 import { requireUser, unauthorized } from "@/lib/auth";
 import { dayPlanView, markDayItem, editDayPlan, clearDayPlan } from "@/lib/dayPlan";
 import { allDatedTasks } from "@/lib/practical";
+import { cycleDeadlines, currentDailyItems } from "@/lib/planner";
+import { todayStr } from "@/lib/devtime";
 import { setReqUser } from "@/lib/reqctx";
 
 // 跨考试按天排期:GET 看排期(含顺延),POST 勾完成/编辑/清空。
@@ -8,7 +10,14 @@ export async function GET() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   setReqUser(user.id); // 让 devtime 拿到本用户的日期穿越偏移,否则周计划的“今天”会退回真实日期(P2-9)
-  return Response.json({ view: dayPlanView(user.id), tasks: allDatedTasks(user.id), examDate: (exam && exam.exam_date) || "" });
+  // 周计划要和【今日任务同源】:今天那格直接给实时算出来的三条;未来的日子不假装知道你会学到哪,
+  // 只把【客观的截止约束】说清楚——某个考核之前必须学完哪些(cycleDeadlines)。
+  let deadlines = [], todayItems = [];
+  if (exam) {
+    try { deadlines = cycleDeadlines(exam, todayStr()); } catch {}
+    try { todayItems = (currentDailyItems(user.id, exam) || {}).items || []; } catch {}
+  }
+  return Response.json({ view: dayPlanView(user.id), tasks: allDatedTasks(user.id), examDate: (exam && exam.exam_date) || "", deadlines, todayItems });
 }
 
 export async function POST(req) {

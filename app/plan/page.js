@@ -4,18 +4,21 @@ import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import PlanSetup from "@/components/PlanSetup";
 import MD from "@/components/MD";
+import { dailyLink, dailyLabel } from "@/lib/dailyLabels";
 
 // 本周计划表:按周显示的排期日历,可 ← → 前后翻周。凡是带日期的都排进来(排期条目+带截止的作业),当前周顶部显示逾期顺延。
 export default function PlanPage() {
   const t = useT();
   const [dayPlan, setDayPlan] = useState(undefined); // undefined=加载中, null=没有排期
-  const [taskItems, setTaskItems] = useState([]);    // 带截止日期的作业(只读并进周历)
+  const [taskItems, setTaskItems] = useState([]);
+  const [deadlines, setDeadlines] = useState([]);   // 各考核「这天之前要学完什么」
+  const [todayItems, setTodayItems] = useState([]); // 今天的三条(和首页同一个引擎算的)    // 带截止日期的作业(只读并进周历)
   const [examDate, setExamDate] = useState("");
   const [dpEdit, setDpEdit] = useState(false);
   const [dpDraft, setDpDraft] = useState([]);
   const [wk, setWk] = useState(0); // 周偏移:0=本周
   const [setupOpen, setSetupOpen] = useState(false);
-  const loadDayPlan = (openSetupAfter = false) => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); setExamDate((d && d.examDate) || ""); if (openSetupAfter) setSetupOpen(true); }).catch(() => setDayPlan(null));
+  const loadDayPlan = (openSetupAfter = false) => fetch("/api/day-plan").then((r) => (r.ok ? r.json() : null)).then((d) => { setDayPlan(d ? d.view : null); setTaskItems(d && d.tasks ? d.tasks : []); setExamDate((d && d.examDate) || ""); setDeadlines((d && d.deadlines) || []); setTodayItems((d && d.todayItems) || []); if (openSetupAfter) setSetupOpen(true); }).catch(() => setDayPlan(null));
   const dpMark = (seq, done) => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark", seq, done }) }).then((r) => r.json()).then((d) => setDayPlan(d.view)).catch(() => {});
   const dpSaveEdit = () => fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "edit", items: dpDraft }) }).then((r) => r.json()).then((d) => { setDayPlan(d.view); setDpEdit(false); }).catch(() => {});
   const dpClear = async () => { if (!await confirmDialog(t("确定清空整份排期?"))) return; fetch("/api/day-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clear" }) }).then((r) => r.json()).then(() => setDayPlan(null)).catch(() => {}); };
@@ -120,10 +123,37 @@ export default function PlanPage() {
           <div className="space-y-2">
             {weekDays.map((dstr, i) => {
               const items = onDay(dstr); const tks = tasksOnDay(dstr); const isToday = dstr === today;
+              const dls = deadlines.filter((d) => d.date === dstr);
+              const empty = items.length === 0 && tks.length === 0 && dls.length === 0 && !isToday;
               return (
                 <div key={dstr} className={"card " + (isToday ? "border-amber-300 bg-amber-50/40" : "")}>
                   <div className="mb-0.5 flex items-center gap-2 text-xs font-semibold text-[#8a6a2c]">{WD[i]} <span className="text-stone-400">{dstr.slice(5)}</span>{isToday && <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">{t("今天")}</span>}</div>
-                  {(items.length === 0 && tks.length === 0) ? <p className="text-xs text-stone-300">—</p> : <div>{items.map(row)}{tks.map(taskRow)}</div>}
+                  {/* 考核截止:不预测"哪天学哪个",只把客观约束写清楚——这天之前必须学完哪些 */}
+                  {dls.map((d) => (
+                    <div key={"dl" + d.examId} className="mb-1 rounded-lg bg-rose-50 px-2 py-1.5 ring-1 ring-rose-200">
+                      <p className="text-xs font-semibold text-rose-700">🎯 {d.name} · {t("这天之前要学完")}</p>
+                      <p className="mt-0.5 text-[11px] text-rose-600">
+                        {t("已学完")} {d.learned}/{d.total}
+                        {d.remaining > 0 ? ` · ${t("还剩")} ${d.remaining} ${t("个知识点")}` : ` · ${t("全部学完了")} ✓`}
+                      </p>
+                      {d.remaining > 0 && d.remainingTitles.length > 0 && (
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-rose-500">
+                          {d.remainingTitles.map((x, k) => <span key={k}>{k > 0 ? "、" : ""}<MD inline>{x}</MD></span>)}
+                          {d.remaining > d.remainingTitles.length ? ` …${t("等")} ${d.remaining} ${t("个")}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {/* 今天这一格直接显示实时的今日任务(和首页同一个引擎算出来的,不会对不上);只读,不是排期条目 */}
+                  {isToday && todayItems.length > 0 && (
+                    <div className="mb-1 rounded-lg bg-amber-100/60 px-2 py-1.5 ring-1 ring-amber-200">
+                      <p className="text-xs font-semibold text-[#8a6a2c]">📋 {t("今日任务")}</p>
+                      {todayItems.map((it, k) => (
+                        <a key={k} href={dailyLink(it)} className="mt-0.5 block truncate text-[11px] text-[#6b4a25] hover:underline"><MD inline>{dailyLabel(it, t)}</MD></a>
+                      ))}
+                    </div>
+                  )}
+                  {empty ? <p className="text-xs text-stone-300">—</p> : <div>{items.map(row)}{tks.map(taskRow)}</div>}
                 </div>
               );
             })}

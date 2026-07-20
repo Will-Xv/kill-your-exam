@@ -12,6 +12,7 @@ import { getItem, itemVisibleTo } from "@/lib/uilab/items";
 import FeatureModule from "@/components/uilab/FeatureModule";
 import FitText from "@/components/FitText";
 import MD from "@/components/MD";
+import { dailyLink, dailyLabel } from "@/lib/dailyLabels";
 // 已并入导航栏「我的」菜单的栏目:不再出现在首页「更多功能」网格里(「更多☰」菜单已取消,存量放在 more 的也并进这个网格)
 const MINE_IDS_HOME = ["profile", "inbox", "settings", "feedback", "checkpoints", "admin", "dev", "bugs"];
 
@@ -139,27 +140,8 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     t("自由练习一组");
   const firstUndone = items.find((it) => !it.done);
   const allDone = items.length && !firstUndone;
-  const linkFor = (it) => (it.methodHref ? it.methodHref
-    : it.type === "review" ? "/practice?mode=review"
-    : it.type === "practice" ? `/practice?kp=${it.kpId}&fresh=1`
-    : it.type === "debate" ? `/arena?mode=debate&kp=${it.kpId}`
-    : it.type === "socratic" ? `/arena?mode=socratic&kp=${it.kpId}`
-    : it.type === "explore" ? `/study?kp=${it.kpId}&mode=explore`
-    : it.type === "kp" ? `/study?kp=${it.kpId}`
-    : it.type === "newkp" ? (it.kpId ? `/practice?kp=${it.kpId}&fresh=1` : (it.ahead && it.ahead.kpId ? `/practice?kp=${it.ahead.kpId}&fresh=1` : "/study"))
-    : it.type === "free" && it.kpIds && it.kpIds.length ? `/practice?fresh=1&kps=${it.kpIds.join(",")}`
-    : "/practice?fresh=1");
-  const labelFor = (it) =>
-    it.type === "review" ? `${t("重练到期错题")}${it.due ? ` (${it.due})` : ""}` :
-    it.type === "practice" ? `✍️ ${t("练习:")}${it.title}${it.target != null ? ` (${it.count || 0}/${it.target})` : (it.n ? ` ×${it.n}` : "")}` :
-    it.type === "debate" ? `🎤 ${t("辩论:")}${it.title}${it.n ? ` ×${it.n}` : ""}` :
-    it.type === "socratic" ? `🧭 ${t("苏格拉底引导:")}${it.title}` :
-    it.type === "explore" ? `🔍 ${t("自由探索:")}${it.title}` :
-    it.type === "kp" ? `${it.root ? t("🔴根因薄弱点") + " " : it.weak ? t("🔴薄弱点") + " " : ""}${it.methodTag ? it.methodTag + " " : ""}${it.methodLabel ? t(it.methodLabel) : t("学习")}${it.target != null ? ` (${it.count || 0}/${it.target})` : ""}: ${it.chapter ? it.chapter + " · " : ""}${it.title}` :
-    it.type === "newkp" ? (it.cycleDone
-        ? `${t("本周期的新知识都学完了")} ✓${it.ahead ? ` · ${t("可选·超前学:")}${it.ahead.chapter ? it.ahead.chapter + " · " : ""}${it.ahead.title}` : ""}`
-        : `${t("学新知识:")}${it.chapter ? it.chapter + " · " : ""}${it.title} (${t("今日")} ${it.count || 0}/${it.dailyTarget} · ${t("该知识点")} ${it.kpDone || 0}/${it.kpTarget})`) :
-    `${t("自由练习薄弱点")} (${it.count || 0}/${it.target})${it.outOfCycle ? ` · ${(it.anchor && it.anchor.name) ? t("补旧薄弱·不在「{n}」的范围内").replace("{n}", it.anchor.name) : t("补旧薄弱·不在本次考核范围")}` : ""}`;
+  const linkFor = (it) => dailyLink(it);
+  const labelFor = (it) => dailyLabel(it, t);
 
   const features = [
     { href: "/study", icon: "📖", title: t("学习"), desc: t("跟 AI 学知识点 + 练习"), grad: "from-amber-400 to-orange-500", tint: "hover:border-amber-300 hover:shadow-amber-500/15", ig: "from-amber-50 to-orange-50" },
