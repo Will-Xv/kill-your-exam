@@ -3,6 +3,7 @@ import { confirmDialog } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import PlanSetup from "@/components/PlanSetup";
+import MD from "@/components/MD";
 
 // 本周计划表:按周显示的排期日历,可 ← → 前后翻周。凡是带日期的都排进来(排期条目+带截止的作业),当前周顶部显示逾期顺延。
 export default function PlanPage() {
@@ -43,14 +44,14 @@ export default function PlanPage() {
     return (
       <label key={it.seq} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50">
         <input type="checkbox" checked={!!it.done} onChange={() => dpMark(it.seq, !it.done)} />
-        <span className={"min-w-0 flex-1 " + (it.done ? "text-slate-400 line-through" : "")}>{it.title}{link ? <a href={link} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
+        <span className={"min-w-0 flex-1 " + (it.done ? "text-slate-400 line-through" : "")}><MD inline>{it.title}</MD>{link ? <a href={link} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
       </label>
     );
   };
   const taskRow = (tk) => (
     <a key={"tk" + tk.taskId} href={`/tasks?task=${tk.taskId}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50">
       <span className="shrink-0 text-teal-600">📝</span>
-      <span className="min-w-0 flex-1 truncate"><span className="text-[#8a6a2c]">{tk.examName} · </span>{tk.title}{tk.kind === "assignment" ? <span className="ml-1 rounded bg-teal-100 px-1 text-[10px] text-teal-700">{t("作业")}</span> : null}</span>
+      <span className="min-w-0 flex-1 truncate"><span className="text-[#8a6a2c]">{tk.examName} · </span><MD inline>{tk.title}</MD>{tk.kind === "assignment" ? <span className="ml-1 rounded bg-teal-100 px-1 text-[10px] text-teal-700">{t("作业")}</span> : null}</span>
       <span className="shrink-0 text-xs text-teal-600 underline">{t("去做")}</span>
     </a>
   );
@@ -107,7 +108,7 @@ export default function PlanPage() {
                   return (
                     <label key={it.seq} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-white/60">
                       <input type="checkbox" checked={false} onChange={() => dpMark(it.seq, true)} />
-                      <span className="min-w-0 flex-1">{it.title}{link ? <a href={link} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
+                      <span className="min-w-0 flex-1"><MD inline>{it.title}</MD>{link ? <a href={link} className="ml-1 text-xs text-teal-600 underline">{t("去做")}</a> : null}</span>
                       <span className="shrink-0 text-[10px] text-rose-500">{t("原定")} {it.date.slice(5)}</span>
                     </label>
                   );

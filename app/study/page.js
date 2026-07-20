@@ -124,14 +124,14 @@ function StudyInner() {
               </div>
               <p className="mt-2 text-xs font-semibold text-stone-600">{t("先测这几个点(约")}{start.minutes}{t("分钟)")}：</p>
               <div className="mt-1 flex flex-wrap gap-1.5">
-                {(start.sample || []).map((k) => <a key={k.kpId} href={`/practice?kp=${k.kpId}`} className="rounded-lg bg-white px-2 py-1 text-xs text-[#2f2413] ring-1 ring-emerald-200 hover:bg-emerald-50"><MD inline>{k.title.length > 26 ? k.title.slice(0, 26) + "…" : k.title}</MD></a>)}
+                {(start.sample || []).map((k) => <a key={k.kpId} href={`/practice?kp=${k.kpId}`} className="rounded-lg bg-white px-2 py-1 text-xs text-[#2f2413] ring-1 ring-emerald-200 hover:bg-emerald-50"><MD inline>{safeCut(k.title, 26)}</MD></a>)}
               </div>
             </div>
           ) : (
             <div className="mt-1 space-y-2 text-sm">
               {start.solid?.length > 0 && <div className="text-xs text-stone-600">✅ {t("已经比较稳(可略过/只巩固):")}<span className="font-medium">{start.solid.join("、")}</span></div>}
               {start.start?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("建议从这里开始")}</div><div className="mt-1 space-y-1">{start.start.map((c, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium">{c.chapter}</span>{c.acc != null ? ` · ${t("正确率")}${c.acc}%` : ""} · {t("薄弱/未学")}{c.weak + c.unlearned}</div>)}</div></div>}
-              {start.firstAction && <a href={`/practice?kp=${start.firstAction.kpId}`} className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">▶ {t("第一步:")}<MD inline>{start.firstAction.title.slice(0, 30)}</MD></a>}
+              {start.firstAction && <a href={`/practice?kp=${start.firstAction.kpId}`} className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">▶ {t("第一步:")}<MD inline>{safeCut(start.firstAction.title, 30)}</MD></a>}
               {start.suggestMock && <a href="/mock" className="ml-2 text-xs text-amber-700 underline">{t("或直接做一次模拟考全面测")}</a>}
             </div>
           )}
@@ -179,6 +179,17 @@ function StudyInner() {
 }
 
 
+// 截断标题时【不能把 $...$ 公式从中间切断】,否则 MD 渲染不出公式、原样露出 LaTeX 源码(P4-7)
+function safeCut(str, n) {
+  const x = String(str || "");
+  if (x.length <= n) return x;
+  let c = x.slice(0, n);
+  if (((c.match(/\$/g) || []).length % 2) === 1) {           // 切点落在公式中间
+    const nxt = x.indexOf("$", c.length);
+    c = nxt >= 0 ? x.slice(0, nxt + 1) : c.replace(/\$[^$]*$/, ""); // 补齐到闭合 $,补不到就把半截公式丢掉
+  }
+  return c + "…";
+}
 export default function Study() {
   const t = useT();
   return <Suspense fallback={<p className="mt-16 text-center text-stone-400">{t("加载中…")}</p>}><StudyInner /></Suspense>;

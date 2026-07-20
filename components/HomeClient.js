@@ -11,6 +11,7 @@ import * as placement from "@/lib/uilab/placement";
 import { getItem, itemVisibleTo } from "@/lib/uilab/items";
 import FeatureModule from "@/components/uilab/FeatureModule";
 import FitText from "@/components/FitText";
+import MD from "@/components/MD";
 
 export default function HomeClient({ initialLeaderboard = null, initialIsDev = false, initialData = null }) {
   const t = useT();
@@ -375,7 +376,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             {items.map((it, i) => (
               <Link key={i} href={linkFor(it)} className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition ${it.done ? "text-slate-400" : "hover:bg-slate-50"}`}>
                 <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs ${it.done ? "border-amber-500 bg-amber-500 text-white" : "border-slate-300"}`}>{it.done ? "✓" : i + 1}</span>
-                <span className={it.done ? "line-through" : "font-medium"}>{labelFor(it)}</span>
+                <span className={it.done ? "line-through" : "font-medium"}><MD inline>{labelFor(it)}</MD></span>
               </Link>
             ))}
           </div>
@@ -409,10 +410,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
             </div>
           </div>
         )}
-        {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}{labelFor(firstUndone)}</Link>}
+        {firstUndone && <Link href={linkFor(firstUndone)} className="btn mt-3 w-full">▶ {t("开始:")}<MD inline>{labelFor(firstUndone)}</MD></Link>}
         {daily?.fallback && daily.fallback.remaining > 0 && (
           <Link href={linkFor(daily.fallback.item)} className="mt-2 block rounded-xl bg-[#f3ecda] px-3 py-2 text-xs text-[#6b4a25] ring-1 ring-[#e4d5af] hover:brightness-95">
-            🛟 {t("今天真没时间?至少做这一件保底,其余明天顺延:")}<span className="font-semibold">{labelFor(daily.fallback.item)}</span>
+            🛟 {t("今天真没时间?至少做这一件保底,其余明天顺延:")}<span className="font-semibold"><MD inline>{labelFor(daily.fallback.item)}</MD></span>
           </Link>
         )}
         {daily?.practical && daily.practical.generating && (
