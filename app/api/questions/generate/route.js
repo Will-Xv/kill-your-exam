@@ -40,7 +40,7 @@ async function searchOnline(exam, kp, chapter, count, langRule) {
 - 【版权 · 必须遵守】不要逐字照搬受版权保护的官方真题/题库原文(如剑桥雅思、官方样题等),也不要只做个别词替换套壳;只借鉴其题型和风格,题目文字必须完全由你自己原创。
 - ${hasAudio ? "若某题需要音频,请在 body 里挂上音频素材 id。" : "本考试没有可播放的音频/图片素材:【不要】出任何需要听录音、看地图、看图才能作答的题(听力填空、地图题、看图题等)——没有音频/图片就是无效题;改出纯文字也能作答的题。"}
 - single/multi 给 4 个选项、answer 写字母;fill/short 给标准答案/评分要点;explanation 写解析。sourceUrl 填参考来源网址(可留空)。isReal 一律填 false(这些是原创题),hasAnswer 填 true。
-数学公式用 $...$ 包裹。
+数学公式必须用【标准 LaTeX】写、并用 $...$ 包裹,而且【务必带上反斜杠命令】——例如极限写 $\lim_{h\to 0}$、分数写 $\frac{a}{b}$、根号写 $\sqrt{x}$、希腊字母写 $\theta$。★【绝对不要】把命令的反斜杠去掉写成 lim、frac、to、theta 这种裸词(那样会渲染成乱码)。
 搜索结果:\n${s.text.slice(0, 6000)}` + (langRule || ""),
       onlineSchema);
     return out;
@@ -143,7 +143,7 @@ ${performBlock}
 ${hits.length ? "必须依据以下资料:\n" + ragBlock(hits) : "无资料支撑,只出保守的基本概念题,不要编造具体数字或条款。"}
 考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}${overallSnip ? "\n考生整体画像(跨所有考试):" + overallSnip : ""}
 single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标准答案;short写评分要点;explanation解释;difficulty 1~3。选项(options)里【只写选项内容本身,不要再带 "A." "B." 之类的序号/字母前缀】(前端会自动编号,写了会重复)。
-数学公式用 $...$ 包裹,不要裸露反斜杠命令。
+数学公式必须用【标准 LaTeX】写、并用 $...$ 包裹,而且【务必带上反斜杠命令】——例如极限写 $\lim_{h\to 0}$、分数写 $\frac{a}{b}$、根号写 $\sqrt{x}$、希腊字母写 $\theta$。★【绝对不要】把命令的反斜杠去掉写成 lim、frac、to、theta 这种裸词(那样会渲染成乱码)。
 严禁答题技巧/应试策略题、考试规则事务题(这些归考前准备)。【重要】若「${kp.title}」其实是考务/报名/评分标准/考试流程/机考纸笔/防作弊/注意事项之类事务性内容,请【忽略它】,改出这门考试真正要考的知识/技能题;这类内容归考前准备,绝不作为练习题。${audioMats.length ? `\n【听力题·必须挂音频】本考试有音频素材(可选 id:${audioList})。出听力题时,必须在该题 body 填 "audioId"=对应音频素材的数字 id(考生练习时会先播放它再作答),题干可写「听录音后...」,答案严格依据音频内容;同一段音频可出多套不同题。` : "\n【听力题·用你自己写的原创听力材料】本考试没有现成音频。若要出听力题,请【自己原创一段听力短文/对话】放进该题 body 的 listenScript 字段(【绝不照抄任何真题原文】),并填 ttsLang=该听力语言的 BCP-47 代码(英语 en-US、中文 zh-CN 等);题目考对这段原创材料的理解。练习时 app 会用语音合成朗读 listenScript、考生听后作答——所以【不要】把 listenScript 内容抄进 stem(抄进去就不是听力了)。不需要听力的知识点正常出文字题。"}${mparts.length ? "\n有图片原件时可出看图题(题干注明「见附件」,答案依据附件)。" : ""}${performBlock}
 ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、不要高度相似。${lessons ? "\n【避免已知毛病】\n" + lessons : ""}` + (mparts.length ? `\n考生资料库中的图片/PDF/音频原件已作为附件提供——【重点看与「${kp.title}」相关的页与示意图/图表】,可据此出「看图/读图」题(题干注明「见附件」,答案依据附件)。` : "") + langRule;
       }
