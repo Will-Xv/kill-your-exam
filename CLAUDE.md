@@ -62,6 +62,8 @@
 
 ## 部署
 - build-gated push:本地 `npm run build` 通过后才 push 到 GitHub(Railway 自动部署)。
+- **push 认证**:remote 是 HTTPS,需 token 才能推。token 绝不入库(CLAUDE.md/任何仓库文件都不能存,否则 push 即公开泄露+被 GitHub 吊销)。真实 token 私存在 workspace 文档 `_github-push-token-私存勿上传.txt`(不是仓库、不会被 push)。接续会话若 `git push` 报 "could not read Username" = 认证没带过来:去那个文件照里面的 `git remote set-url origin https://Will-Xv:<token>@github.com/...` 重配一次即可,别再误判成"仓库分叉/工作没上线"。
+- ⚠️ 无凭据时 `origin/main` 跟踪引用可能是**过期的**(fetch 不到)——判断远端状态前先确保能 fetch,否则会像 2026-07 那次一样把老节点当真远端、误以为分叉。
 - 原生依赖(需系统库的,如 node-canvas)在 Railway 跑不了——避免;纯 JS 依赖(如 pdf-lib)可用。
 - 部署后要用**新标签页**验证(旧副本会缓存)。
 
