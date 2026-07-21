@@ -11,8 +11,7 @@ const ACCENTS = {
   "/materials": "rgba(245,196,120,.22)",
   "/chat": "rgba(222,182,112,.22)",
   "/exams": "rgba(184,142,82,.20)",
-  "/settings": "rgba(184,142,82,.20)",
-  "/collector": "rgba(212,160,92,.20)"
+  "/settings": "rgba(184,142,82,.20)"
 };
 
 export default function Template({ children }) {

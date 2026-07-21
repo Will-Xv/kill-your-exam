@@ -31,7 +31,6 @@ export default function KillerChat({ embedded = false }) {
   const [elapsed, setElapsed] = useState(0);
   const [pending, setPending] = useState(null); // { token, kind, plan, actions, approve:{idx:bool} }
   const [planFeedback, setPlanFeedback] = useState("");
-  const [bjobs, setBjobs] = useState([]);
   const [genExams, setGenExams] = useState([]);
   const [steps, setSteps] = useState([]);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -49,10 +48,6 @@ export default function KillerChat({ embedded = false }) {
     fetch("/api/chat/run").then((r) => r.json()).then((d) => { if (d.run && (d.run.status === "running" || d.run.status === "pending")) startPolling(d.run.id); }).catch(() => {});
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []); // eslint-disable-line
-  useEffect(() => {
-    const load = () => fetch("/api/browser/status").then((r) => r.json()).then((d) => setBjobs(d.jobs || [])).catch(() => {});
-    load(); const iv = setInterval(load, 4000); return () => clearInterval(iv);
-  }, []);
   useEffect(() => {
     const load = () => fetch("/api/exam/list").then((r) => r.ok ? r.json() : null).then((d) => setGenExams((d?.exams || []).filter((e) => e.setup_state === "generating"))).catch(() => {});
     load(); const iv = setInterval(load, 4000); return () => clearInterval(iv);
@@ -132,7 +127,7 @@ export default function KillerChat({ embedded = false }) {
     catch { setBusy(false); }
   }
 
-  const suggestions = [t("我要准备一门新考试,帮我从零建起来"), t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("🧲 去某学习网站帮我把某一章采集进资料库(需装采集扩展)"), t("我觉得有一章我已经很熟了,想少花时间")];
+  const suggestions = [t("我要准备一门新考试,帮我从零建起来"), t("帮我看看我现在学得怎么样"), t("帮我把这门考试的资料和练习准备好"), t("我觉得有一章我已经很熟了,想少花时间")];
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -142,23 +137,13 @@ export default function KillerChat({ embedded = false }) {
       <div className="nice-scroll flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-3 pb-3 min-w-0">
         {!messages.length && !pending && (
           <div className="text-center text-[#6b4a25] text-sm mt-10 space-y-2">
-            <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用,或让我去某个已登录的学习网站采集资料。")}</p>
+            <p>{t("有任何想法、疑问、调整需求,直接说就行。也可以问我这个网站怎么用。")}</p>
             {suggestions.map((s, i) => (
               <button key={i} className="block mx-auto rounded-full border border-[#b58a3c]/60 px-4 py-1.5 text-[#5b431f] hover:bg-[#3d2b10]/[0.07] transition" onClick={() => send(s)}>{s}</button>
             ))}
           </div>
         )}
         {messages.map((m, i) => <ChatMsg key={i} role={m.role} content={m.content} />)}
-        {bjobs.filter((j) => j.status === "pending" || j.status === "running").map((j) => (
-          <div key={j.id} className="card border-sky-200 bg-sky-50/70 text-sm">
-            <p className="font-semibold text-sky-900">🌐 {t("浏览器采集")}:{j.goal}</p>
-            <p className="text-xs text-sky-700 mt-0.5">{j.status === "pending" ? t("等待扩展执行(请确保已安装并打开扩展,已登录目标网站)…") : t("扩展执行中…")} · {t("已采集")} {j.collected}</p>
-            {j.log && <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap text-xs text-slate-500">{j.log.split("\n").slice(-6).join("\n")}</pre>}
-          </div>
-        ))}
-        {bjobs.filter((j) => j.status === "done").slice(0, 1).map((j) => (
-          <p key={j.id} className="text-center text-xs text-amber-700">🌐 {t("采集完成")}:{j.goal}({t("共")} {j.collected} {t("页")})</p>
-        ))}
         {genExams.map((e) => (
           <div key={"gen" + e.id} className="card border-amber-200 bg-amber-50/70 text-sm">
             <p className="font-semibold text-amber-900">🛠️ {t("正在后台创建考试")}:{e.name}</p>

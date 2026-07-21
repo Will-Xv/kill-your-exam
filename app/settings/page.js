@@ -133,13 +133,6 @@ export default function Settings() {
         <button className="btn-ghost text-sm py-2" onClick={saveProfile}>{t("保存")}</button>
         {profileMsg && <p className="text-sm text-amber-700">{profileMsg}</p>}
       </div>
-      <a href="/collector" className="card card-hover flex items-center justify-between">
-        <div>
-          <h2 className="font-semibold">🧲 {t("浏览器采集扩展")}</h2>
-          <p className="text-xs text-stone-500">{t("安装扩展、拿采集令牌,把网页资料采进资料库")}</p>
-        </div>
-        <span className="text-slate-300">→</span>
-      </a>
       <div className="card space-y-2">
         <h2 className="font-semibold">{t("数据导出")}</h2>
         <p className="text-xs text-stone-500">{t("下载你的全部备考数据(JSON),随时备份。")}</p>
