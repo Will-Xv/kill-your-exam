@@ -1,6 +1,7 @@
 import db, { rootExamId, familyScope, scopeSql } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { setReqUser } from "@/lib/reqctx";
+import { tUser } from "@/lib/chatAgent";
 
 // 轮询某次杀手运行的状态/步骤/结果;不传 id 则返回本考试最近一个未完成(running/pending)的运行。
 export async function GET(req) {
@@ -19,8 +20,10 @@ export async function GET(req) {
     try {
       const staleSec = db.prepare("SELECT (julianday('now') - julianday(updated_at)) * 86400 AS s FROM chat_runs WHERE id=?").get(run.id)?.s;
       if (staleSec != null && staleSec > 120) {
-        db.prepare("UPDATE chat_runs SET status='error', reply=?, updated_at=datetime('now') WHERE id=? AND status='running'").run("(连接中断了,请重试)", run.id);
-        run.status = "error"; run.reply = "(连接中断了,请重试)";
+        // 这条会直接落库成聊天消息,必须按用户语言生成(P5-2:错误层文案以前一律写死中文)
+        const _msg = tUser(user && user.lang, "(连接中断了,请重试)");
+        db.prepare("UPDATE chat_runs SET status='error', reply=?, updated_at=datetime('now') WHERE id=? AND status='running'").run(_msg, run.id);
+        run.status = "error"; run.reply = _msg;
       }
     } catch {}
   }

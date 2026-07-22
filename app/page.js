@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { leaderboardPayload } from "@/lib/leaderboard";
 import { examHomePayload } from "@/lib/homeData";
 import { getActiveExam } from "@/lib/db";
+import { setReqUser } from "@/lib/reqctx";
 
 export const dynamic = "force-dynamic"; // 每次按登录用户即时渲染
 
@@ -14,6 +15,7 @@ export default async function Page() {
     if (u) {
       initialLeaderboard = leaderboardPayload(u);
       initialIsDev = !!u.is_developer;
+      setReqUser(u.id);   // 【必须】首屏服务端渲染也要绑定用户,否则 todayStr() 读不到该账号的日期穿越偏移
       const exam = getActiveExam(u.id);
       initialData = examHomePayload(exam); // 首帧就带上考试面板数据,刷新不再闪空白
     }

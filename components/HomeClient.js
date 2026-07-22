@@ -104,8 +104,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   async function switchExam(id) {
     if (!id || id === data?.exam?.id) return;
     try { await fetch("/api/exam/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId: id }) }); } catch {}
-    try { const d = await fetch("/api/exam").then((r) => r.json()); setData(d); } catch {}
-    fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
+    // 【切考试要把首页数据全刷一遍】以前这里只重拉 /api/exam + /api/daily,【漏了 /api/mastery】,
+    // 于是 weakCount/冲刺建议仍停留在上一门课(v13 实测:切到 Biology Quiz 却显示 MAT235 的 20 个薄弱点)。
+    // 直接复用 loadHome():它一次把 exam/daily/mastery 三个都拉了,以后新增数据源也不会再漏。
+    loadHome();
     // 【切考试要重拉界面放置表】UI 放置表是【按考试】存的,而 initClient 每次页面加载只拉一次 /api/ui-items。
     // 不在这里强制重拉的话,切完考试导航栏/布局还停在上一门(表现为"必须手动刷新才看到这门考试的 UI")。
     try { placement.refreshServer(); } catch {}
