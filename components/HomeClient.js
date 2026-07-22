@@ -106,6 +106,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
     try { await fetch("/api/exam/switch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ examId: id }) }); } catch {}
     try { const d = await fetch("/api/exam").then((r) => r.json()); setData(d); } catch {}
     fetch("/api/daily").then((r) => r.json()).then(setDaily).catch(() => {});
+    // 【切考试要重拉界面放置表】UI 放置表是【按考试】存的,而 initClient 每次页面加载只拉一次 /api/ui-items。
+    // 不在这里强制重拉的话,切完考试导航栏/布局还停在上一门(表现为"必须手动刷新才看到这门考试的 UI")。
+    try { placement.refreshServer(); } catch {}
+    try { window.dispatchEvent(new CustomEvent("kye:exam-switched")); } catch {}
   }
 
   if (!data) return <div className="mx-auto max-w-3xl px-4 pt-6"><div className="shimmer h-40 rounded-3xl" /></div>;
