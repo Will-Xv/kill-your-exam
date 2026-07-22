@@ -27,7 +27,8 @@
 - **客户端持久化**：IndexedDB `lib/idb.js`（大附件）、localStorage（草稿/布局草稿）。
 - **部署**：build-gated push（本地 `npm run build` 过才 push）；原生依赖（需系统库如 node-canvas）Railway 跑不了，用纯 JS（pdf-lib `lib/pdfSplit.js`）；`lib/media.js` 用 ffmpeg（视频抽帧/转码/节拍）。部署后用新标签页验证。
 
-## 三、建考试 / Onboarding（`app/onboarding` · `app/api/onboarding/*`）
+## 三、建考试（**只由杀手做** · `lib/provision.js`)
+> **【2026-07-19 手动建考试已整体下线】** `app/onboarding` 与 `app/api/onboarding/*` 已删除;新用户导引结束直接落到没有考试的空首页,各处入口改成叫杀手。下面保留的是【建考试流程本身】(杀手 `exam_provision` 走的就是这套),不再有手动填表页。
 - 向导：选类型（school/cert/language/grad/other/study「只学习」/performance「艺术表演」）→ `assess` AI 联网搜考试 + **认知自评**（✅有把握/❓不确定/🚫需资料/⚠️风险 + 参考网页）→ 补充资料（传文件+回答 AI 清单，可跳过）→ `finalize` 生成知识点树+策略（`lib/provision.js` 后台建，`exam_gen_status` 查进度）。`draft` 断点续建。
 - **语言类考试收集多语言背景**（母语/已会外语/目标语）：onboarding 表单 + 杀手 `exam_create`（langNative/langKnown/langTarget）→ 写 `langbg:<uid>` → 供三语迁移。
 - 借用其它考试资料：`app/api/exam/related`（embedding 相似度）+ `exam/borrow`。
@@ -35,7 +36,7 @@
 ## 四、多模态资料库 / RAG（`app/materials` · `app/api/materials/*`）
 - 传 PDF/Word(`mammoth`)/文本/图片/音频（拍照/拖拽/粘贴）；自由"其他说明"栏；资料收集清单（可问答填）。每个文件原地查看：图直显/音频播放/PDF 内嵌/文本提取（`materials/content`、`materials/raw`）。原件完整保存。
 - **超大 PDF**：`lib/pdfSplit.js` 抽页/拆 ≤18MB 片；扫描版走 Gemini 原生读。
-- **Chrome 采集扩展**（`extension/`）：从已登录学习站采内容（含图/音/PDF）进资料库，不碰密码；`app/api/ingest` + 采集令牌 `ingest_tokens`；Agent 模式可自动翻页采（只读、禁点提交/购买/删除）。`app/collector`。
+- **Chrome 采集扩展**（`extension/`）：从已登录学习站采内容（含图/音/PDF）进资料库，不碰密码；`app/api/ingest` + 采集令牌 `ingest_tokens`；Agent 模式可自动翻页采（只读、禁点提交/购买/删除）。**【网站入口与提示词已于 2026-07 下线】`app/collector` 页面已删除、设置页入口已移除、杀手的 browser_task 工具已删;扩展源码与后端接口保留,想重启只需把入口加回来。**
 
 ## 五、知识点树 & 掌握度（`app/study`,`app/knowledge` · `lib/mastery.js`）
 - 个性化知识地图，按掌握度着色（mastered/ok/weak/unlearned）+ 资料覆盖点（🟢🟡⚪）。`knowledge_points`（含 parent_id 章节、sort、root_cause）。
@@ -136,7 +137,7 @@
 - **收件箱** `app/inbox` · `inbox`：更新公告、Bug 回复、信件/附件；未读角标。**推送**（见基础设施）。
 - **意见反馈**：右下悬浮按钮预填邮件。**Bug 反馈** `app/api/bug`：一键把整道题连媒体/录音/作答/AI判分(含失败)/讨论 + 设备诊断发给开发者；开发者可"亲自试做"复现并回传示范答案（`app/bugs`）。`feedback`/`bug_reports` 表。
 - **管理面板** `app/admin`：只看使用频率（做题数/活跃天/聊天数/最近活跃），**看不到任何人学习内容**；建开发者子账号。**开发者工具** `app/dev`（+`dev/bricks` 砖头目录、`dev/items` 栏目）。
-- **设置** `app/settings`：界面语言、我的档案（学校）、采集令牌、数据导出（全量 JSON `app/api/export`）、AI 密钥+模型（管理员）、Judge0（管理员）、「测试AI的API」「测试 Judge0」。**账号**：用户名密码 / Google 一键登录。**PWA**。首个账号=管理员。
+- **设置** `app/settings`：界面语言、我的档案（学校）、数据导出（全量 JSON `app/api/export`）、AI 密钥+模型（管理员）、Judge0（管理员）、「测试AI的API」「测试 Judge0」。**账号**：用户名密码 / Google 一键登录。**PWA**。首个账号=管理员。
 - **What's New / 引导** `lib/guide.js`（GUIDE_VERSION + WHATS_NEW）；`app/welcome` 首用引导；`app/privacy`。
 
 ---
@@ -257,7 +258,7 @@ exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_a
 - **作业助手型作业(assignment)**:上传的 assignment→杀手 add_assignment 自动建成新类型作业:没里程碑、不判分,只有一个能【传/贴文件、聊天自动存、每轮实时记掌握度】的作业助手;点「标记完成」才清空对话。作业助手不清楚作业内容时会先请你贴/传原文,不瞎猜。
 - **本周计划表(/plan 重写成可翻周的周历)**:← 上一周/本周/下一周 →(周一起,可回本周),每天一张卡列当天安排(勾选完成、点去做直达),当前周顶部「逾期顺延」。凡是带日期的都并进来:按天排期条目 + 带截止的作业(自动显示在截止那天)+ 排期里加 href 的练习(/practice)/趣味挑战(/arena)等。顶部「🗓️ 排学习计划」入口。
 - **排学习计划弹窗(PlanSetup)**:把【时间要求(有考试日期/学到某天/学N周/没要求)+每天学多久+排哪些天(每天/跳周末/自定)】一次问全→生成学习进程写进按天排期→在周历里改/同意。建考试完成后自动弹(/plan?setup=1,预填该考试日期);杀手也能从对话里用 open_plan_setup 弹出它(计划类问题走弹窗不在对话追问)。
-- **杀手排期能力**:plan_by_day(按天重排,条目可带 href/taskId)、add_plan_items(把指定日期的事项加进排期)、plan_from_syllabus(读 syllabus 抽整学期作业due/考试日期→铺满整学期,多门课可累加)、set_task_due(只改一个作业截止不重排)、build_study_plan(无考核时按每天时长均匀铺+估周数)。【排计划必须锚定考核:先看每个 quiz/期中/期末/作业考啥、几号前必须学完,卡在它之前,再在锚点之间均匀,不准傻均匀】。
+- **杀手排期能力**:plan_by_day(按天重排,条目可带 href/taskId)、add_plan_items(把指定日期的事项加进排期)、plan_from_syllabus(读 syllabus 抽整学期作业due/考试日期→铺满整学期,多门课可累加)、set_task_due(只改一个作业截止不重排)。【build_study_plan 已于 2026-07-19 退役——它把知识点钉死在日期上,和今日任务「按完成推进」是两套平行系统、从来对不上;新知识的推进权只归今日任务,周计划只放真有日期的事 + 各考核的「这天之前要学完什么」】。【排计划必须锚定考核:先看每个 quiz/期中/期末/作业考啥、几号前必须学完,卡在它之前,再在锚点之间均匀,不准傻均匀】。
 - **循环自动规则(用户不在也定期自动跑)**:set_auto_rule/list/delete——每天或每周到点自动【发定时提醒】或【汇总本周计划投收件箱+推送】;和一次性 set_reminder 区分。
 - **syllabus 分门别类**:final→母考试、quiz/midterm→子考试(exam_provision child)、assignment→作业助手作业、日期→按天排期+提醒;【没 final 就别硬套母子结构、先问主人】。计划贴合各次考核、信息不够必须明说、不许假装吻合。
 - **临考(≤7天)自动弹窗·按掌握度**:每天弹一次(可"先不")。<70%→推「先测试再复习」(先摸底再针对性攻);≥70%→「去学习页自查+去模拟考」。
