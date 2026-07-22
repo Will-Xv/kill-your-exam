@@ -20,7 +20,7 @@ export async function POST(req) {
     // 计划确认门
     if (run.pending_kind === "plan") {
       if (action === "revise") resumePlanRevise(run, exam, user, feedback || "");
-      else resumePlanApprove(run, exam, user);
+      else resumePlanApprove(run, exam, user, approvals || null);   // D1:计划门也带勾选结果(同一张表里一次性授权)
       return Response.json({ runId: run.id });
     }
 

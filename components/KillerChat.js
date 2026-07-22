@@ -111,7 +111,9 @@ export default function KillerChat({ embedded = false }) {
     if (!pending) return;
     const p = pending; const fb = planFeedback.trim();
     setPending(null); setPlanFeedback(""); setBusy(true); setSteps([]);
-    try { const d = await aiFetch("/api/chat/resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: p.token, action, feedback: fb }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
+    // 【D1】同意计划时把这张表里的勾选一并提交,后端据此免弹/拒绝,不再一层层弹确认
+    const approvals = {}; (p.actions || []).forEach((a) => (approvals[a.idx] = p.approve[a.idx] !== false));
+    try { const d = await aiFetch("/api/chat/resume", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: p.token, action, feedback: fb, approvals }) }); if (d.runId) startPolling(d.runId); else setBusy(false); }
     catch { setBusy(false); }
   }
   async function submitForm(values) {
@@ -157,6 +159,20 @@ export default function KillerChat({ embedded = false }) {
             <ol className="mt-2 space-y-1 text-sm list-decimal list-inside">
               {(pending.plan?.steps || []).map((st, i) => <li key={i}><b><MD inline>{st.title}</MD></b>{st.detail ? <> — <MD inline>{st.detail}</MD></> : null}</li>)}
             </ol>
+            {/* 【D1】把逐项授权并进这张计划表:主人一次提交=同意计划+授权这些改动,执行时不再一层层弹确认 */}
+            {pending.actions && pending.actions.length > 0 && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-100/50 p-2.5">
+                <p className="text-xs font-semibold text-amber-900">🔐 {t("这次会做的改动(取消勾选就不做):")}</p>
+                <div className="mt-1.5 space-y-1.5">
+                  {pending.actions.map((a) => (
+                    <label key={a.idx} className="flex items-start gap-2 text-sm">
+                      <input type="checkbox" checked={pending.approve[a.idx] !== false} onChange={(e) => setPending((p) => ({ ...p, approve: { ...p.approve, [a.idx]: e.target.checked } }))} className="mt-1" />
+                      <span>{descLabel(a.desc)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <textarea className="input mt-3" rows={2} value={planFeedback} onChange={(e) => setPlanFeedback(e.target.value)} placeholder={t("想改动的地方(可留空直接同意)…例如:不要删记录、第 2 步和第 3 步对调")} />
             <div className="mt-2 flex gap-2">
               <button className="btn flex-1 py-2 text-sm" onClick={() => resolvePlan("approve")}>✅ {t("同意,开始")}</button>
