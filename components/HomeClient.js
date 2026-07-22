@@ -131,7 +131,11 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const { exam, stats, topExam, subExams, taskSubs, aggregating, aggregateCount } = data;
   const _vToday = daily?.plan?.date || null; // 服务端虚拟今天(dev 日期穿越生效);没加载到就用真实今天
   const days = exam.exam_date ? Math.ceil((new Date(exam.exam_date + "T00:00:00") - (_vToday ? new Date(_vToday + "T00:00:00") : new Date())) / 86400000) : null;
-  useEffect(() => { if (exam.completed_at || days == null || days < 0 || days >= 7) return; try { const k = `kye_sprint:${exam.id}:${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) setSprintOpen(true); } catch {} }, [exam.id, days, exam.completed_at]);
+  // 【动态临近提醒】优先看"最近的那个考核"(可能是家族里的小测,不一定是当前这门),没有才退回本考试日期
+  const nearCycle = daily?.nearestCycle || null;
+  const nearDays = nearCycle && nearCycle.daysLeft != null ? nearCycle.daysLeft : days;
+  const nearName = nearCycle ? nearCycle.name : (exam?.name || "");
+  useEffect(() => { if (exam.completed_at || nearDays == null || nearDays < 0 || nearDays >= 7) return; try { const k = `kye_sprint:${exam.id}:${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) setSprintOpen(true); } catch {} }, [exam.id, nearDays, exam.completed_at]);
   const completeBtn = <button className="rounded-full bg-[#2f2413] px-2.5 py-0.5 text-xs font-medium text-[#f6efdd] hover:opacity-90" onClick={markComplete}>✅ {t("标记为已完成")}</button>;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
@@ -264,7 +268,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
       {sprintOpen && mounted && createPortal((
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={() => setSprintOpen(false)}>
           <div className="w-full max-w-sm rounded-2xl bg-[#fbf6e9] p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-black text-red-700">⏰ {t("距考试不到一周了!")}</h2>
+            <h2 className="text-lg font-black text-red-700">⏰ {nearName ? t("距「{name}」不到一周了!").replace("{name}", nearName) : t("距考试不到一周了!")}</h2>
             <p className="mt-1 text-sm text-[#5b431f]">{sprintReco === "original" ? t("你掌握得不错——去自查一下、再做套模拟考确认就好:") : t("你还有不少没掌握——建议先测一套摸清底,再针对性攻:")}{weakCount > 0 ? ` (${t("还有 {n} 个薄弱/未学").replace("{n}", weakCount)})` : ""}</p>
             {(() => {
               const selfcheck = (primary) => (<a key="s" href="/study" className={"block rounded-xl px-4 py-2.5 text-sm font-semibold " + (primary ? "bg-[#2f2413] text-[#f6efdd] hover:opacity-90" : "bg-white text-[#2f2413] ring-1 ring-[#dbc999] hover:bg-[#f3ecda]")}>🔎 {t("去学习页自查")}<span className={"mt-0.5 block text-xs font-normal " + (primary ? "opacity-80" : "text-stone-500")}>{t("过一遍知识点,确认还欠哪儿")}</span></a>);
@@ -279,10 +283,10 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           </div>
         </div>
       ), document.body)}
-      {!exam.completed_at && days != null && days >= 0 && days < 7 && (
+      {!exam.completed_at && nearDays != null && nearDays >= 0 && nearDays < 7 && (
         <Editable id="weekwarn">
         <div className="animate-in card mt-4 border border-red-300 bg-red-50/80">
-          <p className="font-semibold text-red-700">⏰ {t("距猎杀不到一周了!")}</p>
+          <p className="font-semibold text-red-700">⏰ {nearName ? t("距「{name}」不到一周了!").replace("{name}", nearName) : t("距猎杀不到一周了!")}</p>
           <p className="mt-1 text-sm text-slate-600">{t("建议现在:到「学习」页自查还欠缺/薄弱的知识点,并做一次全真模拟考,查漏补缺。")}{weakCount > 0 ? `(${t("目前还有")} ${weakCount} ${t("个薄弱/未学的知识点")})` : ""}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href="/study" className="btn py-2 text-sm">🔎 {t("去学习页自查")}</Link>

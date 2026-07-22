@@ -1,7 +1,7 @@
 import db, { rootExamId, familyScope } from "@/lib/db";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { masteryMatrix, dueReviewCount } from "@/lib/mastery";
-import { crossExamPlan, currentDailyItems } from "@/lib/planner";
+import { crossExamPlan, currentDailyItems, upcomingCycles } from "@/lib/planner";
 import { getBanner } from "@/lib/diagnose";
 import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign, urgentCrossTasks } from "@/lib/practical";
@@ -108,5 +108,8 @@ export async function GET() {
     else if (pmode && gen) practical = { generating: true, href: "/tasks" };
   } catch {}
   let urgentCross = []; try { urgentCross = urgentCrossTasks(user.id, exam.id, 3); } catch {}
-  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, urgentCross, rootCauseBanner, resolveBanner, fallback, practical, recipe });
+  // 【临近提醒要认"最近的那个考核",不是只认当前这门考试自己的日期】
+  // 家族里若有 3 天后的小测,而母考试还很远,以前什么都不会提示。这里给出最近的未过期考核(含名字),前端据此动态显示"距 XX 不到一周"。
+  let nearestCycle = null; try { nearestCycle = upcomingCycles(exam, today)[0] || null; } catch {}
+  return Response.json({ plan: { date: today, items: enriched }, activeDays: streak, crossExam, urgentCross, rootCauseBanner, resolveBanner, fallback, practical, recipe, nearestCycle });
 }
