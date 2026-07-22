@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { aiErrorResponse } from "@/lib/errors";
-import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise, resumeForm, recordAct, toolLabelPublic } from "@/lib/chatAgent";
+import { runLoop, execTool, isWrite, resumePlanApprove, resumePlanRevise, resumePlanAuth, resumeForm, recordAct, toolLabelPublic } from "@/lib/chatAgent";
 import { setReqUser } from "@/lib/reqctx";
 
 export const maxDuration = 300;
@@ -21,6 +21,12 @@ export async function POST(req) {
     if (run.pending_kind === "plan") {
       if (action === "revise") resumePlanRevise(run, exam, user, feedback || "");
       else resumePlanApprove(run, exam, user, approvals || null);   // D1:计划门也带勾选结果(同一张表里一次性授权)
+      return Response.json({ runId: run.id });
+    }
+
+    // 【D1·第二张表】同意计划后的一次性授权表
+    if (run.pending_kind === "auth") {
+      resumePlanAuth(run, exam, user, approvals || null);
       return Response.json({ runId: run.id });
     }
 
