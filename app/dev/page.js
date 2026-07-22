@@ -64,11 +64,15 @@ export default function Dev() {
         <table className="w-full text-sm">
           <thead><tr className="text-left text-slate-400 text-xs">
             <th className="p-1">id</th><th className="p-1">{t("名称")}</th><th className="p-1">user</th><th className="p-1">{t("状态")}</th>
+            <th className="p-1">父</th><th className="p-1">家族</th>
             <th className="p-1">做题</th><th className="p-1">资料</th><th className="p-1">知识点</th><th className="p-1">题</th><th className="p-1">聊天</th>
           </tr></thead>
           <tbody>{data.exams.map((e) => (
             <tr key={e.id} className={`border-t border-slate-100 ${e.deleted ? "text-slate-300 line-through" : ""}`}>
-              <td className="p-1">{e.id}</td><td className="p-1">{e.name}</td><td className="p-1">{e.userId}</td><td className="p-1">{e.status}</td>
+              <td className="p-1">{e.id}</td><td className="p-1">{e.name}{e.completed ? " ✅" : ""}</td><td className="p-1">{e.userId}</td><td className="p-1">{e.status}</td>
+              {/* 父/家族:资料与 RAG 共享【只认 parent_exam_id】。若"家族"列只有它自己,说明父子没建立,资料不共享是必然结果 */}
+              <td className="p-1">{e.parentId ?? "—"}</td>
+              <td className={"p-1 " + ((e.family || []).length > 1 ? "text-emerald-600" : "text-slate-400")}>{(e.family || []).join(",")}</td>
               <td className="p-1">{e.attempts}</td><td className="p-1">{e.materials}</td><td className="p-1">{e.kps}</td><td className="p-1">{e.questions}</td><td className="p-1">{e.chats}</td>
             </tr>
           ))}</tbody>
