@@ -137,7 +137,14 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
   const nearCycle = daily?.nearestCycle || null;
   const nearDays = nearCycle && nearCycle.daysLeft != null ? nearCycle.daysLeft : days;
   const nearName = nearCycle ? nearCycle.name : (exam?.name || "");
-  useEffect(() => { if (exam.completed_at || nearDays == null || nearDays < 0 || nearDays >= 7) return; try { const k = `kye_sprint:${exam.id}:${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) setSprintOpen(true); } catch {} }, [exam.id, nearDays, exam.completed_at]);
+  // 【弹窗必须跟着条件走】以前只负责"满足条件就打开",从不负责关闭:在 MAT235(2天)被正确弹出后,
+  // 切到 Biology Quiz(9天)时弹窗【原样开着】,里面的文案却重新渲染成了新考试名 —— v13 看到的
+  // 「距 Biology Quiz 不到一周」(其实不该弹)+ 弱点数还是上一门的 20,就是这么来的。
+  // 现在:条件不成立(已完成/没日期/超过一周)就【主动关掉】,不再让它跨考试残留。
+  useEffect(() => {
+    if (exam.completed_at || nearDays == null || nearDays < 0 || nearDays >= 7) { setSprintOpen(false); return; }
+    try { const k = `kye_sprint:${exam.id}:${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) setSprintOpen(true); } catch {}
+  }, [exam.id, nearDays, exam.completed_at]);
   const completeBtn = <button className="rounded-full bg-[#2f2413] px-2.5 py-0.5 text-xs font-medium text-[#f6efdd] hover:opacity-90" onClick={markComplete}>✅ {t("标记为已完成")}</button>;
   const acc = stats.attemptCount ? Math.round((stats.correctCount / stats.attemptCount) * 100) : null;
   const items = daily?.plan?.items || [];
