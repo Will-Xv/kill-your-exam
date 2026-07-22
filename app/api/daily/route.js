@@ -7,6 +7,8 @@ import { getResolveBanner } from "@/lib/referenceResolve";
 import { getPracticalMode, nextIncomplete, maybeAutoAssign, urgentCrossTasks } from "@/lib/practical";
 import { getActiveRecipe, currentPhase, methodForKp, methodLink } from "@/lib/recipes";
 import { todayStr } from "@/lib/devtime";
+// 【H8】今日计数必须用 todayStr()(带日期穿越偏移),不能用 SQLite 的 date('now')——
+// 做题写入 attempts 用的是 nowStamp()(已带偏移),读取端若还拿真实今天去比,穿越后计数就不归零(两边对不上)。
 import { deliverDue, startReminderLoop } from "@/lib/reminders";
 import { startAutoRuleLoop } from "@/lib/autoRules";
 import { setReqUser } from "@/lib/reqctx";
@@ -23,13 +25,13 @@ export async function GET() {
   // done 状态由真实数据动态计算,不依赖打卡
   const due = dueReviewCount(exam.id);
   const _famSql = "(" + ((familyScope(exam.id) || []).map(Number).join(",") || "0") + ")"; // 家族范围:母考试的知识点挂在子考试上,只按 exam.id 会漏
-  const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id IN ${_famSql} AND mode='practice' AND date(created_at,'localtime')=date('now','localtime')`).get().n; // 自由练习薄弱点的计数:只算 mode='practice'(不含错题复习 review、也不含新知识那条的 kp)
-  const todayNewKp = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id IN ${_famSql} AND mode='kp' AND date(created_at,'localtime')=date('now','localtime')`).get().n; // 学新知识的【今日配额】进度:跨知识点累计(一个知识点学完了,剩下的题接着在下一个上做)
+  const todayAttempts = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id IN ${_famSql} AND mode='practice' AND date(created_at,'localtime')=?`).get(todayStr()).n; // 自由练习薄弱点的计数:只算 mode='practice'(不含错题复习 review、也不含新知识那条的 kp)
+  const todayNewKp = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE exam_id IN ${_famSql} AND mode='kp' AND date(created_at,'localtime')=?`).get(todayStr()).n; // 学新知识的【今日配额】进度:跨知识点累计(一个知识点学完了,剩下的题接着在下一个上做)
   const enriched = items.map((it) => {
     if (it.type === "review") return { ...it, due, done: due === 0 };
     if (["kp", "practice", "debate", "socratic", "explore"].includes(it.type) && it.kpId) {
-      const n = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE kp_id=? AND date(created_at,'localtime')=date('now','localtime')`).get(it.kpId).n;
-      const ins = db.prepare(`SELECT COUNT(*) n FROM insights WHERE kp_id=? AND date(created_at,'localtime')=date('now','localtime')`).get(it.kpId).n;
+      const n = db.prepare(`SELECT COUNT(*) n FROM attempts WHERE kp_id=? AND date(created_at,'localtime')=?`).get(it.kpId, todayStr()).n;
+      const ins = db.prepare(`SELECT COUNT(*) n FROM insights WHERE kp_id=? AND date(created_at,'localtime')=?`).get(it.kpId, todayStr()).n;
       // 辩论/苏格拉底/探索是对话式,做过一次就算完成;知识点练习是做题式,要【做够当天目标题数】才算完成(目标默认 3,配方/步骤会覆盖,recipe 段再据 methodCount 重算)
       if (it.type === "debate" || it.type === "socratic" || it.type === "explore") return { ...it, done: (n + ins) > 0 };
       const DEFAULT_KP_TARGET = 6;
