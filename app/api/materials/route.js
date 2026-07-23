@@ -1,5 +1,5 @@
 import db, { familyScope, scopeSql } from "@/lib/db";
-import { requireUser, unauthorized } from "@/lib/auth";
+import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 
 export async function GET() {
   const { user, exam } = await requireUser();
@@ -15,9 +15,17 @@ export async function GET() {
 
 export async function PATCH(req) {
   // 更新资料清单勾选状态(onboarding 可传 examId)
-  const { checklist, examId } = await req.json();
+  const { checklist, examId, confirmMaterialId } = await req.json();
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
+  // 【主人确认这份资料就是本考试的 → 清掉"疑似不符/不确定/超范围"标记】
+  // 自动判定按抽出的文件内容判,扫描件抽不出字就 unsure;主人一句"这是本考试的"应当能一键消掉。
+  if (confirmMaterialId) {
+    const m = db.prepare("SELECT m.id FROM materials m JOIN exams e ON e.id=m.exam_id WHERE m.id=? AND e.user_id=?").get(Number(confirmMaterialId), user.id);
+    if (!m) return forbidden();
+    db.prepare("UPDATE materials SET offtopic=0, offtopic_reason=NULL WHERE id=?").run(Number(confirmMaterialId));
+    return Response.json({ ok: true });
+  }
   let targetId = exam?.id;
   if (examId) { const own = db.prepare("SELECT id FROM exams WHERE id=? AND user_id=?").get(examId, user.id); if (own) targetId = own.id; }
   if (targetId && checklist) db.prepare("UPDATE exams SET checklist=? WHERE id=?").run(JSON.stringify(checklist), targetId);
