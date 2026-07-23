@@ -7,6 +7,7 @@ import DropZone from "@/components/DropZone";
 import PlanSetup from "@/components/PlanSetup";
 import DynamicForm from "@/components/DynamicForm";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import { alertDialog } from "@/components/ui/dialog";
 import * as placement from "@/lib/uilab/placement";
 import * as lab from "@/lib/uilab/store";
 
@@ -81,13 +82,25 @@ export default function KillerChat({ embedded = false }) {
     el.style.height = Math.min(el.scrollHeight, max) + "px";
     el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
   }
+  // 【累加而不是替换】选文件/拖拽都走这里:追加、按名字+大小去重、封顶 4 个(后端 attachParts 也是 slice(0,4))。
+  function addFiles(incoming) {
+    setFiles((prev) => {
+      const seen = new Set(prev.map((f) => f.name + ":" + f.size));
+      const next = [...prev];
+      for (const f of (incoming || [])) { const k = f.name + ":" + f.size; if (!seen.has(k)) { seen.add(k); next.push(f); } }
+      if (next.length > 4) { try { alertDialog(t("一次最多发 4 个文件,多的没加进来。")); } catch {} }
+      return next.slice(0, 4);
+    });
+  }
+
   async function send(textOverride) {
     const text = (textOverride || input).trim();
     if ((!text && !files.length) || busy || pending) return;
     const attachments = await filesToAttachments(files);
     setInput(""); setFiles([]);
     if (taRef.current) { taRef.current.style.height = "auto"; taRef.current.style.overflowY = "hidden"; }
-    setMessages((m) => [...m, { role: "user", content: text + (attachments.length ? " 📎" + attachments.length : "") }]);
+    const _fnames = files.map((f) => f.name);
+    setMessages((m) => [...m, { role: "user", content: text + (_fnames.length ? "\n📎 " + _fnames.join("、") : "") }]);
     setBusy(true); setSteps([]);
     try {
       const d = await aiFetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text || "(见附件)", attachments, page: (typeof window !== "undefined" ? (window.location.pathname + window.location.search) : ""), device: (typeof window !== "undefined" ? (window.innerWidth >= 768 ? "desktop" : "mobile") : "") }) });
@@ -222,9 +235,19 @@ export default function KillerChat({ embedded = false }) {
         })()}
         <div ref={bottom} />
       </div>
-      {files.length > 0 && <p className="text-xs text-slate-500 pt-1">📎 {files.length} {t("个文件")} <button className="underline" onClick={() => setFiles([])}>{t("清除")}</button></p>}
-      <DropZone onFiles={(fs) => setFiles((p) => [...p, ...fs])} className="flex gap-2 pt-2">
-        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden onChange={(e) => setFiles([...e.target.files])} accept="image/*,.pdf,.txt,.md,.csv,.doc,.docx,audio/*" /></label>
+      {files.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          {files.map((f, i) => (
+            <span key={i} className="inline-flex max-w-[220px] items-center gap-1 rounded-full bg-[#3d2b10]/[0.07] px-2 py-0.5 text-xs text-[#5b431f] ring-1 ring-[#dbc999]">
+              <span className="truncate">📎 {f.name}</span>
+              <button className="shrink-0 text-stone-400 hover:text-red-600" title={t("移除")} onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}>×</button>
+            </span>
+          ))}
+          <button className="text-xs text-stone-500 underline" onClick={() => setFiles([])}>{t("全部清除")}</button>
+        </div>
+      )}
+      <DropZone onFiles={(fs) => addFiles(fs)} className="flex gap-2 pt-2">
+        <label className="btn-ghost cursor-pointer px-3" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden onChange={(e) => { addFiles([...e.target.files]); e.target.value = ""; }} accept="image/*,.pdf,.txt,.md,.csv,.doc,.docx,audio/*" /></label>
         <textarea ref={taRef} rows={1} className="input flex-1 resize-none leading-6" style={{ maxHeight: "260px" }} value={input} onChange={(e) => { setInput(e.target.value); autoGrow(e.target); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) { e.preventDefault(); send(); } }} placeholder={pending ? t("请先处理上面的确认…") : t("说说你的想法…(Enter 发送,Shift+Enter 换行)")} disabled={!!pending} />
         <button className="btn" onClick={() => send()} disabled={busy || (!input.trim() && !files.length) || !!pending}>{t("发送")}</button>
       </DropZone>
