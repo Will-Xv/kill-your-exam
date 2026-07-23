@@ -52,12 +52,25 @@ export async function POST(req) {
       });
     }
 
-    const contents = [];
-    if (sum.summary) {
-      contents.push({ role: "user", parts: [{ text: "【之前对话的摘要,供你参考,不必回应】\n" + sum.summary }] });
-      contents.push({ role: "model", parts: [{ text: "好的,我记住了。" }] });
+    // 【超时/出错后重发不从零重来·Will】若这条聊天里有个【近期(15分钟内)出错、且存了工具进度】的 run,
+    // 就接着它的上下文跑(那里面有已经查过的资料、已跑完的工具结果),不再把整套重做一遍。消费一次即清空。
+    let contents = null, resumed = false;
+    try {
+      const er = db.prepare(`SELECT id, resume_contents_json FROM chat_runs WHERE exam_id=? AND status='error' AND resume_contents_json IS NOT NULL AND updated_at > datetime('now','-15 minutes') ORDER BY id DESC LIMIT 1`).get(_cid);
+      if (er && er.resume_contents_json) {
+        const parsed = JSON.parse(er.resume_contents_json);
+        if (Array.isArray(parsed) && parsed.length) { contents = parsed; resumed = true; }
+        db.prepare("UPDATE chat_runs SET resume_contents_json=NULL WHERE id=?").run(er.id);   // 只续一次
+      }
+    } catch {}
+    if (!resumed) {
+      contents = [];
+      if (sum.summary) {
+        contents.push({ role: "user", parts: [{ text: "【之前对话的摘要,供你参考,不必回应】\n" + sum.summary }] });
+        contents.push({ role: "model", parts: [{ text: "好的,我记住了。" }] });
+      }
+      for (const m of recent) contents.push({ role: m.role, parts: [{ text: m.content }] });
     }
-    for (const m of recent) contents.push({ role: m.role, parts: [{ text: m.content }] });
     // 把用户这条消息带的附件持久化(source=upload),让杀手在这一轮里可以用 save_attachment_as_material 把它们存进资料库(不再看一眼就丢)。
     let uploadedNote = "";
     let pageNote = "";
@@ -78,8 +91,14 @@ export async function POST(req) {
     }
     const ap = await attachParts(attachments);
     const sysNote = uploadedNote + pageNote + deviceNote;
-    if (ap.length && contents.length) contents[contents.length - 1].parts = [{ text: message + sysNote }, ...ap];
-    else if (sysNote && contents.length) contents[contents.length - 1].parts = [{ text: message + sysNote }];
+    if (resumed) {
+      // 续用进度:上文最后一条是工具结果/模型轮,不能覆盖它——把这条新消息作为【新的一轮】追加。
+      contents.push({ role: "user", parts: ap.length ? [{ text: message + sysNote }, ...ap] : [{ text: message + sysNote }] });
+    } else if (ap.length && contents.length) {
+      contents[contents.length - 1].parts = [{ text: message + sysNote }, ...ap];
+    } else if (sysNote && contents.length) {
+      contents[contents.length - 1].parts = [{ text: message + sysNote }];
+    }
     const runId = startRun(exam, user, contents);
     return Response.json({ runId });
   } catch (e) { return aiErrorResponse(e); }
