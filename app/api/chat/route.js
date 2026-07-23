@@ -52,11 +52,13 @@ export async function POST(req) {
       });
     }
 
-    // 【超时/出错后重发不从零重来·Will】若这条聊天里有个【近期(15分钟内)出错、且存了工具进度】的 run,
+    // 【超时/出错后重发不从零重来·Will】若这条聊天里有个【出错、且存了工具进度】的 run(不限多久之前),
     // 就接着它的上下文跑(那里面有已经查过的资料、已跑完的工具结果),不再把整套重做一遍。消费一次即清空。
     let contents = null, resumed = false;
     try {
-      const er = db.prepare(`SELECT id, resume_contents_json FROM chat_runs WHERE exam_id=? AND status='error' AND resume_contents_json IS NOT NULL AND updated_at > datetime('now','-15 minutes') ORDER BY id DESC LIMIT 1`).get(_cid);
+      // 【不限时间·Will】隔多久重发都能接着上次的进度跑,不再限 15 分钟。靠"消费一次即清空"防止无限续用:
+      // 一旦有新 run 用掉了它,resume_contents_json 就被清成 NULL,下条消息就是全新的了。
+      const er = db.prepare(`SELECT id, resume_contents_json FROM chat_runs WHERE exam_id=? AND status='error' AND resume_contents_json IS NOT NULL ORDER BY id DESC LIMIT 1`).get(_cid);
       if (er && er.resume_contents_json) {
         const parsed = JSON.parse(er.resume_contents_json);
         if (Array.isArray(parsed) && parsed.length) { contents = parsed; resumed = true; }

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "check": "bash scripts/check-prompts.sh"
   },
   "dependencies": {
     "@google/genai": "^1.16.0",
