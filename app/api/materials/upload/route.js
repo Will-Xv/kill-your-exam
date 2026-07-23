@@ -23,7 +23,7 @@ export async function POST(req) {
   const file = form.get("file");
   if (!file) return Response.json({ error: "没有文件" }, { status: 400 });
   const buffer = Buffer.from(await file.arrayBuffer());
-  if (buffer.length > 40 * 1024 * 1024) return Response.json({ error: "文件太大(上限 40MB)" }, { status: 400 });
+  if (buffer.length > 40 * 1024 * 1024) return Response.json({ error: "文件太大(上限 40MB)——超大 PDF(如整本规范/教材)请只截取用得到的章节再传,或把关键页转成图片上传。" }, { status: 400 });
 
   try {
     const r = await ingestMaterialBuffer(examId, user, buffer, file.name, file.type);

@@ -1,5 +1,5 @@
 "use client";
-import { confirmDialog } from "@/components/ui/dialog";
+import { confirmDialog, alertDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
@@ -26,14 +26,39 @@ export default function Materials() {
   const load = () => fetch("/api/materials").then((r) => r.json()).then((d) => { setList(d.materials); const cl = d.checklist || []; setChecklist(cl); const o = cl.find((c) => c.item === OTHER); setOther(o?.answer || ""); });
   useEffect(() => { load(); }, []);
 
+  function addFiles(incoming) {
+    // 累加而不是替换,按 名字+大小 去重(和聊天上传一致)
+    setFiles((prev) => {
+      const seen = new Set(prev.map((f) => f.name + ":" + f.size));
+      const next = [...prev];
+      for (const f of (incoming || [])) { const k = f.name + ":" + f.size; if (!seen.has(k)) { seen.add(k); next.push(f); } }
+      return next;
+    });
+  }
   async function upload() {
     setBusy(true);
+    const failed = [];
     for (const f of files) {
       setLog(`${t("正在解析")} ${f.name}…`);
       const fd = new FormData(); fd.append("file", f);
-      try { await aiFetch("/api/materials/upload", { method: "POST", body: fd }); } catch {}
+      try {
+        await aiFetch("/api/materials/upload", { method: "POST", body: fd });
+      } catch (e) {
+        // 【别再静默吞掉上传失败】以前 catch{} 什么都不显示,大文件(如建筑规范PDF)超 40MB 被拒时,
+        // 用户只看到文件一闪就没、以为"传不了"。现在解析出原因、告诉他哪个文件为什么没传上。
+        let why = String((e && e.message) || e);
+        try { const j = JSON.parse(why); if (j && j.error) why = j.error; } catch {}
+        failed.push({ name: f.name, why });
+      }
     }
-    setFiles([]); setLog(""); setBusy(false); load();
+    setLog(""); setBusy(false);
+    // 成功的从待传列表移除,失败的留着(方便重试或换个)
+    const failedNames = new Set(failed.map((x) => x.name));
+    setFiles((prev) => prev.filter((f) => failedNames.has(f.name)));
+    if (failed.length) {
+      try { alertDialog(t("有文件没传上:") + "\n" + failed.map((x) => `• ${x.name} —— ${x.why}`).join("\n")); } catch {}
+    }
+    load();
   }
   async function toggleCheck(i) {
     const next = checklist.map((c, j) => (j === i ? { ...c, done: !c.done } : c));
@@ -101,8 +126,20 @@ export default function Materials() {
         </div>
       )}
       <div className="card space-y-2">
-        <input type="file" multiple className="input" onChange={(e) => setFiles([...e.target.files])} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,image/*,audio/*" />
-        {files.length > 0 && <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>}
+        <input type="file" multiple className="input" onChange={(e) => { addFiles([...e.target.files]); e.target.value = ""; }} accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.ogg,.aac,image/*,audio/*" />
+        {files.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              {files.map((f, i) => (
+                <span key={i} className="inline-flex max-w-[240px] items-center gap-1 rounded-full bg-[#3d2b10]/[0.07] px-2 py-0.5 text-xs text-[#5b431f] ring-1 ring-[#dbc999]">
+                  <span className="truncate">📎 {f.name}</span>
+                  <button className="shrink-0 text-stone-400 hover:text-red-600" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}>×</button>
+                </span>
+              ))}
+            </div>
+            <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>
+          </div>
+        )}
         {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
         <p className="text-[11px] text-stone-400">{t("请确保你有权使用所上传的资料,仅用于个人备考。")}</p>
