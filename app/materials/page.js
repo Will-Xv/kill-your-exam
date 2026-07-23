@@ -56,7 +56,7 @@ export default function Materials() {
     const failedNames = new Set(failed.map((x) => x.name));
     setFiles((prev) => prev.filter((f) => failedNames.has(f.name)));
     if (failed.length) {
-      try { alertDialog(t("有文件没传上:") + "\n" + failed.map((x) => `• ${x.name} —— ${x.why}`).join("\n")); } catch {}
+      try { alertDialog(t("有文件没传上:") + "\n" + failed.map((x) => `• ${x.name} —— ${t(x.why)}`).join("\n")); } catch {}
     }
     load();
   }
