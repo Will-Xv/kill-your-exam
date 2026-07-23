@@ -13,10 +13,11 @@ import { refreshAssessmentBg } from "@/lib/assessRefresh";
 export const maxDuration = 300;
 
 // 【并发内存兜底】文件读进内存处理会瞬时占内存,很多人同时传大文件会叠加。
-// Railway Hobby 每副本 8GB,这里设一个远低于它的保守预算(1GB 在途上限,整实例共享):超了就【体面拒绝】、
-// 让用户稍后再传,而不是任由内存叠加把整个进程 OOM 掉(那会把所有人的服务一起中断)。用 Content-Length 在读取正文【前】判断。
+// Railway Hobby 每副本 8GB,这里设 6GB 在途上限(整实例共享),给应用其它部分(数据库/Node/别的请求)留 ~2GB:
+// 超了就【体面拒绝】、让用户稍后再传,而不是任由内存叠加把整个进程 OOM 掉(那会把所有人的服务一起中断)。用 Content-Length 在读取正文【前】判断。
+// 注:单文件仍有 40MB 上限,所以 6GB 实为并发上限(约上百个并发大文件才会触顶,正常用不到,主要防病态并发)。
 let inFlightBytes = 0;
-const UPLOAD_BUDGET = 1024 * 1024 * 1024;
+const UPLOAD_BUDGET = 6 * 1024 * 1024 * 1024;
 
 export async function POST(req) {
   const { user, exam } = await requireUser();
