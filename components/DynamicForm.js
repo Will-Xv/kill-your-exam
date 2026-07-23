@@ -10,7 +10,19 @@ export default function DynamicForm({ title, fields = [], onSubmit, onCancel, bu
   const [vals, setVals] = useState(init);
   const set = (k, v) => setVals((s) => ({ ...s, [k]: v }));
   const toggle = (k, v) => setVals((s) => { const cur = Array.isArray(s[k]) ? s[k] : []; return { ...s, [k]: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] }; });
-  const clean = (v) => { const out = { ...v }; for (const f of fields) { if (out[f.key] === "__other__") out[f.key] = ""; } return out; };
+  const clean = (v) => {
+    const out = { ...v };
+    for (const f of fields) {
+      if (out[f.key] === "__other__") out[f.key] = "";   // radio 未真正填写
+      if (Array.isArray(out[f.key]) && out[f.key].includes("__other__")) {
+        const txt = String(out[f.key + "__otherText"] || "").trim();
+        out[f.key] = out[f.key].filter((x) => x !== "__other__");
+        if (txt) out[f.key].push(txt);
+      }
+      delete out[f.key + "__otherText"];   // 伴随字段不提交
+    }
+    return out;
+  };
   const missing = fields.some((f) => f.required && (vals[f.key] == null || vals[f.key] === "" || vals[f.key] === "__other__" || (Array.isArray(vals[f.key]) && !vals[f.key].length)));
 
   return (
@@ -43,10 +55,19 @@ export default function DynamicForm({ title, fields = [], onSubmit, onCancel, bu
                 })()}
               </div>
             ) : f.type === "checkbox" ? (
-              <div className="flex flex-wrap gap-1.5">{(f.options || []).map((o) => {
-                const on = Array.isArray(vals[f.key]) && vals[f.key].includes(o.value);
-                return <button key={o.value} type="button" onClick={() => toggle(f.key, o.value)} className={"rounded-full px-2.5 py-1 text-xs ring-1 " + (on ? "bg-[#2f2413] text-[#f6efdd] ring-[#2f2413]" : "bg-white text-[#2f2413] ring-stone-300")}>{o.label || o.value}</button>;
-              })}</div>
+              <div>
+                <div className="flex flex-wrap gap-1.5">{(f.options || []).map((o) => {
+                  const on = Array.isArray(vals[f.key]) && vals[f.key].includes(o.value);
+                  return <button key={o.value} type="button" onClick={() => toggle(f.key, o.value)} className={"rounded-full px-2.5 py-1 text-xs ring-1 " + (on ? "bg-[#2f2413] text-[#f6efdd] ring-[#2f2413]" : "bg-white text-[#2f2413] ring-stone-300")}>{o.label || o.value}</button>;
+                })}{f.allowOther && (() => {
+                  // 多选也能自己填一个:选中"其他"就把 __other__ 放进数组,提交时(clean)用输入的文本替换它
+                  const on = Array.isArray(vals[f.key]) && vals[f.key].includes("__other__");
+                  return <button type="button" onClick={() => toggle(f.key, "__other__")} className={"rounded-full px-2.5 py-1 text-xs ring-1 " + (on ? "bg-[#2f2413] text-[#f6efdd] ring-[#2f2413]" : "bg-white text-[#2f2413] ring-stone-300")}>+ {t("其他(自己填)")}</button>;
+                })()}</div>
+                {f.allowOther && Array.isArray(vals[f.key]) && vals[f.key].includes("__other__") && (
+                  <input autoFocus type="text" value={vals[f.key + "__otherText"] || ""} placeholder={f.placeholder || t("在这里填…")} onChange={(e) => set(f.key + "__otherText", e.target.value)} className="mt-1.5 w-full max-w-xs rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-[#2f2413]" />
+                )}
+              </div>
             ) : (
               <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} value={vals[f.key]} placeholder={f.placeholder || ""} onChange={(e) => set(f.key, e.target.value)} className="w-full max-w-xs rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-[#2f2413]" />
             )}
