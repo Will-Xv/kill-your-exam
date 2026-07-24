@@ -39,7 +39,7 @@ export async function POST(req) {
     if (!uploadId || !Number.isInteger(i) || !Number.isInteger(n) || n < 1) return Response.json({ error: estr(user?.lang, "分块参数不对") }, { status: 400 });
     // 单块封顶(防一块塞太大爆内存);拼盘总大小也设个很宽的护栏(2GB,贴 Gemini File API 存储上限)
     const body = Buffer.from(await req.arrayBuffer());
-    if (body.length > 56 * 1024 * 1024) return Response.json({ error: estr(user?.lang, "单个分块过大") }, { status: 400 });
+    if (body.length > 96 * 1024 * 1024) return Response.json({ error: estr(user?.lang, "单个分块过大") }, { status: 400 });
     try {
       if (chunkTmpSize(uploadId) + body.length > 2 * 1024 * 1024 * 1024) { discardChunk(uploadId); return Response.json({ error: estr(user?.lang, "文件超过 2GB 上限") }, { status: 400 }); }
       appendChunk(uploadId, body);
