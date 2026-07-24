@@ -35,7 +35,9 @@
 
 ## 四、多模态资料库 / RAG（`app/materials` · `app/api/materials/*`）
 - 传 PDF/Word(`mammoth`)/文本/图片/音频（拍照/拖拽/粘贴）；自由"其他说明"栏；资料收集清单（可问答填）。每个文件原地查看：图直显/音频播放/PDF 内嵌/文本提取（`materials/content`、`materials/raw`）。原件完整保存。
-- **超大 PDF**：`lib/pdfSplit.js` 抽页/拆 ≤18MB 片；扫描版走 Gemini 原生读。
+- **文件任意大小（分块上传，2026-07）**：>8MB 前端 `File.slice` 切成 **80MB/块** 逐块 POST `?chunk=1&uploadId&i&n&name&mime`；后端 append 写临时文件(内存只有一块)、收齐 `fs.rename` 成资料文件、`ingestMaterialFromChunks` 入库(零内存拷贝)。护栏:单块≤96MB、总量≤2GB。上传失败如实弹原因、可单删/累加/看文件名。单文件直传（≤8MB 走 FormData）仍有 40MB 上限+并发内存兜底(6GB在途)。
+- **超大 PDF 拆页读（第二步，2026-07，`lib/pdfIndex.js`）**：>45MB 的 PDF 整份超 Gemini 上限——入库后台 `indexBigPdf` 用 `splitPdfBySize`(≤16MB/整页) 拆片，每片 `readImage`(Gemini多模态,不用pdf-parse)生成检索要点+页码存进 `chunks`(heading `p:起-止`)；`read_material`(chatAgent) 遇 `isHugePdf` 走 `readBigPdf`——按问题 `retrieve` 命中页段→`extractPdfPages` 只抽相关页→只读那几页。`query_knowledge_base` 也能检索超大 PDF。`retrieve` 增返 `material_id`。三种"块"互不相干:上传块80MB(搬进服务器)/索引片16MB(喂Gemini)/Gemini读~50MB·1000页(Google限)。
+- **超大 PDF**(旧)：`lib/pdfSplit.js` 抽页(`extractPdfPages`)/拆片(`splitPdfBySize`)/页数(`pdfPageCount`),被 referenceResolve 与上面的拆页读复用。
 - **Chrome 采集扩展**（`extension/`）：从已登录学习站采内容（含图/音/PDF）进资料库，不碰密码；`app/api/ingest` + 采集令牌 `ingest_tokens`；Agent 模式可自动翻页采（只读、禁点提交/购买/删除）。**【网站入口与提示词已于 2026-07 下线】`app/collector` 页面已删除、设置页入口已移除、杀手的 browser_task 工具已删;扩展源码与后端接口保留,想重启只需把入口加回来。**
 
 ## 五、知识点树 & 掌握度（`app/study`,`app/knowledge` · `lib/mastery.js`）
