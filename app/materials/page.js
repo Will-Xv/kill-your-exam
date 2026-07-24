@@ -38,7 +38,7 @@ export default function Materials() {
   async function upload() {
     setBusy(true);
     const failed = [];
-    const CHUNK = 6 * 1024 * 1024;          // 每块 6MB
+    const CHUNK = 48 * 1024 * 1024;         // 每块 48MB(≈原来8块合一:大幅减少往返次数、更快;8GB内存下每请求48MB无压力)
     const CHUNK_THRESHOLD = 8 * 1024 * 1024; // 超过 8MB 就走分块(小文件照旧一次传)
     for (const f of files) {
       try {
