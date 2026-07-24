@@ -1,4 +1,5 @@
 import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
+import { estr } from "@/lib/i18nServer";
 import { getActiveExam } from "@/lib/db";
 import { setNavDock, setKillerHome } from "@/lib/uiPlacement";
 
@@ -8,8 +9,8 @@ export async function POST(req) {
   if (!u) return unauthorized();
   const { edge, killerHome, breakpoint } = await req.json().catch(() => ({}));
   const ex = getActiveExam(u.id);
-  if (!ex) return Response.json({ error: "没有激活的考试" }, { status: 400 });
-  if (killerHome !== undefined) { const kh = setKillerHome(ex.id, u.id, killerHome, breakpoint); return kh ? Response.json({ ok: true, killerHome: kh }) : Response.json({ error: "killerHome 只能是 dock/float" }, { status: 400 }); }
+  if (!ex) return Response.json({ error: estr(u?.lang, "没有激活的考试") }, { status: 400 });
+  if (killerHome !== undefined) { const kh = setKillerHome(ex.id, u.id, killerHome, breakpoint); return kh ? Response.json({ ok: true, killerHome: kh }) : Response.json({ error: estr(u?.lang, "killerHome 只能是 dock/float") }, { status: 400 }); }
   const nd = setNavDock(ex.id, u.id, edge, breakpoint);
-  return nd ? Response.json({ ok: true, navDock: nd }) : Response.json({ error: "edge 只能是 top/bottom/left/right" }, { status: 400 });
+  return nd ? Response.json({ ok: true, navDock: nd }) : Response.json({ error: estr(u?.lang, "edge 只能是 top/bottom/left/right") }, { status: 400 });
 }

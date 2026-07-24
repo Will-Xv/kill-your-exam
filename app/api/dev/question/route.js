@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { estr } from "@/lib/i18nServer";
 import { getSessionUser, unauthorized, forbidden } from "@/lib/auth";
 
 // 开发者:检查/修复某道题(直接看/改原始 JSON、标记问题、删除)
@@ -22,7 +23,7 @@ export async function POST(req) {
   const q = db.prepare("SELECT * FROM questions WHERE id=?").get(id);
   if (!q) return Response.json({ error: "not found" }, { status: 404 });
   if (action === "save") {
-    try { JSON.parse(body); JSON.parse(answer); } catch { return Response.json({ error: "body/answer 不是合法 JSON" }, { status: 400 }); }
+    try { JSON.parse(body); JSON.parse(answer); } catch { return Response.json({ error: estr(u?.lang, "body/answer 不是合法 JSON") }, { status: 400 }); }
     db.prepare("UPDATE questions SET body=?, answer=? WHERE id=?").run(body, answer, id);
   } else if (action === "flag") db.prepare("UPDATE questions SET flagged=1 WHERE id=?").run(id);
   else if (action === "unflag") db.prepare("UPDATE questions SET flagged=0 WHERE id=?").run(id);
