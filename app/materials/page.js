@@ -38,14 +38,27 @@ export default function Materials() {
   async function upload() {
     setBusy(true);
     const failed = [];
+    const CHUNK = 6 * 1024 * 1024;          // 每块 6MB
+    const CHUNK_THRESHOLD = 8 * 1024 * 1024; // 超过 8MB 就走分块(小文件照旧一次传)
     for (const f of files) {
-      setLog(`${t("正在解析")} ${f.name}…`);
-      const fd = new FormData(); fd.append("file", f);
       try {
-        await aiFetch("/api/materials/upload", { method: "POST", body: fd });
+        if (f.size <= CHUNK_THRESHOLD) {
+          setLog(`${t("正在解析")} ${f.name}…`);
+          const fd = new FormData(); fd.append("file", f);
+          await aiFetch("/api/materials/upload", { method: "POST", body: fd });
+        } else {
+          // 【分块上传】把大文件切成 6MB 一块逐块传,服务器每次只收一小块 → 内存/大小限制都绕过,想多大都行。
+          const n = Math.ceil(f.size / CHUNK);
+          const uploadId = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+          for (let i = 0; i < n; i++) {
+            setLog(`${t("上传中")} ${f.name} … ${Math.round(((i) / n) * 100)}%`);
+            const blob = f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK));
+            const q = `?chunk=1&uploadId=${uploadId}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}&mime=${encodeURIComponent(f.type || "")}`;
+            await aiFetch("/api/materials/upload" + q, { method: "POST", body: blob });
+          }
+          setLog(`${t("正在解析")} ${f.name}…`);
+        }
       } catch (e) {
-        // 【别再静默吞掉上传失败】以前 catch{} 什么都不显示,大文件(如建筑规范PDF)超 40MB 被拒时,
-        // 用户只看到文件一闪就没、以为"传不了"。现在解析出原因、告诉他哪个文件为什么没传上。
         let why = String((e && e.message) || e);
         try { const j = JSON.parse(why); if (j && j.error) why = j.error; } catch {}
         failed.push({ name: f.name, why });

@@ -7,7 +7,8 @@ import { aiErrorResponse } from "@/lib/errors";
 import { saveMat, delMat, guessMime, kindOf } from "@/lib/files";
 import { autoResolveOnUpload } from "@/lib/referenceResolve";
 import { assessMaterialTopic } from "@/lib/materialMatch";
-import { ingestMaterialBuffer } from "@/lib/materialIngest";
+import { ingestMaterialBuffer, ingestMaterialFromChunks } from "@/lib/materialIngest";
+import { appendChunk, discardChunk, chunkTmpSize } from "@/lib/files";
 import { refreshAssessmentBg } from "@/lib/assessRefresh";
 
 export const maxDuration = 300;
@@ -25,6 +26,33 @@ export async function POST(req) {
   const url = new URL(req.url);
   const examId = Number(url.searchParams.get("examId")) || exam?.id;
   if (!examId) return Response.json({ error: "还没有创建考试" }, { status: 400 });
+
+  // 【分块上传·文件想多大都行】前端把大文件 File.slice 切块逐块传:body=这一小块的原始字节,query 带 uploadId/i/n/name。
+  // 每块直接 append 到磁盘临时文件(内存里只有一小块);收到最后一块(i==n-1)再 rename 成资料文件、从磁盘入库。
+  if (url.searchParams.get("chunk")) {
+    const uploadId = String(url.searchParams.get("uploadId") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
+    const i = Number(url.searchParams.get("i"));
+    const n = Number(url.searchParams.get("n"));
+    const name = String(url.searchParams.get("name") || "file").slice(0, 200);
+    const mime = String(url.searchParams.get("mime") || "");
+    if (!uploadId || !Number.isInteger(i) || !Number.isInteger(n) || n < 1) return Response.json({ error: "分块参数不对" }, { status: 400 });
+    // 单块封顶(防一块塞太大爆内存);拼盘总大小也设个很宽的护栏(2GB,贴 Gemini File API 存储上限)
+    const body = Buffer.from(await req.arrayBuffer());
+    if (body.length > 12 * 1024 * 1024) return Response.json({ error: "单个分块过大" }, { status: 400 });
+    try {
+      if (chunkTmpSize(uploadId) + body.length > 2 * 1024 * 1024 * 1024) { discardChunk(uploadId); return Response.json({ error: "文件超过 2GB 上限" }, { status: 400 }); }
+      appendChunk(uploadId, body);
+      if (i < n - 1) return Response.json({ ok: true, received: i + 1, total: n });   // 还没收齐
+      // 收齐 → 入库
+      const r = await ingestMaterialFromChunks(examId, user, uploadId, name, mime);
+      return Response.json({ ok: true, done: true, materialId: r.materialId, big: r.big });
+    } catch (e) {
+      try { discardChunk(uploadId); } catch {}
+      const msg = String(e?.message || e).slice(0, 300);
+      if (e?.isAiError || /api|quota|rate/i.test(msg)) return aiErrorResponse(e);
+      return Response.json({ error: msg }, { status: 400 });
+    }
+  }
 
   const declared = Number(req.headers.get("content-length")) || 0;
   if (declared && inFlightBytes + declared > UPLOAD_BUDGET) {
