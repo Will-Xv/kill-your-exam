@@ -1,4 +1,5 @@
 import db, { getDocument, inScope } from "@/lib/db";
+import { estr } from "@/lib/i18nServer";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { getOverallDoc } from "@/lib/overall";
@@ -104,7 +105,7 @@ export async function POST(req) {
 
     let kp = kpId ? db.prepare("SELECT * FROM knowledge_points WHERE id=?").get(kpId) : null;
     if (!kp) kp = db.prepare(`SELECT kp.* FROM knowledge_points kp WHERE kp.exam_id=? AND kp.parent_id IS NOT NULL ORDER BY (SELECT COUNT(*) FROM attempts a WHERE a.kp_id=kp.id) ASC, RANDOM() LIMIT 1`).get(exam.id);
-    if (!kp) return Response.json({ error: "还没有知识点,请先完成考试设置" }, { status: 400 });
+    if (!kp) return Response.json({ error: estr(user?.lang, "还没有知识点,请先完成考试设置") }, { status: 400 });
     const chapter = kp.parent_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.parent_id)?.title : "";
     const insQ = db.prepare("INSERT INTO questions(exam_id,kp_id,qtype,body,answer,difficulty,source_type,source_refs,origin,answer_origin,source_url,is_real) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
     let honesty = "";

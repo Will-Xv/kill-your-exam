@@ -1,4 +1,5 @@
 import db, { ownScope, scopeSql } from "@/lib/db";
+import { estr } from "@/lib/i18nServer";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { ensureBlueprint, composeFromBlueprint, getBlueprint } from "@/lib/blueprint";
 
@@ -20,7 +21,7 @@ export async function POST(req) {
 
   if (realOnly) {
     const pool = db.prepare(`SELECT * FROM questions WHERE exam_id IN ${scopeSql(ownScope(exam.id))} AND flagged=0 ${perfExam ? "AND qtype='perform'" : ""} AND is_real=1 ORDER BY RANDOM() LIMIT ?`).all(count * 3);
-    if (pool.length < 3) return Response.json({ error: "题库里还没有足够的真题。可以让 AI 联网找真题,或先做混合模拟。" }, { status: 400 });
+    if (pool.length < 3) return Response.json({ error: estr(user?.lang, "题库里还没有足够的真题。可以让 AI 联网找真题,或先做混合模拟。") }, { status: 400 });
     const byType = {}; for (const q of pool) (byType[q.qtype] ||= []).push(q);
     const picked = []; const types = Object.keys(byType); let i = 0;
     while (picked.length < Math.min(count, pool.length) && types.some((tp) => byType[tp].length)) { const tp = types[i % types.length]; if (byType[tp].length) picked.push(byType[tp].shift()); i++; }
@@ -32,7 +33,7 @@ export async function POST(req) {
 
   // 蓝图模式
   let bp;
-  try { bp = await ensureBlueprint(exam, user); } catch (e) { return Response.json({ error: "生成考试蓝图失败,请稍后再试。" }, { status: 500 }); }
+  try { bp = await ensureBlueprint(exam, user); } catch (e) { return Response.json({ error: estr(user?.lang, "生成考试蓝图失败,请稍后再试。") }, { status: 500 }); }
   const comp = await composeFromBlueprint(exam, user, bp);
   if (!comp.questionIds.length) {
     let msg;

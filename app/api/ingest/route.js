@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { estr } from "@/lib/i18nServer";
 import { indexMaterial, afterMaterialsChanged } from "@/lib/rag";
 import { augmentKnowledgeTree } from "@/lib/generators";
 import { getActiveExam } from "@/lib/db";
@@ -20,13 +21,13 @@ export async function POST(req) {
   const user = db.prepare("SELECT * FROM users WHERE id=? AND deleted_at IS NULL").get(row.user_id);
   if (!user) return Response.json({ error: "invalid user" }, { status: 401, headers: corsHeaders() });
   const exam = getActiveExam(user.id);
-  if (!exam) return Response.json({ error: "没有激活的考试,请先在网站里创建/选择一个考试" }, { status: 400, headers: corsHeaders() });
+  if (!exam) return Response.json({ error: estr(user?.lang, "没有激活的考试,请先在网站里创建/选择一个考试") }, { status: 400, headers: corsHeaders() });
 
   const { title, url, text, mediaUrls } = await req.json();
   const name = (title || url || "网页采集").slice(0, 120);
   const hasText = text && text.trim().length >= 50;
   const media = Array.isArray(mediaUrls) ? mediaUrls.filter((u) => /^https?:/i.test(u)).slice(0, 12) : [];
-  if (!hasText && !media.length) return Response.json({ error: "页面正文太少,也没抓到图片/音频" }, { status: 400, headers: corsHeaders() });
+  if (!hasText && !media.length) return Response.json({ error: estr(user?.lang, "页面正文太少,也没抓到图片/音频") }, { status: 400, headers: corsHeaders() });
 
   let chunks = 0, saved = 0;
   try {

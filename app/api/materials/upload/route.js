@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { estr } from "@/lib/i18nServer";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { parseUpload } from "@/lib/parse";
 import { indexMaterial, afterMaterialsChanged } from "@/lib/rag";
@@ -25,7 +26,7 @@ export async function POST(req) {
   if (!user) return unauthorized();
   const url = new URL(req.url);
   const examId = Number(url.searchParams.get("examId")) || exam?.id;
-  if (!examId) return Response.json({ error: "还没有创建考试" }, { status: 400 });
+  if (!examId) return Response.json({ error: estr(user?.lang, "还没有创建考试") }, { status: 400 });
 
   // 【分块上传·文件想多大都行】前端把大文件 File.slice 切块逐块传:body=这一小块的原始字节,query 带 uploadId/i/n/name。
   // 每块直接 append 到磁盘临时文件(内存里只有一小块);收到最后一块(i==n-1)再 rename 成资料文件、从磁盘入库。
@@ -35,12 +36,12 @@ export async function POST(req) {
     const n = Number(url.searchParams.get("n"));
     const name = String(url.searchParams.get("name") || "file").slice(0, 200);
     const mime = String(url.searchParams.get("mime") || "");
-    if (!uploadId || !Number.isInteger(i) || !Number.isInteger(n) || n < 1) return Response.json({ error: "分块参数不对" }, { status: 400 });
+    if (!uploadId || !Number.isInteger(i) || !Number.isInteger(n) || n < 1) return Response.json({ error: estr(user?.lang, "分块参数不对") }, { status: 400 });
     // 单块封顶(防一块塞太大爆内存);拼盘总大小也设个很宽的护栏(2GB,贴 Gemini File API 存储上限)
     const body = Buffer.from(await req.arrayBuffer());
-    if (body.length > 56 * 1024 * 1024) return Response.json({ error: "单个分块过大" }, { status: 400 });
+    if (body.length > 56 * 1024 * 1024) return Response.json({ error: estr(user?.lang, "单个分块过大") }, { status: 400 });
     try {
-      if (chunkTmpSize(uploadId) + body.length > 2 * 1024 * 1024 * 1024) { discardChunk(uploadId); return Response.json({ error: "文件超过 2GB 上限" }, { status: 400 }); }
+      if (chunkTmpSize(uploadId) + body.length > 2 * 1024 * 1024 * 1024) { discardChunk(uploadId); return Response.json({ error: estr(user?.lang, "文件超过 2GB 上限") }, { status: 400 }); }
       appendChunk(uploadId, body);
       if (i < n - 1) return Response.json({ ok: true, received: i + 1, total: n });   // 还没收齐
       // 收齐 → 入库
@@ -56,15 +57,15 @@ export async function POST(req) {
 
   const declared = Number(req.headers.get("content-length")) || 0;
   if (declared && inFlightBytes + declared > UPLOAD_BUDGET) {
-    return Response.json({ error: "服务器正在同时处理其他大文件,稍等几秒再传这一个就行(你的其它数据没受影响)。" }, { status: 503 });
+    return Response.json({ error: estr(user?.lang, "服务器正在同时处理其他大文件,稍等几秒再传这一个就行(你的其它数据没受影响)。") }, { status: 503 });
   }
   inFlightBytes += declared;
   try {
     const form = await req.formData();
     const file = form.get("file");
-    if (!file) return Response.json({ error: "没有文件" }, { status: 400 });
+    if (!file) return Response.json({ error: estr(user?.lang, "没有文件") }, { status: 400 });
     const buffer = Buffer.from(await file.arrayBuffer());
-    if (buffer.length > 40 * 1024 * 1024) return Response.json({ error: "文件太大(上限 40MB)——超大 PDF(如整本规范/教材)请只截取用得到的章节再传,或把关键页转成图片上传。" }, { status: 400 });
+    if (buffer.length > 40 * 1024 * 1024) return Response.json({ error: estr(user?.lang, "文件太大(上限 40MB)——超大 PDF(如整本规范/教材)请只截取用得到的章节再传,或把关键页转成图片上传。") }, { status: 400 });
     const r = await ingestMaterialBuffer(examId, user, buffer, file.name, file.type);
     Promise.resolve().then(() => refreshAssessmentBg(examId, user.lang)).catch(() => {});
     return Response.json({ ok: true, materialId: r.materialId, chunks: r.chunks });

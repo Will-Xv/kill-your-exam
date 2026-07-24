@@ -1,4 +1,5 @@
 import db, { inScope } from "@/lib/db";
+import { estr } from "@/lib/i18nServer";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, uploadMedia, deleteMedia } from "@/lib/gemini";
 import { aiErrorResponse } from "@/lib/errors";
@@ -20,7 +21,7 @@ export async function POST(req) {
   if (!user) return unauthorized();
   let form;
   try { form = await req.formData(); }
-  catch (e) { return Response.json({ error: "上传解析失败(可能文件过大或网络中断),请重试或缩短时长后重录。", detail: String(e?.message || e).slice(0, 200) }, { status: 413 }); }
+  catch (e) { return Response.json({ error: estr(user?.lang, "上传解析失败(可能文件过大或网络中断),请重试或缩短时长后重录。"), detail: String(e?.message || e).slice(0, 200) }, { status: 413 }); }
   const questionId = Number(form.get("questionId"));
   const devBugId = Number(form.get("devBugId")) || 0; // 开发者在 Bug 里「亲自试做」:判分并把作答存到该 bug,不写入用户练习记录
   const bodyJson = form.get("bodyJson"); const answerJson = form.get("answerJson");
@@ -33,10 +34,10 @@ export async function POST(req) {
   } else {
     if (!q || !exam || (q.exam_id != null && !inScope(exam.id, q.exam_id))) return forbidden();
   }
-  if (!file) return Response.json({ error: "没有录制文件" }, { status: 400 });
+  if (!file) return Response.json({ error: estr(user?.lang, "没有录制文件") }, { status: 400 });
   const buffer = Buffer.from(await file.arrayBuffer());
-  if (!buffer.length) return Response.json({ error: "录制为空" }, { status: 400 });
-  if (buffer.length > 500 * 1024 * 1024) return Response.json({ error: "录制文件过大(超过 500MB)" }, { status: 400 });
+  if (!buffer.length) return Response.json({ error: estr(user?.lang, "录制为空") }, { status: 400 });
+  if (buffer.length > 500 * 1024 * 1024) return Response.json({ error: estr(user?.lang, "录制文件过大(超过 500MB)") }, { status: 400 });
 
   const body = JSON.parse(q.body || "{}");
   const ans = JSON.parse(q.answer || "{}");
@@ -106,7 +107,7 @@ export async function POST(req) {
 
     // 兜底:既没内联到帧、也没走 File API(极少数:无 ffmpeg / 转码失败)
     if (isVideo && framesSent === 0 && !usedFileApi && !parts.some((p) => p.fileData || p.inlineData)) {
-      return Response.json({ error: "服务器暂时无法处理这段录像,请稍后重试或缩短时长后重录。" }, { status: 400 });
+      return Response.json({ error: estr(user?.lang, "服务器暂时无法处理这段录像,请稍后重试或缩短时长后重录。") }, { status: 400 });
     }
 
     const howAnalyzed = isVideo
