@@ -2,16 +2,14 @@
 import { confirmDialog, alertDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
-import { useAiFetch } from "@/components/AiErrorDialog";
+import { useUploader } from "@/components/UploadProvider";
 
 export default function Materials() {
   const t = useT();
-  const aiFetch = useAiFetch();
+  const { startUpload, active } = useUploader();
   const [list, setList] = useState([]);
   const [checklist, setChecklist] = useState([]);
   const [files, setFiles] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [log, setLog] = useState("");
   const [other, setOther] = useState("");
   const [otherSaved, setOtherSaved] = useState(false);
   const OTHER = "其他文件或说明";
@@ -41,63 +39,17 @@ export default function Materials() {
       return next;
     });
   }
-  // 【XHR 上传·能报真实进度】fetch 不支持上传进度事件,单个大块请求期间进度纹丝不动(看着像卡0%)。
-  // 用 XMLHttpRequest 的 upload.onprogress 拿到字节级进度,回调 onProg(0~1)。成功 resolve 解析后的 JSON,失败 reject 带原因。
-  function xhrPost(url, body, onProg) {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", url);
-      xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProg) onProg(e.loaded / e.total); };
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) { try { resolve(JSON.parse(xhr.responseText || "{}")); } catch { resolve({}); } }
-        else { let why = xhr.responseText || ("HTTP " + xhr.status); try { const j = JSON.parse(why); if (j && j.error) why = j.error; } catch {} reject(new Error(why)); }
-      };
-      xhr.onerror = () => reject(new Error("network"));
-      xhr.send(body);
-    });
+  // 【上传交给全局 UploadProvider】进度在右下角浮动条显示,跨页切换不中断;这里点一下就把文件交出去、清空待传列表。
+  function upload() {
+    startUpload(files);
+    setFiles([]);
   }
-
-  async function upload() {
-    setBusy(true);
-    const failed = [];
-    const CHUNK = 80 * 1024 * 1024;         // 每块 80MB(往返更少、上传更快;8GB内存下每请求80MB无压力;唯一代价:某块失败重传的量更大)
-    const CHUNK_THRESHOLD = 8 * 1024 * 1024; // 超过 8MB 就走分块(小文件照旧一次传)
-    for (const f of files) {
-      try {
-        if (f.size <= CHUNK_THRESHOLD) {
-          setLog(`${t("正在解析")} ${f.name}…`);
-          const fd = new FormData(); fd.append("file", f);
-          await aiFetch("/api/materials/upload", { method: "POST", body: fd });
-        } else {
-          // 【分块上传】把大文件切成 6MB 一块逐块传,服务器每次只收一小块 → 内存/大小限制都绕过,想多大都行。
-          const n = Math.ceil(f.size / CHUNK);
-          const uploadId = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-          for (let i = 0; i < n; i++) {
-            const blob = f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK));
-            const q = `?chunk=1&uploadId=${uploadId}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}&mime=${encodeURIComponent(f.type || "")}`;
-            await xhrPost("/api/materials/upload" + q, blob, (frac) => {
-              const pct = Math.min(99, Math.round(((i + frac) / n) * 100));   // 整体进度=已完成块+本块内字节进度
-              setLog(`${t("上传中")} ${f.name} … ${pct}%`);
-            });
-          }
-          // 全部块已到服务器,后端在后台解析入库;前端不干等
-          setLog(`${t("已上传,正在后台处理")} ${f.name}…`);
-        }
-      } catch (e) {
-        let why = String((e && e.message) || e);
-        try { const j = JSON.parse(why); if (j && j.error) why = j.error; } catch {}
-        failed.push({ name: f.name, why });
-      }
-    }
-    setLog(""); setBusy(false);
-    // 成功的从待传列表移除,失败的留着(方便重试或换个)
-    const failedNames = new Set(failed.map((x) => x.name));
-    setFiles((prev) => prev.filter((f) => failedNames.has(f.name)));
-    if (failed.length) {
-      try { alertDialog(t("有文件没传上:") + "\n" + failed.map((x) => `• ${x.name} —— ${t(x.why)}`).join("\n")); } catch {}
-    }
-    load();
-  }
+  // 后台处理完某个文件会广播 materials-changed → 刷新资料列表。
+  useEffect(() => {
+    const h = () => load();
+    window.addEventListener("materials-changed", h);
+    return () => window.removeEventListener("materials-changed", h);
+  }, []);
   async function toggleCheck(i) {
     const next = checklist.map((c, j) => (j === i ? { ...c, done: !c.done } : c));
     setChecklist(next);
@@ -175,10 +127,9 @@ export default function Materials() {
                 </span>
               ))}
             </div>
-            <button className="btn w-full" onClick={upload} disabled={busy}>{t("上传")} {files.length} {t("个文件")}</button>
+            <button className="btn w-full" onClick={upload} disabled={active}>{t("上传")} {files.length} {t("个文件")}</button>
           </div>
         )}
-        {log && <p className="text-sm text-amber-700 animate-pulse">{log}</p>}
         <p className="text-xs text-stone-400">{t("支持 PDF、Word、文本、图片(手机拍照即可)。扫描版 PDF 请转成图片上传。")}</p>
         <p className="text-[11px] text-stone-400">{t("请确保你有权使用所上传的资料,仅用于个人备考。")}</p>
       </div>

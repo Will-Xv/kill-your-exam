@@ -2,6 +2,7 @@ import "./globals.css";
 import AppShell from "@/components/AppShell";
 import db from "@/lib/db";
 import { AiErrorProvider } from "@/components/AiErrorDialog";
+import { UploadProvider } from "@/components/UploadProvider";
 import { I18nProvider } from "@/components/I18n";
 import VersionGuard from "@/components/VersionGuard";
 
@@ -25,7 +26,9 @@ export default function RootLayout({ children }) {
         <VersionGuard />
         <I18nProvider>
         <AiErrorProvider>
-          <AppShell initialLayout={initialLayout}>{children}</AppShell>
+          <UploadProvider>
+            <AppShell initialLayout={initialLayout}>{children}</AppShell>
+          </UploadProvider>
         </AiErrorProvider>
         </I18nProvider>
       </body>
