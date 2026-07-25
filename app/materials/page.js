@@ -25,6 +25,12 @@ export default function Materials() {
 
   const load = () => fetch("/api/materials").then((r) => r.json()).then((d) => { setList(d.materials); const cl = d.checklist || []; setChecklist(cl); const o = cl.find((c) => c.item === OTHER); setOther(o?.answer || ""); });
   useEffect(() => { load(); }, []);
+  // 【后台处理时轮询】有资料还在"处理中"就每 4 秒刷一次,变就绪/失败后自动停(不然"⏳处理中"不会自己更新)。
+  useEffect(() => {
+    if (!Array.isArray(list) || !list.some((m) => m.status === "processing")) return;
+    const iv = setInterval(load, 4000);
+    return () => clearInterval(iv);
+  }, [list]);
 
   function addFiles(incoming) {
     // 累加而不是替换,按 名字+大小 去重(和聊天上传一致)
@@ -35,6 +41,22 @@ export default function Materials() {
       return next;
     });
   }
+  // 【XHR 上传·能报真实进度】fetch 不支持上传进度事件,单个大块请求期间进度纹丝不动(看着像卡0%)。
+  // 用 XMLHttpRequest 的 upload.onprogress 拿到字节级进度,回调 onProg(0~1)。成功 resolve 解析后的 JSON,失败 reject 带原因。
+  function xhrPost(url, body, onProg) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", url);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProg) onProg(e.loaded / e.total); };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { try { resolve(JSON.parse(xhr.responseText || "{}")); } catch { resolve({}); } }
+        else { let why = xhr.responseText || ("HTTP " + xhr.status); try { const j = JSON.parse(why); if (j && j.error) why = j.error; } catch {} reject(new Error(why)); }
+      };
+      xhr.onerror = () => reject(new Error("network"));
+      xhr.send(body);
+    });
+  }
+
   async function upload() {
     setBusy(true);
     const failed = [];
@@ -51,12 +73,15 @@ export default function Materials() {
           const n = Math.ceil(f.size / CHUNK);
           const uploadId = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
           for (let i = 0; i < n; i++) {
-            setLog(`${t("上传中")} ${f.name} … ${Math.round(((i) / n) * 100)}%`);
             const blob = f.slice(i * CHUNK, Math.min(f.size, (i + 1) * CHUNK));
             const q = `?chunk=1&uploadId=${uploadId}&i=${i}&n=${n}&name=${encodeURIComponent(f.name)}&mime=${encodeURIComponent(f.type || "")}`;
-            await aiFetch("/api/materials/upload" + q, { method: "POST", body: blob });
+            await xhrPost("/api/materials/upload" + q, blob, (frac) => {
+              const pct = Math.min(99, Math.round(((i + frac) / n) * 100));   // 整体进度=已完成块+本块内字节进度
+              setLog(`${t("上传中")} ${f.name} … ${pct}%`);
+            });
           }
-          setLog(`${t("正在解析")} ${f.name}…`);
+          // 全部块已到服务器,后端在后台解析入库;前端不干等
+          setLog(`${t("已上传,正在后台处理")} ${f.name}…`);
         }
       } catch (e) {
         let why = String((e && e.message) || e);
