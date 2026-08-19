@@ -10,6 +10,7 @@ import DropZone from "@/components/DropZone";
 import { filesToAttachments } from "@/lib/attach";
 import Discuss from "@/components/Discuss";
 import { idbGet, idbSet, idbDel } from "@/lib/idb";
+import DiagnosticCard from "@/components/DiagnosticCard";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 const KEY = "mock";
@@ -270,6 +271,9 @@ function stripLabel(op, i) {
         </div>
       )}
       <p className="text-xs text-stone-400 max-w-md mx-auto">{t("现在按「考试蓝图」组卷:先规划这门正式考试该考什么、各知识点出几道、总分多少,再据此组卷(题库不够会即时生成,所以组卷可能稍慢)。")}</p>
+      {/* 【自测·轻量摸底】和学习页共用同一张卡:想"测一下"的人第一直觉是来模拟考页,
+          但整套全真模考重、要很久;这里给一条几分钟就能摸清底子的轻路径。showMockLink=false:人已经在模拟考页了。 */}
+      <div className="mx-auto max-w-md text-left"><DiagnosticCard showMockLink={false} /></div>
     </div>
   );
 

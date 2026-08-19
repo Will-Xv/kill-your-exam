@@ -58,6 +58,7 @@
 - **录音/录像作答**，多模态按 rubric 评分。视频走 File API、按帧采样(≤5fps,720p)+抽音轨（`lib/media.js` ffmpeg），任意时长无大小/超时限制。给定音乐题对齐节拍（`detectBeats`）；`lib/music.js` 联网找免版权整曲。**舞蹈跟音乐题录制不开麦**（好让手机外放音乐，只按画面+所给音乐评分）。表演回放永久存 `performances`。艺术类考试**只出表演题**（要练笔试建议另建普通考试）。
 
 ## 八、模拟考（`app/mock` · `app/api/mock/*`）
+- **自测「该从哪开始」两页共用（2026-08）**：`components/DiagnosticCard.js`（原先内联在 `app/study/page.js`）现同时用于 **学习页** 与 **模拟考页首屏**，同一份组件 + 同一个 `/api/diagnostic?minutes=N`，口径一致。`needTest`（无做题数据）→ 5/10/15 分钟抽测、列出该先测的知识点直链 `/practice?kp=`；`advise` → 已稳/建议起点章节/第一步。模拟考页传 `showMockLink={false}`（人已在该页）。定位区分：**自测=几分钟摸底、定位从哪学起**；**模拟考=按蓝图整套限时+AI阅卷+根因诊断**。
 - **考试蓝图** `lib/blueprint.js`：AI 先规划该考哪些点、题型分值、总分、时长、**题量**（照真实题量，不再默认20）、结构依据可信度徽章（✅官方/📄推测/🔮预估）；按蓝图组卷、题库不足即时生成。`customize_mock_blueprint` 杀手可重排。
 - **题库/封闭题库/必考原题** `lib/questionBank.js`（`mock/bank`）：粘贴已知一定考的题（一字不改入库）、标"必出"（每次原样置卷首）、"封闭题库"开关（练习+模拟只从主人题里出、绝不生成）。做真题只用主人资料。
 - **★ 后台判题**（本会话）：交卷 `mock/submit` 立即返回 `{status:"grading"}`（`mock_exams.status/grade_started_at`），`gradeMock()` 后台跑（含简答 AI 阅卷、多模态附件），判完写 `score_json/answers_json/results_json/status='done'` 并跑一次跨章节根因诊断。前端进"正在判题"页（可离开），轮询 `mock/status`。健壮性：防重复判题、8 分钟卡死自愈、重试重触发、卸载清轮询。`mock/rescore`(争论改判重算)、`mock/history`、`mock/att`。
