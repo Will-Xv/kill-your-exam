@@ -7,4 +7,7 @@ set -u
 cd "$(dirname "$0")/.."
 FILES=( lib/chatAgent.js lib/appGuide.js lib/scopeGuard.js lib/planReview.js lib/recipeRemap.js lib/provision.js lib/generators.js )
 for f in lib/bricks/*.js; do FILES+=("$f"); done
-node scripts/lint-quotes.mjs "${FILES[@]}"
+node scripts/lint-quotes.mjs "${FILES[@]}" || exit 1
+
+# 繁体地区用词:ZH_TW/ZH_HK 必须手写台/港各自说法,不能是 s2t 逐字转的产物(见脚本内注释)。
+node scripts/lint-zh-region.mjs || exit 1

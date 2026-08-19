@@ -21,6 +21,7 @@
   - **★ Files API 铁律**：凡文件（图/PDF/音/视频）传 Gemini 一律走 `uploadMedia(buffer,mime,ext)`→`{fileUri,mimeType}`，parts 用 `{fileData:{fileUri,mimeType}}`。禁 inline base64（请求硬上限 20MB；PDF 走 Files API 可 50MB/1000 页）。存储型资料缓存 `materials.gemini_uri/gemini_name/gemini_expiry(~48h)` 复用。inline 仅作小文件上传失败兜底。
 - **RAG** `lib/rag.js`：`retrieve`（embedding 检索 chunks）、`ragBlock`、`materialParts`(异步，返回多模态 fileData parts，含 pdf)、`mmOpts`。`lib/webMedia.js` 把联网资料里的图/图表也存成图片资料。
 - **错误分类** `lib/errors.js`：`aiErrorResponse` 把 AI/API 错误分类，前端明确告诉用户"是 API 的问题、不是你操作错"。
+- **繁体台/港必须手写，s2t 只是兜底（2026-08）**：`lib/s2t.js` 是**纯逐字换字形**（BASE 2743 单字 + TW_VAR 83 + HK_VAR 113 地区异体字，键长全为 1，无词表、无上下文、非机翻）。两类它必然做不到：①**一简对多繁**（复习→`復習`✗ 应 `複習`；头发→`頭發`✗；制作/松开/皇后同类，实测 15 例错 6）；②**地区用词**（软件 台`軟體`/港`軟件`、网络 台`網路`/港`網絡`、视频→`影片`、默认→`預設`、用户 台`使用者`/港`用戶`、项目 台`專案`/港`項目`）。且 TW_VAR/HK_VAR 仅 128 字取值不同 ⇒ 机械转出的台港几乎一样。**故 ZH_TW/ZH_HK 为手写词典**；已清理串味（HK 曾残留 設置×23/登錄×17/信息×14/默認×9… 与台式 使用者/網路；TW 曾残留 用戶/數據/迴圈误转）并按港标字形改 `裡→裏 說→説 閱→閲 啟→啓 戶→户`（`參→蔘` 是反查假阳性，未动）。**`scripts/lint-zh-region.mjs` 已接入 `npm run check`**，再出现大陆词/串味/误转直接 fail。`app/welcome` 亦改为**手写 zh-TW / zh-HK 两套**（港版用港式口语），不再 `tradifyObj` 机械转换。
 - **i18n** `lib/translations.js`：8 字典，源键=简中，`t()` 在 zh 原样返回。新键要同步加 8 个字典（TW/HK 可用 `lib/s2t.js` 或 opencc s2twp/s2hk 从简体机械转）。当前 8 语言各 1261 键、零缺失。
 - **地区/语言** `lib/geo.js`（IP→默认语言，服务器查询不受墙）。**推送** `lib/notify.js`/`lib/pushClient.js`/`app/api/push`（VAPID Web Push，分类偏好，iOS 加主屏提示）。
 - **定时器** `lib/cron.js`：Railway 常驻进程内 setInterval 跑 session/每日每周级触发器（`app/api/triggers/tick`）。
