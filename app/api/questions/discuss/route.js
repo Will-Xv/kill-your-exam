@@ -42,8 +42,9 @@ ${body.options?.length ? "选项:" + body.options.join(" | ") : ""}
 考生的作答:${userAnswer || "(空)"}
 ${learnerHist ? "【这位考生在此知识点上的历史(据此因材施教)】\n" + learnerHist + "\n" : ""}${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
 
-    // 追问【不打分】,所以切片说明要用不计分的措辞;另外这里会收到【草稿纸】,得明确告诉模型那是演算过程不是作答。
-    const extra = [draftAttachNote(attachments), handSliceNote(attachments, { scoring: false })].filter(Boolean).join("\n\n");
+    // ★追问【是会影响成绩的】:讨论结束的 finalize 会据这段对话修订判分/掌握度/标签。
+    // 所以切片说明用计分口径;并明确告诉模型附件里的草稿是演算过程、不是作答,不能拿它判对错。
+    const extra = [draftAttachNote(attachments), handSliceNote(attachments)].filter(Boolean).join("\n\n");
     const system = (mode === "socratic" ? socraticSystem : discussSystem) + (extra ? `\n\n${extra}` : "");
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
     const ap = await attachParts(attachments);
