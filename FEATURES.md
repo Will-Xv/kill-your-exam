@@ -63,6 +63,8 @@
 - **题库/封闭题库/必考原题** `lib/questionBank.js`（`mock/bank`）：粘贴已知一定考的题（一字不改入库）、标"必出"（每次原样置卷首）、"封闭题库"开关（练习+模拟只从主人题里出、绝不生成）。做真题只用主人资料。
 - **★ 后台判题**（本会话）：交卷 `mock/submit` 立即返回 `{status:"grading"}`（`mock_exams.status/grade_started_at`），`gradeMock()` 后台跑（含简答 AI 阅卷、多模态附件），判完写 `score_json/answers_json/results_json/status='done'` 并跑一次跨章节根因诊断。前端进"正在判题"页（可离开），轮询 `mock/status`。健壮性：防重复判题、8 分钟卡死自愈、重试重触发、卸载清轮询。`mock/rescore`(争论改判重算)、`mock/history`、`mock/att`。
 
+- **手写区域可无限纵向扩充（2026-08，`components/HandwritePad.js`）**：草稿纸与手写作答共用同一组件，故两处都有。「⤓ 扩充手写区域」每点一次纵向加 `BASE_H=340`（初始高度的 100%），次数不限，按钮上显示当前 ×N。★canvas 改 width/height 会清空内容，故扩充流程＝`toDataURL` 存整张 → `rebuild()` 重建（重设 dpr scale、填白）→ `drawImage(im,0,0,cssW,oldH)` 原样贴回顶部（不缩放）→ `emit()`。`getImage()`/`onChange` 导出的都是**整张画布**，所以拉长部分天然随作答一起提交判卷（练习/模考/竞技场的手写附件都是 `getImage()` 直出 base64，**不经** `lib/attach.js` 的 `MAX_DIM=1600` 缩放，无裁切）。草稿恢复：`initial` 是整张图，按原图宽高比算高度并向上取整到整数格，避免把扩充过的草稿压扁。
+
 ## 九、错题本 / 复习 / 笔记本
 - **错题本** `app/mistakes` · `review_queue`：错题按 1/3/7/15/30 天间隔重练（`updateReviewQueue`）；"我已理解"移出；`recomputeReviewFromAttempts` 按合并时间线重放。
 - **笔记本** `app/notes` · `notes`：收藏题（做题后「记笔记」）+ 随手记，可编辑删除，杀手 `list_notes` 可读。
