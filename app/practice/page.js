@@ -189,8 +189,8 @@ function PracticeInner() {
         const b64 = handURL.split(",")[1];
         if (b64) {
           let parts = []; try { parts = await splitHandwriting(handURL); } catch {}
-          // 手写整页+切片【一条都不截断】(切片张数随写多长而定);只限制其它上传文件的数量
-          attachments = [...attachments.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts];
+          // 【一条都不截断】打字答案、拍照上传、手写(整页+切片)会一起送去判卷——既然界面这么告诉用户,就不能在这里悄悄丢掉谁
+          attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts];
         }
       }
       const attemptMode = mode === "review" ? "review" : (kpParam ? "kp" : "practice"); // 错题→review、单个薄弱点→kp、自由练习(含 kps 锚定)→practice;供自由练习计数只算 practice

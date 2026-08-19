@@ -165,9 +165,9 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
       {/* 【扩充键放画布下方】写到底部时上面的工具栏早滚出屏幕了,笔就停在这儿,直接点就能往下续。 */}
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         <button type="button" onClick={expand} disabled={slots > MAX_EXPAND}
-          title={slots > MAX_EXPAND ? t("已经拉到最长了(最多扩充12次)。写不下的话,先把这题交了,或改用拍照上传。") : t("写不下了?点一下向下加一块空白,已写的内容不会动")}
+          title={slots > MAX_EXPAND ? t("页面扩充到顶了,试试其他方式提交吧,手写的答案可以和其他提交方式的答案一起被看到") : t("写不下了?点一下向下加一块空白,已写的内容不会动")}
           className={`w-full rounded-xl border border-dashed py-2 text-sm font-medium sm:w-auto sm:px-4 ${slots > MAX_EXPAND ? "border-slate-200 text-slate-400" : "border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}>⤓ {t("扩充手写区域")}{slots > 1 ? ` ×${slots}` : ""}</button>
-        {slots > MAX_EXPAND && <span className="text-xs text-amber-700">{t("已达最长,再写不下就先交这题或拍照上传")}</span>}
+        {slots > MAX_EXPAND && <span className="text-xs text-amber-700">{t("页面扩充到顶了,试试其他方式提交吧,手写的答案可以和其他提交方式的答案一起被看到")}</span>}
       </div>
     </div>
   );
