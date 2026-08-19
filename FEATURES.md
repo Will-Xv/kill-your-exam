@@ -154,6 +154,7 @@
 - **意见反馈**：右下悬浮按钮预填邮件。**Bug 反馈** `app/api/bug`：一键把整道题连媒体/录音/作答/AI判分(含失败)/讨论 + 设备诊断发给开发者；开发者可"亲自试做"复现并回传示范答案（`app/bugs`）。`feedback`/`bug_reports` 表。
 - **管理面板** `app/admin`：只看使用频率（做题数/活跃天/聊天数/最近活跃），**看不到任何人学习内容**；建开发者子账号。**开发者工具** `app/dev`（+`dev/bricks` 砖头目录、`dev/items` 栏目）。
 - **设置** `app/settings`：界面语言、我的档案（学校）、数据导出（全量 JSON `app/api/export`）、AI 密钥+模型（管理员）、Judge0（管理员）、「测试AI的API」「测试 Judge0」。**账号**：用户名密码 / Google 一键登录。**PWA**。首个账号=管理员。
+- **/welcome 中文改用楷体（2026-08）**：全站原先**没给中文指定字体**，靠 Tailwind 默认西文栈的系统兜底 → Windows 上落到**宋体**。现仅 `/welcome` 加 `.font-kai`（`app/globals.css`）：**自托管霞鹜文楷 LXGW WenKai**（OFL，`public/fonts/LXGWWenKai-OFL.txt`）。★**按页面实际用到的 655 字现打子集**：完整字库 30MB、npm 分区子集共 3.3MB/65 文件 → 合并重打成**单文件 154KB**（`fontTools` subset+merge）。只含 CJK 与中文标点，拉丁/西里尔/阿拉伯自动落回原字体栈；emoji（🗡📚💬…）本就走系统字体。回退链：自带子集 → 系统楷体（KaiTi/STKaiti/Kaiti SC/BiauKai/DFKai-SB）→ 黑体。**⚠️ 改过 welcome 中文文案后必须重跑 `node scripts/build-kai-subset.mjs`**，否则新字缺字形会静默掉回默认字体（不报错）。
 - **What's New / 引导** `lib/guide.js`（GUIDE_VERSION + WHATS_NEW）；`app/welcome` 首用引导；`app/privacy`。
 
 ---

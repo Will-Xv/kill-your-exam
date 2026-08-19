@@ -89,6 +89,18 @@ main, .page-enter { position: relative; z-index: 1; }
   font-style: normal;
   font-display: swap;
 }
+/* 楷体(仅 /welcome 用)——霞鹜文楷 LXGW WenKai,开源 OFL(授权见 public/fonts/LXGWWenKai-OFL.txt)。
+   ★这是【按 welcome 页实际用到的 655 个字】现打的子集:完整字库 30MB,这里只有 154KB。
+   以后改了 welcome 的中文文案,要重跑 scripts/build-kai-subset.mjs 重新打包,否则新字会缺字形(掉回默认字体)。
+   只含 CJK 与中文标点(没有拉丁字母),所以英文/法文等自然落到后面的字体栈,不受影响。 */
+@font-face {
+  font-family: 'LXGW WenKai Welcome';
+  src: url('/fonts/LXGWWenKai-welcome.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+/* 先用自带的楷体子集;万一没加载出来,再退到系统楷体(Win 的 KaiTi、macOS 的 Kaiti SC),最后才退黑体 */
+.font-kai { font-family: 'LXGW WenKai Welcome', 'KaiTi', 'STKaiti', 'Kaiti SC', 'BiauKai', 'DFKai-SB', ui-sans-serif, system-ui, sans-serif; }
+
 .font-hero { font-family: 'Smiley Sans', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, sans-serif; font-weight: 400; letter-spacing: 0.02em; }
 
 /* ===== Landing page (/welcome) animations ===== */

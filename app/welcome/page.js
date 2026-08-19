@@ -346,8 +346,9 @@ export default function Welcome() {
     );
   }
 
+  // font-kai:整页中文走楷体(定义在 globals.css)。英文/俄文等在这套子集里没有字形,会自动落回原字体栈。
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="relative text-[#f4ecd8]">
+    <div dir={rtl ? "rtl" : "ltr"} className="font-kai relative text-[#f4ecd8]">
       <div className="fixed inset-0" style={{ zIndex: -20, background: "radial-gradient(1200px 700px at 15% -10%, #0d5348 0%, transparent 55%), radial-gradient(1000px 600px at 100% 0%, #0a6b5c 0%, transparent 48%), linear-gradient(180deg,#052620,#04211c)" }} />
       <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: -10 }}>
         <div className="kye-blob h-96 w-96" style={{ background: "rgba(202,162,90,.30)", top: "-6rem", left: "-4rem", animation: "kyeFloat 12s ease-in-out infinite" }} />
