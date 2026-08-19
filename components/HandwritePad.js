@@ -8,7 +8,11 @@ import { splitHandwriting } from "@/lib/handSplit";
 // canvas 尺寸一改内容就会被清空,所以扩充=先把整张存成图 → 重建画布 → 原样贴回顶部。
 // getImage()/onChange 都导出【整张画布】,所以拉长出来的部分天然一并提交给判卷,不用额外处理。
 // 通过 ref 暴露 getImage():有内容时返回 {mime:"image/png", data:base64},空则 null。
-const BASE_H = 340; // 初始高度;每点一次「扩充」就多加这么多
+const BASE_H = 340;      // 初始高度;每点一次「扩充」就多加这么多
+// 【扩充次数上限】服务端附件有一道保险丝(MAX_ATTACH),真让人无限拉下去,超长作答会在提交时被悄悄截断——
+// 那比没有这个功能更糟(人辛辛苦苦写满了,结果判卷只看到前面一截,还不知道)。所以在【还能写的时候】就拦住:
+// 到顶了按钮变灰并说明原因,而不是让他写完才发现丢内容。12 次(总高 13 格)在最窄的手机上也只切十来片,离保险丝很远。
+const MAX_EXPAND = 12;
 
 const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref) {
   const t = useT();
@@ -68,6 +72,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   function expand() {
     const canvas = canvasRef.current, wrap = wrapRef.current;
     if (!canvas || !wrap) return;
+    if (slots > MAX_EXPAND) return;   // 已到顶(按钮此时也是禁用的),不再拉长
     const cssW = wrap.clientWidth;
     const oldH = heightRef.current;
     let prev = null;
@@ -149,7 +154,6 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         <button type="button" onClick={() => setTool("eraser")} className={`rounded-full border px-3 py-1 ${tool === "eraser" ? "border-amber-500 bg-amber-50 text-amber-700 font-medium" : "border-slate-200 text-slate-500"}`}>🧽 {t("橡皮擦")}</button>
         <button type="button" onClick={undo} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">↺ {t("撤销")}</button>
         <button type="button" onClick={clear} className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">🗑 {t("清空")}</button>
-        <button type="button" onClick={expand} title={t("写不下了?点一下向下加一块空白,已写的内容不会动")} className="rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 font-medium text-emerald-700">⤓ {t("扩充手写区域")}{slots > 1 ? ` ×${slots}` : ""}</button>
         <div className="ml-1 inline-flex rounded-full border border-slate-200 p-0.5 text-xs" title={t("手指是用来书写,还是用来滑动/缩放页面(用笔时建议选『滑动』)")}>
           <button type="button" onClick={() => setFingerScroll(false)} className={`rounded-full px-2.5 py-1 transition ${!fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>👆 {t("手指书写")}</button>
           <button type="button" onClick={() => setFingerScroll(true)} className={`rounded-full px-2.5 py-1 transition ${fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>✋ {t("手指滑动")}</button>
@@ -158,6 +162,13 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
       </div>
       <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerEnter={hover} onPointerLeave={leave} onPointerCancel={leave}
         className="w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: fingerScroll ? "manipulation" : "none" }} />
+      {/* 【扩充键放画布下方】写到底部时上面的工具栏早滚出屏幕了,笔就停在这儿,直接点就能往下续。 */}
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={expand} disabled={slots > MAX_EXPAND}
+          title={slots > MAX_EXPAND ? t("已经拉到最长了(最多扩充12次)。写不下的话,先把这题交了,或改用拍照上传。") : t("写不下了?点一下向下加一块空白,已写的内容不会动")}
+          className={`w-full rounded-xl border border-dashed py-2 text-sm font-medium sm:w-auto sm:px-4 ${slots > MAX_EXPAND ? "border-slate-200 text-slate-400" : "border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}>⤓ {t("扩充手写区域")}{slots > 1 ? ` ×${slots}` : ""}</button>
+        {slots > MAX_EXPAND && <span className="text-xs text-amber-700">{t("已达最长,再写不下就先交这题或拍照上传")}</span>}
+      </div>
     </div>
   );
 });
