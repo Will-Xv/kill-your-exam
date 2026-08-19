@@ -1,6 +1,7 @@
 "use client";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useT } from "@/components/I18n";
+import { splitHandwriting } from "@/lib/handSplit";
 
 // 手写作答画板:支持触控笔(三星 S-Pen / Apple Pencil)、鼠标、连电脑的写字板;带橡皮擦、撤销、清空。
 // 【可纵向扩充】写不下时点「扩充手写区域」,每次纵向拉长一个初始高度(340),次数不限、原有笔迹原样保留。
@@ -124,6 +125,18 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     getImage() {
       if (!dirty.current || !canvasRef.current) return null;
       try { const url = canvasRef.current.toDataURL("image/png"); return { name: "handwriting.png", mime: "image/png", data: url.split(",")[1] }; } catch { return null; }
+    },
+    // 【整张 + 切片】拉长过的长图又窄又高,模型整体降采样会看糊字迹;所以除了整张,再额外附上几张切片。
+    // 整张始终在第一位(给全局结构),切片按从上到下顺序跟在后面(给清晰字迹)——用哪个由判卷模型自己挑,
+    // 也可以两者对照着看。不够高的图不切,返回的就只有整张一张。
+    async getImages() {
+      if (!dirty.current || !canvasRef.current) return [];
+      let url = null;
+      try { url = canvasRef.current.toDataURL("image/png"); } catch { return []; }
+      const full = { name: "handwriting.png", mime: "image/png", data: url.split(",")[1] };
+      let parts = [];
+      try { parts = await splitHandwriting(url); } catch {}   // 切片失败不影响交卷,整张照常提交
+      return [full, ...parts];
     },
     isEmpty() { return !dirty.current; },
     reset() { clear(); undoStack.current = []; }

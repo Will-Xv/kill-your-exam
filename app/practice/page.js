@@ -1,5 +1,6 @@
 "use client";
 import { alertDialog } from "@/components/ui/dialog";
+import { splitHandwriting } from "@/lib/handSplit";
 import { useEffect, useState, Suspense, useRef } from "react";
 import PerformTask from "@/components/PerformTask";
 import HandwritePad from "@/components/HandwritePad";
@@ -183,7 +184,14 @@ function PracticeInner() {
       let attachments = (!dontKnow && q.qtype === "short") ? await filesToAttachments(aFiles) : [];
       let handURL = hands[q.id] || null;
       if (!dontKnow && !handURL && q.qtype === "short" && padRef.current) { const h = padRef.current.getImage(); if (h) handURL = `data:${h.mime || "image/png"};base64,${h.data}`; }
-      if (!dontKnow && handURL) { const b64 = handURL.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }].slice(0, 4); }
+      // 手写:整张 + (长图才有的)切片一起交。整张给全局结构、切片给清晰字迹,判卷模型自己挑或对照着看。
+      if (!dontKnow && handURL) {
+        const b64 = handURL.split(",")[1];
+        if (b64) {
+          let parts = []; try { parts = await splitHandwriting(handURL); } catch {}
+          attachments = [...attachments.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts].slice(0, 10);
+        }
+      }
       const attemptMode = mode === "review" ? "review" : (kpParam ? "kp" : "practice"); // 错题→review、单个薄弱点→kp、自由练习(含 kps 锚定)→practice;供自由练习计数只算 practice
       const d = await aiFetch("/api/questions/answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId: q.id, userAnswer: ans, attachments, dontKnow, mode: attemptMode }) });
       const mn = fmtMastery(d.masteryUpdates); setResult(mn ? { ...d, masteryNote: mn } : d); setDone((m) => ({ ...m, [q.id]: !!d.correct }));

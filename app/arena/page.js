@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import MD from "@/components/MD";
 import HandwritePad from "@/components/HandwritePad";
+import { splitHandwriting } from "@/lib/handSplit";
 import DropZone from "@/components/DropZone";
 import CodeEditor from "@/components/CodeEditor";
 import { filesToAttachments } from "@/lib/attach";
@@ -109,7 +110,14 @@ export default function ArenaPage() {
     const txt = input.trim();
     let attachments = [];
     try { attachments = await filesToAttachments(aFiles); } catch {}
-    if (handImg) { const b64 = handImg.split(",")[1]; if (b64) attachments = [...attachments, { name: "handwriting.png", mime: "image/png", data: b64 }]; }
+    // 手写:整张 + (长图才有的)切片一起交,详见 lib/handSplit.js
+    if (handImg) {
+      const b64 = handImg.split(",")[1];
+      if (b64) {
+        let parts = []; try { parts = await splitHandwriting(handImg); } catch {}
+        attachments = [...attachments.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts].slice(0, 10);
+      }
+    }
     attachments = attachments.slice(0, 4);
     if (!txt && !attachments.length) return;
     const imgs = attachments.filter((a) => (a.mime || "").startsWith("image/")).map((a) => `data:${a.mime};base64,${a.data}`);

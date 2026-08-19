@@ -11,6 +11,7 @@ import { filesToAttachments } from "@/lib/attach";
 import Discuss from "@/components/Discuss";
 import { idbGet, idbSet, idbDel } from "@/lib/idb";
 import DiagnosticCard from "@/components/DiagnosticCard";
+import { splitHandwriting } from "@/lib/handSplit";
 
 const QTYPE = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答", perform: "表演" };
 const KEY = "mock";
@@ -43,8 +44,15 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
     (async () => {
       const fresh = await filesToAttachments(files);
       let atts = [...restoredFileAtts, ...fresh];
-      if (handURL) { const b64 = handURL.split(",")[1]; if (b64) atts = [...atts, { name: "handwriting.png", mime: "image/png", data: b64 }]; }
-      if (live) onAttach(q.id, atts.slice(0, 4));
+      // 手写:整张 + (长图才有的)切片一起交,详见 lib/handSplit.js
+      if (handURL) {
+        const b64 = handURL.split(",")[1];
+        if (b64) {
+          let parts = []; try { parts = await splitHandwriting(handURL); } catch {}
+          atts = [...atts.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts];
+        }
+      }
+      if (live) onAttach(q.id, atts.slice(0, 10));
     })();
     return () => { live = false; };
   }, [handURL, files, restoredFileAtts]); // eslint-disable-line
