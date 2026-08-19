@@ -70,6 +70,9 @@ function PracticeInner() {
   const [dBusy, setDBusy] = useState(false);
   const [aFiles, setAFiles] = useState([]);
   const [dFiles, setDFiles] = useState([]);
+  // 【草稿纸附件单独存】不能塞进 dFiles:那条路会走 filesToAttachments,被压到 1600px 并转 JPEG——
+  // 拉长过的草稿正好最吃亏(又高又窄,压完字迹全糊)。这里和手写作答同一套:原图 PNG + 切片,一条不压不截。
+  const [dDraft, setDDraft] = useState([]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteBody, setNoteBody] = useState("");
   const [noteSaved, setNoteSaved] = useState(false);
@@ -236,7 +239,7 @@ function PracticeInner() {
   async function sendDiscuss() {
     const msg = dInput.trim(); if ((!msg && !dFiles.length) || dBusy) return;
     const ua = q.qtype === "fill" || q.qtype === "short" ? text : sel.sort().join("");
-    const attachments = await filesToAttachments(dFiles);
+    const attachments = [...await filesToAttachments(dFiles), ...dDraft];   // 草稿(原图+切片)不走压缩通道
     const hist = [...(discuss || []), { role: "user", content: (msg || "(见附件)") + (attachments.length ? " 📎" + attachments.length : "") }];
     setDiscuss(hist); setDInput(""); setDFiles([]); setDBusy(true);
     try {
@@ -505,11 +508,17 @@ function PracticeInner() {
             {dBusy && <div className="max-w-[88%] rounded-2xl px-3 py-2 text-sm bg-slate-100 text-slate-400 animate-pulse">{t("思考中…")}</div>}
             <div ref={bottom} />
           </div>
-          {dFiles.length > 0 && <p className="text-xs text-slate-500 mt-2">📎 {dFiles.length} {t("个文件")} <button className="underline" onClick={() => setDFiles([])}>{t("清除")}</button></p>}
+          {(dFiles.length > 0 || dDraft.length > 0) && <p className="text-xs text-slate-500 mt-2">📎 {dFiles.length + (dDraft.length ? 1 : 0)} {t("个文件")}{dDraft.length ? ` (${t("含草稿纸")})` : ""} <button className="underline" onClick={() => { setDFiles([]); setDDraft([]); }}>{t("清除")}</button></p>}
           <DropZone onFiles={(fs) => setDFiles((p) => [...p, ...fs])} className="mt-2 space-y-2">
             <textarea className="input w-full" rows={2} value={dInput} onChange={(e) => setDInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendDiscuss(); } }} placeholder={t("例如:我觉得我这样答也对,因为…")} />
             <div className="flex gap-2">
-              <button type="button" className="btn-ghost px-3 whitespace-nowrap text-sm" title={t("把你在草稿纸上手写的内容发给 AI")} onClick={() => { const h = draftRef.current && draftRef.current.getImage(); if (h) { const f = b64ToFile(h); if (f) setDFiles((p) => [...p, f]); } else { setDraftOpen(true); } }}>📝 {t("发草稿纸")}</button>
+              <button type="button" className="btn-ghost px-3 whitespace-nowrap text-sm" title={t("把你在草稿纸上手写的内容发给 AI")} onClick={async () => {
+                const h = draftRef.current && draftRef.current.getImage();
+                if (!h) { setDraftOpen(true); return; }
+                const url = `data:${h.mime || "image/png"};base64,${h.data}`;
+                let parts = []; try { parts = await splitHandwriting(url); } catch {}
+                setDDraft([{ name: "draft.png", mime: "image/png", data: h.data }, ...parts.map((p) => ({ ...p, name: p.name.replace("handwriting", "draft") }))]);
+              }}>📝 {t("发草稿纸")}</button>
               <label className="btn-ghost cursor-pointer px-3 flex items-center" title={t("上传文件/图片(可拖拽或粘贴)")}>📎<input type="file" multiple hidden accept="image/*,.pdf,.txt" onChange={(e) => setDFiles([...e.target.files])} /></label>
               <button className="btn px-5 ml-auto" onClick={sendDiscuss} disabled={dBusy || (!dInput.trim() && !dFiles.length)}>{t("发送")}</button>
             </div>

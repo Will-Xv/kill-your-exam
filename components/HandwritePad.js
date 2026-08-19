@@ -28,7 +28,10 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   const [tool, setTool] = useState("pen"); // pen | eraser
   const [penErase, setPenErase] = useState(false); // 笔上的按钮正被按住(临时橡皮)
   const penEraseRef = useRef(false);
+  const btnEraseRef = useRef(false);       // 本次落笔期间按钮一直算按着(兼容只在 pointerdown 上报按钮的浏览器)
   const ringRef = useRef(null);            // 橡皮大小光圈(直接改 DOM,不走 state——否则每次移动都重渲染,书写会卡)
+  const [dbg, setDbg] = useState(false);   // ?pendebug=1 打开:实时显示本机上报的指针参数,用来定位"笔上按钮没反应"
+  const dbgRef = useRef(null);
   const [slots, setSlots] = useState(1);   // 当前是初始高度的几倍(1=没扩充过)
   const heightRef = useRef(BASE_H);        // 当前画布的 CSS 高度
   const [fingerScroll, setFingerScroll] = useState(() => { if (typeof window === "undefined") return false; try { return localStorage.getItem("kye_finger_scroll") === "1"; } catch { return false; } }); // 手指用于滚动/缩放(只用笔书写);跨题跨考试记住
@@ -94,6 +97,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   }
 
   useEffect(() => { setup(); }, []); // eslint-disable-line
+  useEffect(() => { try { setDbg(new URLSearchParams(window.location.search).get("pendebug") === "1"); } catch {} }, []);
   useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} }, [fingerScroll]);
 
   // 【笔上的原生按钮 = 临时橡皮擦】按 W3C Pointer Events 规范判断,不针对任何厂商:
@@ -102,9 +106,12 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   // 命中任一就【临时】按橡皮走(松开即恢复原来选的笔/橡皮),不改用户选的工具。
   // Apple Pencil 无按钮 → 两位都不会置位,行为不受影响。
   function penErasing(e) {
-    if (!e || e.pointerType !== "pen") return false;
+    if (!e) return false;
+    if (e.pointerType === "eraser") return true;             // 少数浏览器直接把橡皮头报成独立指针类型
+    if (e.pointerType !== "pen") return false;
     const b = e.buttons || 0;
-    return (b & 32) !== 0 || (b & 2) !== 0;
+    if ((b & 32) !== 0 || (b & 2) !== 0) return true;        // 32=笔尾/橡皮头,2=笔杆侧键
+    return btnEraseRef.current;                               // 落笔那一刻按钮就按着(有的浏览器只在 pointerdown 报一次)
   }
 
   function pos(e) { const r = canvasRef.current.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
@@ -116,14 +123,25 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   function down(e) {
     if (e.pointerType === "pen") { penSeen.current = true; penForceDraw(); if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
     if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return; // 手指用于滚动/防手掌误触,不当作书写
+    if (e.pointerType === "pen" || e.pointerType === "eraser") {
+      // 有的浏览器只在 pointerdown 的 button 里报一次侧键/橡皮头(之后 buttons 只剩 1),所以这里记下来
+      if (e.button === 5 || e.button === 2 || ((e.buttons || 0) & 32) || ((e.buttons || 0) & 2) || e.pointerType === "eraser") btnEraseRef.current = true;
+    }
     e.preventDefault();
     setPenErase(penErasing(e));
+    if (dbg) report(e);
     ring(e, tool === "eraser" || penErasing(e));
     snapshot();
     drawing.current = true; last.current = pos(e);
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch {}
   }
   // 橡皮光圈跟随:eraser=是否处于橡皮状态(手动选的或笔上按钮按住的)
+  function report(e) {   // 诊断:把浏览器真正给到的值原样显示出来
+    const el = dbgRef.current;
+    if (!el || !e) return;
+    el.textContent = `type=${e.pointerType} buttons=${e.buttons} button=${e.button} pressure=${(e.pressure || 0).toFixed(2)} erasing=${penErasing(e) ? "Y" : "N"}`;
+  }
+
   function ring(e, eraser) {
     const el = ringRef.current;
     if (!el) return;
@@ -136,6 +154,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   function move(e) {
     if (e.pointerType === "pen") penForceDraw(); // 笔悬停移动时也保持可书写
     // ★悬停(还没落笔)时也要更新:橡皮多大、擦到哪,抬着笔就能看见
+    if (dbg) report(e);
     const hoverErase = tool === "eraser" || penErasing(e);
     if (hoverErase !== penEraseRef.current) { penEraseRef.current = hoverErase; setPenErase(penErasing(e)); }
     ring(e, hoverErase);
@@ -152,7 +171,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   function emit() { try { if (onChange && canvasRef.current) onChange(dirty.current ? canvasRef.current.toDataURL("image/png") : ""); } catch {} }
   function hover(e) { if (e.pointerType === "pen") penForceDraw(); } // 笔悬停进入 -> 立刻可书写
   function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); } // 笔/手指离开 -> 恢复该模式的手势
-  function up() { drawing.current = false; last.current = null; penEraseRef.current = false; setPenErase(false); emit(); }
+  function up() { drawing.current = false; last.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); emit(); }
 
   function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; emit(); } }
   function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshot(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; emit(); }
@@ -202,6 +221,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
           className="border-2 border-emerald-500/70 bg-emerald-400/15" />
       </div>
       {/* 【扩充键放画布下方】写到底部时上面的工具栏早滚出屏幕了,笔就停在这儿,直接点就能往下续。 */}
+      {dbg && <p ref={dbgRef} className="mt-1 rounded bg-slate-900 px-2 py-1 font-mono text-[11px] text-emerald-300">{t("用笔碰一下画布看这里的数值")}</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         <button type="button" onClick={expand} disabled={slots > MAX_EXPAND}
           title={slots > MAX_EXPAND ? t("页面扩充到顶了,试试其他方式提交吧,手写的答案可以和其他提交方式的答案一起被看到") : t("写不下了?点一下向下加一块空白,已写的内容不会动")}
