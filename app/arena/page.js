@@ -115,7 +115,8 @@ export default function ArenaPage() {
       const b64 = handImg.split(",")[1];
       if (b64) {
         let parts = []; try { parts = await splitHandwriting(handImg); } catch {}
-        attachments = [...attachments.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts].slice(0, 10);
+        // 手写整页+切片【一条都不截断】(切片张数随写多长而定);只限制其它上传文件的数量
+        attachments = [...attachments.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts];
       }
     }
     attachments = attachments.slice(0, 4);

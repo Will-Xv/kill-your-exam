@@ -1,6 +1,6 @@
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generateJson, generate, langInstruction, attachParts } from "@/lib/gemini";
+import { generateJson, generate, langInstruction, attachParts, handSliceNote } from "@/lib/gemini";
 import { mmOpts, materialParts } from "@/lib/rag";
 import { saveMockAtt } from "@/lib/files";
 import { leafKpList, recordCrossKp, updateReviewQueue } from "@/lib/mastery";
@@ -28,7 +28,7 @@ async function gradeMock(user, exam, mockId, ids, marksMap, answers, attachments
       const ap = await attachParts(attachments[qid]);
       const kpList = leafKpList(exam.id);
       const kpListStr = kpList.slice(0, 120).map((k) => `[${k.id}] ${k.chapter ? k.chapter + "/" : ""}${k.title}`).join("\n");
-      const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || (ap.length ? "(见附件:手写/上传作答,请先识别其中内容)" : "(未答)")}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)\n${(attachments[qid] || []).some((a) => /^handwriting-p/.test(a.name || "")) ? "【关于手写附件】第1张是【整页手写的完整图】,后面几张是【同一页从上到下的切片】(切片更清晰,便于看清字迹)。请把它们当作【同一份作答】:用整页看结构与对应关系、用切片看清具体字迹,两者可对照。相邻切片可能有【重叠】,重叠处的内容是同一段,【不要重复计分或当成写了两遍】。" : ""}\n如果这份答案里【顺带】清楚体现出考生对【别的知识点】(不是本题知识点)的正确理解或错误理解,在 crossKp 里列出:正确理解->kind=understanding;主动说出错误理解/概念错误->kind=misconception;只是没涉及/看不出->不填。kpId 只能取自下面清单,要确凿才填。本题知识点id=${q.kp_id || 0}(不要放进 crossKp)。知识点清单:\n${kpListStr}` + langInstruction(user.lang);
+      const gradePrompt = `阅卷。题目:${JSON.parse(q.body).stem}\n评分要点:${ans.answer}\n考生答案:${ua || (ap.length ? "(见附件:手写/上传作答,请先识别其中内容)" : "(未答)")}\n给0~100分。(如题目涉及附件音频/图片,请结合附件评分)\n${handSliceNote(attachments[qid])}\n如果这份答案里【顺带】清楚体现出考生对【别的知识点】(不是本题知识点)的正确理解或错误理解,在 crossKp 里列出:正确理解->kind=understanding;主动说出错误理解/概念错误->kind=misconception;只是没涉及/看不出->不填。kpId 只能取自下面清单,要确凿才填。本题知识点id=${q.kp_id || 0}(不要放进 crossKp)。知识点清单:\n${kpListStr}` + langInstruction(user.lang);
       const gradeSchema = { type: "object", properties: { score: { type: "integer" },
         crossKp: { type: "array", items: { type: "object", properties: { kpId: { type: "integer" }, kind: { type: "string", enum: ["understanding", "misconception"] }, insight: { type: "string" } }, required: ["kpId", "kind"] } } }, required: ["score"] };
       let g;

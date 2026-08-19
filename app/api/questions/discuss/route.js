@@ -1,6 +1,6 @@
 import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generate, langInstruction, attachParts } from "@/lib/gemini";
+import { generate, langInstruction, attachParts, handSliceNote } from "@/lib/gemini";
 import { retrieve, ragBlock, materialParts } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 import { learnerKpContext } from "@/lib/learnerContext";
@@ -42,7 +42,8 @@ ${body.options?.length ? "选项:" + body.options.join(" | ") : ""}
 考生的作答:${userAnswer || "(空)"}
 ${learnerHist ? "【这位考生在此知识点上的历史(据此因材施教)】\n" + learnerHist + "\n" : ""}${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
 
-    const system = mode === "socratic" ? socraticSystem : discussSystem;
+    const hn = handSliceNote(attachments);   // 整页与切片内容相同,别重复识别
+    const system = (mode === "socratic" ? socraticSystem : discussSystem) + (hn ? `\n\n${hn}` : "");
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
     const ap = await attachParts(attachments);
     const mp = await materialParts(exam.id, { max: 4 });

@@ -1,6 +1,6 @@
 import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
-import { generate, generateJson, langInstruction, attachParts } from "@/lib/gemini";
+import { generate, generateJson, langInstruction, attachParts, handSliceNote } from "@/lib/gemini";
 import { materialParts } from "@/lib/rag";
 import { updateReviewQueue, leafKpList, recordCrossKp, kpMasteryLevel, invalidateKnowledgeState } from "@/lib/mastery";
 import { addFact, analyzeMistakeBg } from "@/lib/memory";
@@ -42,7 +42,7 @@ export async function POST(req) {
 评分要点:${ans.answer}
 考生答案:${userAnswer || "(见附件)"}
 ${attachments && attachments.length ? "考生以图片/文件形式作答(见附件),请识别其中内容再评分。" : ""}
-${(attachments || []).some((a) => /^handwriting-p/.test(a.name || "")) ? "【关于手写附件】第1张是【整页手写的完整图】,后面几张是【同一页从上到下的切片】(切片更清晰,便于看清字迹)。请把它们当作【同一份作答】:用整页看结构与对应关系、用切片看清具体字迹,两者可对照。相邻切片可能有【重叠】,重叠处的内容是同一段,【不要重复计分或当成写了两遍】。" : ""}
+${handSliceNote(attachments)}
 按要点给 0~100 分,并指出答对了什么、缺了什么。数学公式用 $...$ 包裹。
 如果这份答案里【顺带】清楚体现出考生对【别的知识点】(不是本题知识点)的态度,请在 crossKp 里列出,kpId 只能取自下面清单:正确扎实的理解->kind=understanding;主动说出【错误的理解/概念错误】->kind=misconception;只是没涉及/看不出懂不懂->不要填。要确凿才填、宁缺毋滥,没有就空数组。本题知识点id=${q.kp_id || 0}(不要放进 crossKp)。可引用的知识点清单:\n${kpListStr}` + langInstruction(user.lang);
       const ap = await attachParts(attachments);

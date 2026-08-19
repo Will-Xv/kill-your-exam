@@ -45,14 +45,15 @@ function WrittenBlock({ q, t, value, onText, onAttach, initialAtts }) {
       const fresh = await filesToAttachments(files);
       let atts = [...restoredFileAtts, ...fresh];
       // 手写:整张 + (长图才有的)切片一起交,详见 lib/handSplit.js
+      let hasHand = false;
       if (handURL) {
         const b64 = handURL.split(",")[1];
         if (b64) {
           let parts = []; try { parts = await splitHandwriting(handURL); } catch {}
-          atts = [...atts.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts];
+          atts = [...atts.slice(0, 3), { name: "handwriting.png", mime: "image/png", data: b64 }, ...parts]; hasHand = true;
         }
       }
-      if (live) onAttach(q.id, atts.slice(0, 10));
+      if (live) onAttach(q.id, hasHand ? atts : atts.slice(0, 4));   // 手写整页+切片【一条都不截断】(切片张数随写多长而定);只限制其它上传文件的数量
     })();
     return () => { live = false; };
   }, [handURL, files, restoredFileAtts]); // eslint-disable-line
