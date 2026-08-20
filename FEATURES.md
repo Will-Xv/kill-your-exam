@@ -72,6 +72,8 @@
 
 ## 八、模拟考（`app/mock` · `app/api/mock/*`）
 - **小测（快速摸底）· `components/DiagnosticCard.js`（学习页与模拟考页共用）**：横跨各章抽几个知识点，**一次连着做完**（`/practice?kps=<ids>&fresh=1`，练习页本就支持 `kpIds` 批量出题），结果自动记进掌握度。选点：每章按「最没练→次没练」排队再横向轮询，广度优先；5/10/15 分钟档按 ~2 分钟/题缩放题量。模拟考页传 `showMockLink={false}`。★**三个历史坑已修**：① 广度抽样原先**只在 `totalAttempts < 6` 时才算**，做过几道题小测就**永久消失、全站找不到**（Will 反馈）→ 改为始终计算并作为 `quickTest` 返回；② 原先不是一整场小测，只是几个链到**单个**知识点的小标签，点一个进一个 → 改为一次跨多点；③ 同卡里原有的「该从哪开始（推荐学的单元）」会把小测顶掉 → **已整块删除**（`whereToStart` 仍返回 `solid/start/firstAction`，仅前端不再渲染）。无可测知识点时整卡不显示。
+- **可随时退出进行中的模拟考（2026-08）**：未交卷的状态写在 IndexedDB(`KEY="mock"`)，回首页再进来会原样恢复——以前只有交卷后才有「再考一次」，**误触开考就彻底卡死、退不出来**（Will 反馈）。现在 `running` 顶栏与 `grading` 页都有「退出本次模拟考」，确认后走 `restart()`（`idbDel(KEY)` + 清空所有 ref/state），回到 intro，且刷新/回首页不再被恢复。
+- **「做真题」如实化（2026-08）**：它只从 `is_real=1` 的题里抽，而 **`is_real=1` 只有你自己提供的才算**——粘贴进题库（`questionBank`）、上传做题识别出的（`quiz-upload`）、从资料里定位到的原题（`referenceResolve`）；**AI 生成与联网仿真都不算**。原按钮写「做真题(只用你提供的资料组卷)」有歧义（它不是从资料组卷），且没有真题时点下去只弹一句报错。现改为：`/api/mock/bank` 增返 `realCount`，有真题时按钮显示「只用我提供的真题组卷（N）」；**为 0 时不显示按钮**，改为直接给出两条加题路径——`/upload-quiz`（传卷子、AI 逐题识别、当场做）与 `/mock/blueprint` 题库（粘贴存成真题、可标必出、可开封闭题库让模考只从这些题出）。
 - **考试蓝图** `lib/blueprint.js`：AI 先规划该考哪些点、题型分值、总分、时长、**题量**（照真实题量，不再默认20）、结构依据可信度徽章（✅官方/📄推测/🔮预估）；按蓝图组卷、题库不足即时生成。`customize_mock_blueprint` 杀手可重排。
 - **题库/封闭题库/必考原题** `lib/questionBank.js`（`mock/bank`）：粘贴已知一定考的题（一字不改入库）、标"必出"（每次原样置卷首）、"封闭题库"开关（练习+模拟只从主人题里出、绝不生成）。做真题只用主人资料。
 - **★ 后台判题**（本会话）：交卷 `mock/submit` 立即返回 `{status:"grading"}`（`mock_exams.status/grade_started_at`），`gradeMock()` 后台跑（含简答 AI 阅卷、多模态附件），判完写 `score_json/answers_json/results_json/status='done'` 并跑一次跨章节根因诊断。前端进"正在判题"页（可离开），轮询 `mock/status`。健壮性：防重复判题、8 分钟卡死自愈、重试重触发、卸载清轮询。`mock/rescore`(争论改判重算)、`mock/history`、`mock/att`。

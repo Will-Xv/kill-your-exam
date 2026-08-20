@@ -269,7 +269,19 @@ function stripLabel(op, i) {
       ) : null}
       <div className="flex flex-col gap-2 items-center">
         <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
-        <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("做真题(只用你提供的资料组卷)")}</button>
+        {/* 【做真题】只从 is_real=1 的题里抽 —— 那只有【你自己提供的】才算:粘贴进题库的、上传做题识别出来的、
+            从你资料里定位到的原题。AI 生成和联网仿真都【不算】。所以按钮上如实标出有几道,
+            0 道时直接告诉去哪儿加,而不是点下去弹一句"真题不够"。 */}
+        {bank && bank.realCount > 0 ? (
+          <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("只用我提供的真题组卷")}（{bank.realCount}）</button>
+        ) : (
+          <div className="mx-auto max-w-md rounded-xl bg-stone-100 px-3 py-2 text-left text-xs text-stone-600">
+            <p className="font-semibold">📜 {t("想做自己的卷子?")}</p>
+            <p className="mt-1">{t("这门考试目前没有「你提供的真题」(AI 出的题和联网仿真题都不算)。两种加法:")}</p>
+            <p className="mt-1">· <a href="/upload-quiz" className="font-semibold text-amber-700 underline">{t("上传做题")}</a> —— {t("直接传卷子(图片/PDF/文档),AI 逐题识别出来,当场就能做。")}</p>
+            <p className="mt-0.5">· <a href="/mock/blueprint" className="font-semibold text-amber-700 underline">{t("题库")}</a> —— {t("把题粘贴进去存成真题;可标「必出」、还能开「封闭题库」让模拟考只从这些题里出。")}</p>
+          </div>
+        )}
         <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
         <a className="btn-ghost text-sm" href="/mock/history">📚 {t("历史模拟考")}</a>
       </div>
@@ -287,6 +299,13 @@ function stripLabel(op, i) {
     </div>
   );
 
+  // 【退出本次模拟考】误触开考后必须能出来。以前只有交卷后才有"再考一次",
+  // 而未交卷的状态被写进 IndexedDB(KEY="mock")、刷新/回首页再进来会原样恢复 —— 于是彻底卡死(Will 反馈)。
+  async function quitMock() {
+    if (!await confirmDialog(t("退出本次模拟考?这次的作答会丢弃,不计成绩。"))) return;
+    restart();
+  }
+
   if (stage === "grading") {
     return (
       <div className="space-y-4 md:mt-14 pb-4">
@@ -302,6 +321,7 @@ function stripLabel(op, i) {
             <>
               <div className="mx-auto my-2 h-8 w-8 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600" />
               <h2 className="font-bold text-lg">{t("正在判题…")}</h2>
+              <button className="mt-3 text-xs text-stone-400 underline" onClick={quitMock}>{t("退出本次模拟考")}</button>
               <p className="text-sm text-stone-500 mt-1">{t("含主观题AI阅卷,可能要一会儿。你可以先去干别的,判完自动出成绩。")}</p>
             </>
           )}
@@ -364,9 +384,13 @@ function stripLabel(op, i) {
   const answered = new Set([...Object.keys(answers).filter((k) => answers[k]), ...Object.keys(attachRef.current).filter((k) => (attachRef.current[k] || []).length)]).size;
   return (
     <div className="space-y-3 md:mt-14 pb-4">
-      <div className="sticky top-0 md:top-14 z-10 bg-stone-50 py-2 flex items-center justify-between">
+      <div className="sticky top-0 md:top-14 z-10 bg-stone-50 py-2 flex items-center justify-between gap-2">
         <span className="text-sm text-stone-500">{t("已答")} {answered}/{qs.length}</span>
-        <button className="btn py-2 text-sm" onClick={submit} disabled={busy}>{busy ? t("批改中…") : t("交卷")}</button>
+        <div className="flex items-center gap-3">
+          {/* 【退出】误触开考后必须能出来:未交卷的状态存在 IndexedDB 里,不给出口就会一直被恢复、彻底卡死 */}
+          <button className="text-xs text-stone-500 underline hover:text-red-600" onClick={quitMock}>{t("退出本次模拟考")}</button>
+          <button className="btn py-2 text-sm" onClick={submit} disabled={busy}>{busy ? t("批改中…") : t("交卷")}</button>
+        </div>
       </div>
       {qs.map((q, idx) => {
         const isChoice = ["single", "multi", "judge"].includes(q.qtype);

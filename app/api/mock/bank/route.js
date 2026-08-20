@@ -1,4 +1,5 @@
 import { requireUser, unauthorized } from "@/lib/auth";
+import db, { ownScope, scopeSql } from "@/lib/db";
 import { bankList, bankAdd, bankSetMust, bankDelete, setClosedBank, bankParseText } from "@/lib/questionBank";
 import { aiErrorResponse } from "@/lib/errors";
 
@@ -8,7 +9,11 @@ export async function GET() {
   const { user, exam } = await requireUser();
   if (!user) return unauthorized();
   if (!exam) return Response.json({ questions: [], closedBank: false });
-  return Response.json({ questions: bankList(exam.id), closedBank: !!exam.closed_bank });
+  // realCount:【做真题】那条路的真实可用量 —— 只有你自己提供的题才算 is_real=1
+  // (粘贴进题库 / 上传做题识别出来的 / 从资料里定位到的原题);AI 生成和联网仿真都不算。
+  let realCount = 0;
+  try { realCount = db.prepare(`SELECT COUNT(*) n FROM questions WHERE exam_id IN ${scopeSql(ownScope(exam.id))} AND flagged=0 AND is_real=1`).get().n; } catch {}
+  return Response.json({ questions: bankList(exam.id), closedBank: !!exam.closed_bank, realCount });
 }
 
 export async function POST(req) {
