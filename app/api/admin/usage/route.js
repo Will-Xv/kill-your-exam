@@ -20,11 +20,25 @@ export async function GET() {
       FROM attempts a JOIN exams e ON e.id=a.exam_id
       WHERE e.user_id=? AND a.mode!='resolved' AND a.created_at > datetime('now','-7 days')
       GROUP BY d ORDER BY d`).all(u.id);
+    // 【Token 用量】总量 + 近7天 + 按模型拆分。thoughts=思考token(不含在 output 里,单独计费)。
+    const tk = db.prepare(`SELECT COALESCE(SUM(calls),0) calls, COALESCE(SUM(prompt),0) prompt, COALESCE(SUM(cached),0) cached,
+      COALESCE(SUM(thoughts),0) thoughts, COALESCE(SUM(output),0) output, COALESCE(SUM(tool_use),0) toolUse, COALESCE(SUM(total),0) total
+      FROM token_usage WHERE user_id=?`).get(u.id);
+    const tk7 = db.prepare(`SELECT COALESCE(SUM(total),0) total, COALESCE(SUM(thoughts),0) thoughts
+      FROM token_usage WHERE user_id=? AND day > date('now','-7 days')`).get(u.id);
+    const byModel = db.prepare(`SELECT model, SUM(calls) calls, SUM(total) total, SUM(thoughts) thoughts
+      FROM token_usage WHERE user_id=? GROUP BY model ORDER BY total DESC`).all(u.id);
     const last = [a.last, c.last].filter(Boolean).sort().pop() || null;
     return {
       id: u.id, username: u.username, isAdmin: !!u.is_admin, isDeveloper: !!u.is_developer, createdAt: u.created_at, deletedAt: u.deleted_at,
-      attempts: a.total, activeDays: a.days, chats: c.total, lastActive: last, week
+      attempts: a.total, activeDays: a.days, chats: c.total, lastActive: last, week,
+      tokens: { ...tk, total7: tk7.total, thoughts7: tk7.thoughts, byModel }
     };
   });
-  return Response.json({ users: rows });
+  // 后台/系统调用(入库、判题、cron 等拿不到请求用户)单列一行,不摊到任何人头上
+  const sys = db.prepare(`SELECT COALESCE(SUM(calls),0) calls, COALESCE(SUM(prompt),0) prompt, COALESCE(SUM(cached),0) cached,
+    COALESCE(SUM(thoughts),0) thoughts, COALESCE(SUM(output),0) output, COALESCE(SUM(tool_use),0) toolUse, COALESCE(SUM(total),0) total
+    FROM token_usage WHERE user_id=0`).get();
+  const all = db.prepare(`SELECT COALESCE(SUM(total),0) total, COALESCE(SUM(thoughts),0) thoughts, COALESCE(SUM(cached),0) cached, COALESCE(SUM(calls),0) calls FROM token_usage`).get();
+  return Response.json({ users: rows, tokenSystem: sys, tokenAll: all });
 }

@@ -38,6 +38,15 @@ function fmtLocal(ts) {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// token 数字缩写:1234567 → 1.23M,便于在小卡片里横排
+function fmtTok(n) {
+  const v = Number(n || 0);
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + "B";
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + "K";
+  return String(v);
+}
+
 export default function Admin() {
   const t = useT();
   const [data, setData] = useState(null);
@@ -60,6 +69,21 @@ export default function Admin() {
       <p className="text-xs text-stone-400">{t("出于隐私考虑,这里只显示使用频率,看不到任何人的学习内容。")}</p>
       <DevSwitcher t={t} />
       <DevAccount t={t} />
+      {data.tokenAll && (
+        <div className="card">
+          <h2 className="font-bold text-sm">🔥 {t("Token 总消耗(全站)")}</h2>
+          <div className="mt-2 grid grid-cols-4 gap-2 text-center text-sm">
+            <div><b>{fmtTok(data.tokenAll.total)}</b><div className="text-xs text-stone-400">{t("总计")}</div></div>
+            <div><b>{fmtTok(data.tokenAll.thoughts)}</b><div className="text-xs text-stone-400">{t("其中思考")}</div></div>
+            <div><b>{fmtTok(data.tokenAll.cached)}</b><div className="text-xs text-stone-400">{t("其中命中缓存")}</div></div>
+            <div><b>{data.tokenAll.calls}</b><div className="text-xs text-stone-400">{t("调用次数")}</div></div>
+          </div>
+          {data.tokenSystem && data.tokenSystem.total > 0 && (
+            <p className="mt-2 text-xs text-stone-400">{t("其中后台/系统任务(入库、判题、定时任务等,不归属具体用户):")} {fmtTok(data.tokenSystem.total)} · {data.tokenSystem.calls} {t("次")}</p>
+          )}
+          <p className="mt-1 text-[11px] text-stone-400">{t("缓存命中的输入是输入的一部分(不是额外量),计费时按折扣价;思考 token 不含在输出里但照样计费。")}</p>
+        </div>
+      )}
       {data.users.map((u) => (
         <div key={u.id} className="card">
           <div className="flex items-center justify-between">
@@ -79,6 +103,25 @@ export default function Admin() {
             <div><b>{u.chats}</b><div className="text-xs text-stone-400">{t("聊天条数")}</div></div>
             <div><b className="text-xs">{fmtLocal(u.lastActive)}</b><div className="text-xs text-stone-400">{t("最近活跃")}</div></div>
           </div>
+          {u.tokens && u.tokens.total > 0 && (
+            <div className="mt-3 rounded-xl bg-amber-50/60 p-2 ring-1 ring-amber-200/60">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs font-bold text-amber-800">🔥 {t("Token 消耗")}</span>
+                <span className="text-xs text-stone-500">{t("近7天")} {fmtTok(u.tokens.total7)} · {u.tokens.calls} {t("次调用")}</span>
+              </div>
+              <div className="mt-1.5 grid grid-cols-5 gap-1 text-center text-xs">
+                <div><b>{fmtTok(u.tokens.prompt)}</b><div className="text-[10px] text-stone-400">{t("输入")}</div></div>
+                <div><b>{fmtTok(u.tokens.cached)}</b><div className="text-[10px] text-stone-400">{t("其中缓存")}</div></div>
+                <div><b>{fmtTok(u.tokens.thoughts)}</b><div className="text-[10px] text-stone-400">{t("思考")}</div></div>
+                <div><b>{fmtTok(u.tokens.output)}</b><div className="text-[10px] text-stone-400">{t("输出")}</div></div>
+                <div><b className="text-amber-800">{fmtTok(u.tokens.total)}</b><div className="text-[10px] text-stone-400">{t("总计")}</div></div>
+              </div>
+              {u.tokens.toolUse > 0 && <p className="mt-1 text-[10px] text-stone-400">{t("工具调用输入")} {fmtTok(u.tokens.toolUse)}</p>}
+              {u.tokens.byModel?.length > 0 && (
+                <p className="mt-1 text-[10px] text-stone-500">{u.tokens.byModel.map((m) => `${m.model || "?"}: ${fmtTok(m.total)}`).join(" · ")}</p>
+              )}
+            </div>
+          )}
           {u.week.length > 0 && (
             <div className="mt-3 flex items-end gap-1 h-12">
               {u.week.map((d) => (
