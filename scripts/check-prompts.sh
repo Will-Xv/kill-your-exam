@@ -11,3 +11,6 @@ node scripts/lint-quotes.mjs "${FILES[@]}" || exit 1
 
 # 繁体地区用词:ZH_TW/ZH_HK 必须手写台/港各自说法,不能是 s2t 逐字转的产物(见脚本内注释)。
 node scripts/lint-zh-region.mjs || exit 1
+
+# 用了但没声明的变量:build 抓不到(合法语法、运行时才炸),2026-08 因此出过"完全写不了字"的事故。
+node scripts/lint-undeclared.mjs || exit 1

@@ -31,12 +31,13 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   const penEraseRef = useRef(false);
   const btnEraseRef = useRef(false);       // 本次落笔期间按钮一直算按着(兼容只在 pointerdown 上报按钮的浏览器)
   const ringRef = useRef(null);
+  const rectRef = useRef(null);   // 落笔时量一次画布位置,整笔复用(pointermove 每次都量会强制重排)
   // 【只存改动的那一小块】撤销以前是整幅画布快照(扩到13格时一张54MB),所以只能存3步。
   // 改法:用一张【影子画布】保存"上一笔结束时"的画面;书写时记录这一笔的【包围盒】,
   // 抬笔时只把包围盒那一小块的【旧像素】压进撤销栈(一般几十~几百KB),再把新画面同步进影子。
   // 于是每步代价与画布高度无关,25 步也才几 MB —— 不必再牺牲撤销步数。
   const shadowRef = useRef(null);      // 离屏画布:上一笔结束时的画面
-  const bboxRef = useRef(null);        // 这一笔的包围盒(设备像素)            // 橡皮大小光圈(直接改 DOM,不走 state——否则每次移动都重渲染,书写会卡)
+  const bboxRef = useRef(null);        // 这一笔的包围盒(设备像素)
   const [dbg, setDbg] = useState(false);   // ?pendebug=1 打开:实时显示本机上报的指针参数,用来定位"笔上按钮没反应"
   const dbgRef = useRef(null);
   const [slots, setSlots] = useState(1);   // 当前是初始高度的几倍(1=没扩充过)
