@@ -1,4 +1,5 @@
 import db, { ownScope, scopeSql } from "@/lib/db";
+import { composeFromMaterials } from "@/lib/mockFromMaterials";
 import { estr } from "@/lib/i18nServer";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { ensureBlueprint, composeFromBlueprint, getBlueprint } from "@/lib/blueprint";
@@ -14,10 +15,20 @@ export async function POST(req) {
   if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
   const body = await req.json().catch(() => ({}));
   const realOnly = !!body.realOnly;
+  const materialIds = Array.isArray(body.materialIds) ? body.materialIds : null;
   const perfExam = exam.exam_type === "performance";
   // 题目总数照蓝图来:前端不再写死 20。真题模式也用蓝图的 totalQuestions 作为目标题数。
   let count = Number(body.count) || 0;
   if (!count) { const _bp = getBlueprint(exam.id); count = (_bp && _bp.totalQuestions) || 20; }
+
+  // 【按指定资料出卷】主人勾了资料就走这条:只依据这几份资料出题,并可附带对出题 AI 的要求
+  if (materialIds && materialIds.length) {
+    const r = await composeFromMaterials(exam, user, { materialIds, request: body.request || "", count });
+    if (r.error === "no_material") return Response.json({ error: estr(user?.lang, "请先选择要从哪些资料出题。") }, { status: 400 });
+    if (r.error === "no_basis") return Response.json({ error: estr(user?.lang, "这几份资料还没建好可检索的索引(刚上传的话稍等一会儿再试)。") }, { status: 400 });
+    if (r.error) return Response.json({ error: estr(user?.lang, "出题失败,请稍后再试。") }, { status: 500 });
+    return Response.json(r);
+  }
 
   if (realOnly) {
     const pool = db.prepare(`SELECT * FROM questions WHERE exam_id IN ${scopeSql(ownScope(exam.id))} AND flagged=0 ${perfExam ? "AND qtype='perform'" : ""} AND is_real=1 ORDER BY RANDOM() LIMIT ?`).all(count * 3);

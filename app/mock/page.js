@@ -176,6 +176,11 @@ export default function Mock() {
   const [bpPeek, setBpPeek] = useState(null);
   useEffect(() => { fetch("/api/mock/blueprint?peek=1").then((r) => r.json()).then((d) => setBpPeek(d.blueprint || null)).catch(() => {}); }, []);
   const [bank, setBank] = useState(null);
+  // 【按指定资料出卷】勾选从哪几份资料出题 + 对出题 AI 的额外要求
+  const [mats, setMats] = useState(null);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [pickIds, setPickIds] = useState([]);
+  const [pickReq, setPickReq] = useState("");
   useEffect(() => { fetch("/api/mock/bank").then((r) => r.json()).then((d) => setBank(d)).catch(() => {}); }, []);
   function scheduleAttSave() {
     if (!hydrated.current) return;
@@ -183,10 +188,12 @@ export default function Mock() {
     saveTimer.current = setTimeout(persist, 600);
   }
 
-  async function start(realOnly = false) {
+  async function start(realOnly = false, opts = null) {
     setBusy(true); setErr("");
     try {
-      const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 20, realOnly }) });
+      const payload = { count: 20, realOnly };
+      if (opts && opts.materialIds && opts.materialIds.length) { payload.materialIds = opts.materialIds; payload.request = opts.request || ""; }
+      const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!d || !Array.isArray(d.questions) || !d.questions.length) throw new Error(d && d.error ? d.error : t("组卷失败:没有拿到题目"));
       attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
     } catch (e) {
@@ -269,17 +276,34 @@ function stripLabel(op, i) {
       ) : null}
       <div className="flex flex-col gap-2 items-center">
         <button className="btn" onClick={() => start(false)} disabled={busy}>{busy ? t("组卷中…") : t("开始模拟考")}</button>
-        {/* 【做真题】只从 is_real=1 的题里抽 —— 那只有【你自己提供的】才算:粘贴进题库的、上传做题识别出来的、
-            从你资料里定位到的原题。AI 生成和联网仿真都【不算】。所以按钮上如实标出有几道,
-            0 道时直接告诉去哪儿加,而不是点下去弹一句"真题不够"。 */}
-        {bank && bank.realCount > 0 ? (
-          <button className="btn-ghost text-sm" onClick={() => start(true)} disabled={busy}>📜 {t("只用我提供的真题组卷")}（{bank.realCount}）</button>
-        ) : (
-          <div className="mx-auto max-w-md rounded-xl bg-stone-100 px-3 py-2 text-left text-xs text-stone-600">
-            <p className="font-semibold">📜 {t("想做自己的卷子?")}</p>
-            <p className="mt-1">{t("这门考试目前没有「你提供的真题」(AI 出的题和联网仿真题都不算)。两种加法:")}</p>
-            <p className="mt-1">· <a href="/upload-quiz" className="font-semibold text-amber-700 underline">{t("上传做题")}</a> —— {t("直接传卷子(图片/PDF/文档),AI 逐题识别出来,当场就能做。")}</p>
-            <p className="mt-0.5">· <a href="/mock/blueprint" className="font-semibold text-amber-700 underline">{t("题库")}</a> —— {t("把题粘贴进去存成真题;可标「必出」、还能开「封闭题库」让模拟考只从这些题里出。")}</p>
+        {/* 【按指定资料出卷】取代原来名不副实的「做真题」:自己勾从哪几份资料出题,还能对出题 AI 提要求。
+            依据只取这些资料的索引段落(不整份投喂原件 —— 那是之前 token 爆炸的根源)。 */}
+        <button className="btn-ghost text-sm" disabled={busy}
+          onClick={() => { setPickOpen((v) => !v); if (!mats) fetch("/api/materials").then((r) => r.json()).then((d) => setMats(d.materials || [])).catch(() => setMats([])); }}>
+          📚 {t("从我指定的资料出卷")}
+        </button>
+        {pickOpen && (
+          <div className="mx-auto w-full max-w-md rounded-xl bg-white/70 p-3 text-left ring-1 ring-[#dbc999]">
+            <p className="text-xs font-semibold text-[#5b431f]">{t("选择从哪些资料出题(可多选)")}</p>
+            <div className="mt-1.5 max-h-44 space-y-1 overflow-y-auto">
+              {mats === null ? <p className="text-xs text-stone-400">{t("加载中…")}</p>
+                : mats.length === 0 ? <p className="text-xs text-stone-400">{t("资料库还是空的,先去传点资料。")}</p>
+                : mats.map((m) => (
+                  <label key={m.id} className="flex items-center gap-2 text-xs">
+                    <input type="checkbox" checked={pickIds.includes(m.id)}
+                      onChange={(e) => setPickIds((p) => (e.target.checked ? [...p, m.id] : p.filter((x) => x !== m.id)))} />
+                    <span className="truncate">{m.filename}</span>
+                    {m.status !== "ready" && <span className="shrink-0 text-[10px] text-amber-600">{t("⏳ 处理中")}</span>}
+                  </label>
+                ))}
+            </div>
+            <p className="mt-2 text-xs font-semibold text-[#5b431f]">{t("对出题的要求(可留空)")}</p>
+            <textarea className="input mt-1 w-full text-xs" rows={2} value={pickReq} onChange={(e) => setPickReq(e.target.value)}
+              placeholder={t("例如:只出计算题;侧重第三章;难度偏高;多出简答")} />
+            <button className="btn mt-2 w-full py-2 text-sm" disabled={busy || !pickIds.length}
+              onClick={() => start(false, { materialIds: pickIds, request: pickReq })}>
+              {busy ? t("组卷中…") : `${t("用这")}${pickIds.length}${t("份资料出卷")}`}
+            </button>
           </div>
         )}
         <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
