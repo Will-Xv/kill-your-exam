@@ -56,6 +56,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctxRef.current = ctx;
     heightRef.current = cssH;
+    applyTouch();   // 重建后重新套用手势规则
     // 影子画布跟着一起重建(尺寸必须与主画布一致,否则撤销的坐标会错位)
     try {
       const sh = shadowRef.current || (shadowRef.current = document.createElement("canvas"));
@@ -114,7 +115,8 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
 
   useEffect(() => { setup(); }, []); // eslint-disable-line
   useEffect(() => { try { setDbg(new URLSearchParams(window.location.search).get("pendebug") === "1"); } catch {} }, []);
-  useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} }, [fingerScroll]);
+  useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} applyTouch(); }, [fingerScroll]);
+  useEffect(() => { applyTouch(); }, []);   // 首次挂载套用一次(JSX 已不再设 touchAction)
 
   // 【笔上的原生按钮 = 临时橡皮擦】按 W3C Pointer Events 规范判断,不针对任何厂商:
   //   buttons & 32 = 笔尾/橡皮头(Surface Pen 倒过来擦、Wacom 反转笔)
@@ -151,8 +153,18 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
   // 笔悬停/落笔时把画布 touch-action 临时设为 none(笔一定用于书写,不会被浏览器当成平移/滚动);笔离开再恢复
+  // 【touch-action 只由这里管,JSX 不许再设】以前 canvas 上有 style={{touchAction:...}},
+  // 而 penForceDraw() 又用 JS 直接改 canvas.style —— React 每重渲染一次就把 JS 设的值覆盖回去。
+  // 加上笔按钮状态/橡皮光圈/扩充计数带来的频繁重渲染,结果就是"写几笔之后笔开始滑屏"。
+  // 规则:【只要这个画板上用过笔,画布内一律 none】—— 笔在书写区内绝不能滑屏(要滑就到区域外滑)。
+  //       从没用过笔时才尊重"手指书写/手指滑动"开关。
+  function applyTouch() {
+    const c = canvasRef.current;
+    if (!c) return;
+    c.style.touchAction = penSeen.current ? "none" : (fingerScroll ? "manipulation" : "none");
+  }
   function penForceDraw() { const c = canvasRef.current; if (c) c.style.touchAction = "none"; }
-  function restoreTouch() { const c = canvasRef.current; if (c) c.style.touchAction = fingerScroll ? "manipulation" : "none"; }
+  function restoreTouch() { applyTouch(); }
   // 【撤销栈按字节封顶,不按条数】以前固定存 25 张整画布快照。画布可以扩充到 13 格,
   // 一张 1600×8840 的快照就 54MB —— 25 张 = 1.3GB 常驻,GC 压力直接把书写拖卡。
   // 改成按总字节封顶(48MB),画布越高能存的张数越少,但至少保住 3 步撤销。
@@ -198,7 +210,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   }
 
   function down(e) {
-    if (e.pointerType === "pen") { penSeen.current = true; penForceDraw(); if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
+    if (e.pointerType === "pen" || e.pointerType === "eraser") { penSeen.current = true; applyTouch(); if (!fingerScroll) setFingerScroll(true); } // 用过笔 → 画布内彻底禁止手势滚动
     if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return; // 手指用于滚动/防手掌误触,不当作书写
     if (e.pointerType === "pen" || e.pointerType === "eraser") {
       // 有的浏览器只在 pointerdown 的 button 里报一次侧键/橡皮头(之后 buttons 只剩 1),所以这里记下来
@@ -279,7 +291,8 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     emitTimer.current = setTimeout(doEmit, 400);
   }
   useEffect(() => () => { clearTimeout(emitTimer.current); }, []);
-  function hover(e) { if (e.pointerType === "pen") penForceDraw(); } // 笔悬停进入 -> 立刻可书写
+  // 笔【悬停进入】时就先锁死手势 —— touch-action 是在手势【开始那一刻】判定的,等 pointerdown 再设就晚了
+  function hover(e) { if (e.pointerType === "pen" || e.pointerType === "eraser") { penSeen.current = true; applyTouch(); } }
   function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); emit(true); }   // 笔离开画布 → 立刻落定,别等防抖 // 笔/手指离开 -> 恢复该模式的手势
   function up() { const wasDrawing = drawing.current; drawing.current = false; last.current = null; rectRef.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); if (wasDrawing) commitStroke(); emit(); }
 
@@ -332,12 +345,12 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
           <button type="button" onClick={() => setFingerScroll(true)} className={`rounded-full px-2.5 py-1 transition ${fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>✋ {t("手指滑动")}</button>
         </div>
         {penErase && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">🧽 {t("笔上的按钮按住中:临时橡皮")}</span>}
-        <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面。笔上有按钮或橡皮头的,按住即可直接擦。")}</span>
+        <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写。用过笔之后,画布【内】不再响应滑动(免得笔一碰就把页面滑走)——要滑页面请在画布外滑。笔上有按钮或橡皮头的,按住即可直接擦。")}</span>
       </div>
       <div className="relative">
         <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerEnter={hover} onPointerLeave={leave} onPointerCancel={leave}
           onContextMenu={(e) => e.preventDefault()}   /* 按住笔杆侧键时别弹右键菜单 */
-          className="block w-full rounded-xl border border-slate-300 bg-white" style={{ touchAction: fingerScroll ? "manipulation" : "none" }} />
+          className="block w-full rounded-xl border border-slate-300 bg-white" />
         {/* 【橡皮大小光圈】手动选橡皮、或笔上按钮/橡皮头按住时,悬停就能看见会擦掉多大一圈 */}
         <div ref={ringRef} aria-hidden="true"
           style={{ display: "none", position: "absolute", left: 0, top: 0, width: ERASER_W, height: ERASER_W, borderRadius: "9999px", pointerEvents: "none", willChange: "transform" }}
