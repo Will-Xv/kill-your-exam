@@ -85,14 +85,14 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     let prev = null;
     try { prev = canvas.toDataURL("image/png"); } catch {}
     const grow = () => { rebuild(cssW, oldH + BASE_H); setSlots((n) => n + 1); };
-    if (!prev) { grow(); emit(); return; }
+    if (!prev) { grow(); emit(true); return; }
     const im = new Image();
     im.onload = () => {
       grow();
       try { ctxRef.current.drawImage(im, 0, 0, cssW, oldH); } catch {}  // 原样贴回顶部,不缩放
-      emit();
+      emit(true);
     };
-    im.onerror = () => { grow(); emit(); };
+    im.onerror = () => { grow(); emit(true); };
     im.src = prev;
   }
 
@@ -114,11 +114,29 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     return btnEraseRef.current;                               // 落笔那一刻按钮就按着(有的浏览器只在 pointerdown 报一次)
   }
 
-  function pos(e) { const r = canvasRef.current.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  // 【缓存画布位置】pointermove 每秒可达上百次,每次都 getBoundingClientRect 会强制浏览器重算布局。
+  // 落笔时量一次、整笔复用(书写过程中画布不会移动);悬停时没缓存就实时量。
+  const rectRef = useRef(null);
+  function pos(e) {
+    const r = rectRef.current || canvasRef.current.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
   // 笔悬停/落笔时把画布 touch-action 临时设为 none(笔一定用于书写,不会被浏览器当成平移/滚动);笔离开再恢复
   function penForceDraw() { const c = canvasRef.current; if (c) c.style.touchAction = "none"; }
   function restoreTouch() { const c = canvasRef.current; if (c) c.style.touchAction = fingerScroll ? "manipulation" : "none"; }
-  function snapshot() { try { const c = canvasRef.current; undoStack.current.push(c.getContext("2d").getImageData(0, 0, c.width, c.height)); if (undoStack.current.length > 25) undoStack.current.shift(); } catch {} }
+  // 【撤销栈按字节封顶,不按条数】以前固定存 25 张整画布快照。画布可以扩充到 13 格,
+  // 一张 1600×8840 的快照就 54MB —— 25 张 = 1.3GB 常驻,GC 压力直接把书写拖卡。
+  // 改成按总字节封顶(48MB),画布越高能存的张数越少,但至少保住 3 步撤销。
+  const UNDO_MAX_BYTES = 48 * 1024 * 1024;
+  function snapshot() {
+    try {
+      const c = canvasRef.current;
+      undoStack.current.push(c.getContext("2d").getImageData(0, 0, c.width, c.height));
+      const per = c.width * c.height * 4;
+      const maxN = Math.max(3, Math.floor(UNDO_MAX_BYTES / Math.max(1, per)));
+      while (undoStack.current.length > maxN) undoStack.current.shift();
+    } catch {}
+  }
 
   function down(e) {
     if (e.pointerType === "pen") { penSeen.current = true; penForceDraw(); if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
@@ -132,6 +150,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     if (dbg) report(e);
     ring(e, tool === "eraser" || penErasing(e));
     snapshot();
+    try { rectRef.current = canvasRef.current.getBoundingClientRect(); } catch {}   // 整笔复用这次测量
     drawing.current = true; last.current = pos(e);
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch {}
   }
@@ -142,10 +161,15 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     el.textContent = `type=${e.pointerType} buttons=${e.buttons} button=${e.button} pressure=${(e.pressure || 0).toFixed(2)} erasing=${penErasing(e) ? "Y" : "N"}`;
   }
 
+  const ringOn = useRef(false);
   function ring(e, eraser) {
     const el = ringRef.current;
     if (!el) return;
-    if (!eraser || e.pointerType === "touch") { el.style.display = "none"; return; }
+    if (!eraser || e.pointerType === "touch") {
+      if (ringOn.current) { el.style.display = "none"; ringOn.current = false; }   // 只在真需要时写 DOM
+      return;
+    }
+    ringOn.current = true;
     const p = pos(e);
     el.style.display = "block";
     el.style.transform = `translate(${p.x - ERASER_W / 2}px, ${p.y - ERASER_W / 2}px)`;
@@ -168,13 +192,38 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     ctx.beginPath(); ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke();
     last.current = p; dirty.current = true;
   }
-  function emit() { try { if (onChange && canvasRef.current) onChange(dirty.current ? canvasRef.current.toDataURL("image/png") : ""); } catch {} }
+  // 【别再每抬一次笔就同步编码整张画布】toDataURL 是同步的,画布扩充后要编码上千万像素,
+  // 每一笔结束都卡一下 —— 这就是"书写变迟钝"的主因。改成:
+  //   ①防抖 400ms(连着写好几笔只编码一次);②用异步的 toBlob,不阻塞主线程。
+  // 抬笔离开画布(leave)时立刻 flush,保证"写完马上交卷"不会丢最后一笔。
+  const emitTimer = useRef(0);
+  function doEmit() {
+    try {
+      const c = canvasRef.current;
+      if (!onChange || !c) return;
+      if (!dirty.current) { onChange(""); return; }
+      if (c.toBlob) {
+        c.toBlob((b) => {
+          if (!b) { try { onChange(c.toDataURL("image/png")); } catch {} return; }
+          const fr = new FileReader();
+          fr.onload = () => { try { onChange(String(fr.result || "")); } catch {} };
+          fr.readAsDataURL(b);
+        }, "image/png");
+      } else { onChange(c.toDataURL("image/png")); }
+    } catch {}
+  }
+  function emit(now) {
+    clearTimeout(emitTimer.current);
+    if (now) { doEmit(); return; }
+    emitTimer.current = setTimeout(doEmit, 400);
+  }
+  useEffect(() => () => { clearTimeout(emitTimer.current); }, []);
   function hover(e) { if (e.pointerType === "pen") penForceDraw(); } // 笔悬停进入 -> 立刻可书写
-  function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); } // 笔/手指离开 -> 恢复该模式的手势
-  function up() { drawing.current = false; last.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); emit(); }
+  function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); emit(true); }   // 笔离开画布 → 立刻落定,别等防抖 // 笔/手指离开 -> 恢复该模式的手势
+  function up() { drawing.current = false; last.current = null; rectRef.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); emit(); }
 
-  function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; emit(); } }
-  function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshot(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; emit(); }
+  function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; emit(true); } }
+  function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshot(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; emit(true); }
 
   useImperativeHandle(ref, () => ({
     getImage() {
