@@ -117,6 +117,27 @@ export default function Admin() {
                 <div><b className="text-amber-800">{fmtTok(u.tokens.total)}</b><div className="text-[10px] text-stone-400">{t("总计")}</div></div>
               </div>
               {u.tokens.toolUse > 0 && <p className="mt-1 text-[10px] text-stone-400">{t("工具调用输入")} {fmtTok(u.tokens.toolUse)}</p>}
+              {u.tokens.days30?.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-[10px] text-stone-500">{t("近30天每日消耗")}（{t("最高")} {fmtTok(Math.max(...u.tokens.days30.map((d) => d.total)))}）</div>
+                  <div className="mt-1 flex items-end gap-[2px] h-10">
+                    {(() => {
+                      // 补齐没有消耗的日子,免得柱子挤在一起看不出节奏
+                      const map = Object.fromEntries(u.tokens.days30.map((d) => [d.d, d]));
+                      const out = [];
+                      for (let i = 29; i >= 0; i--) {
+                        const dt = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+                        out.push(map[dt] || { d: dt, total: 0, thoughts: 0, cached: 0, calls: 0 });
+                      }
+                      const mx = Math.max(1, ...out.map((d) => d.total));
+                      return out.map((d) => (
+                        <div key={d.d} className="flex-1 rounded-t bg-amber-500/80" style={{ height: `${Math.max(d.total ? 6 : 0, (d.total / mx) * 100)}%` }}
+                          title={`${d.d}: ${fmtTok(d.total)} tokens (${t("思考")} ${fmtTok(d.thoughts)} · ${t("缓存")} ${fmtTok(d.cached)} · ${d.calls} ${t("次")})`} />
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
               {u.tokens.byModel?.length > 0 && (
                 <p className="mt-1 text-[10px] text-stone-500">{u.tokens.byModel.map((m) => `${m.model || "?"}: ${fmtTok(m.total)}`).join(" · ")}</p>
               )}

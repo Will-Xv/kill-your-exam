@@ -26,13 +26,16 @@ export async function GET() {
       FROM token_usage WHERE user_id=?`).get(u.id);
     const tk7 = db.prepare(`SELECT COALESCE(SUM(total),0) total, COALESCE(SUM(thoughts),0) thoughts
       FROM token_usage WHERE user_id=? AND day > date('now','-7 days')`).get(u.id);
+    // 近 30 天按天(只列有消耗的天;前端补齐空白天)
+    const days30 = db.prepare(`SELECT day d, SUM(total) total, SUM(thoughts) thoughts, SUM(cached) cached, SUM(calls) calls
+      FROM token_usage WHERE user_id=? AND day > date('now','-30 days') GROUP BY day ORDER BY day`).all(u.id);
     const byModel = db.prepare(`SELECT model, SUM(calls) calls, SUM(total) total, SUM(thoughts) thoughts
       FROM token_usage WHERE user_id=? GROUP BY model ORDER BY total DESC`).all(u.id);
     const last = [a.last, c.last].filter(Boolean).sort().pop() || null;
     return {
       id: u.id, username: u.username, isAdmin: !!u.is_admin, isDeveloper: !!u.is_developer, createdAt: u.created_at, deletedAt: u.deleted_at,
       attempts: a.total, activeDays: a.days, chats: c.total, lastActive: last, week,
-      tokens: { ...tk, total7: tk7.total, thoughts7: tk7.thoughts, byModel }
+      tokens: { ...tk, total7: tk7.total, thoughts7: tk7.thoughts, byModel, days30 }
     };
   });
   // 后台/系统调用(入库、判题、cron 等拿不到请求用户)单列一行,不摊到任何人头上
