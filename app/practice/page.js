@@ -318,15 +318,57 @@ function PracticeInner() {
       </div>
     );
     const doneVals = Object.values(done); const right = doneVals.filter(Boolean).length;
+    // 【上传做题:做完给一份整卷汇总】和模拟考的成绩页一个意思 —— 一次看完每道题对错、
+    // 自己写的是什么、标准答案与解析。数据都是现成的:answers[qid] 里存着每题的 {sel,text,result}。
+    const isQuiz = mode === "quiz" && questions.length >= 1;
     return (
-      <div className="mt-16 text-center space-y-4">
-        <div className="text-5xl">{right === doneVals.length ? "🎉" : "💪"}</div>
-        <h1 className="text-2xl font-bold">{t("本轮完成:")}{right} / {doneVals.length}</h1>
-        <div className="flex gap-2 justify-center">
-          <button className="btn" onClick={loadQuestions}>{t("再来一轮")}</button>
-          <a className="btn-ghost" href="/mistakes">{t("错题本")}</a>
-          <a className="btn-ghost" href="/">{t("回首页")}</a>
-        </div>
+      <div className={isQuiz ? "space-y-3 md:mt-14 pb-4" : "mt-16 text-center space-y-4"}>
+        {isQuiz ? (
+          <>
+            <div className="card border-0 bg-gradient-to-br from-amber-600 to-amber-700 text-center text-white">
+              <p className="text-sm text-amber-100">{t("这份卷子做完了")}</p>
+              <p className="my-1 text-5xl font-bold">{doneVals.length ? Math.round((right / doneVals.length) * 100) : 0}%</p>
+              <p className="text-sm text-amber-100">{right} / {doneVals.length} {t("题")}</p>
+            </div>
+            {questions.map((qq, i) => {
+              const a = answers[qq.id] || {};
+              const r = a.result || null;
+              const mine = qq.qtype === "fill" || qq.qtype === "short" ? (a.text || "") : (a.sel || []).slice().sort().join("");
+              const ok = done[qq.id];
+              return (
+                <div key={qq.id} className={`card py-3 ${ok ? "border-emerald-200" : "border-rose-200"}`}>
+                  <div className="flex items-start gap-2">
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${ok ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{i + 1} {ok ? "✓" : "✗"}</span>
+                    <div className="min-w-0 flex-1 text-sm"><MD inline>{qq.body?.stem || ""}</MD></div>
+                  </div>
+                  {r ? (
+                    <div className="mt-2 space-y-1 text-xs">
+                      <p><span className="text-slate-400">{t("你的作答:")}</span> <span className={ok ? "text-emerald-700" : "text-rose-700"}>{mine || t("(未答)")}</span>{r.score != null && (qq.qtype === "short" || qq.qtype === "fill") ? ` · ${r.score}${t("分")}` : ""}</p>
+                      <p><span className="text-slate-400">{t("标准答案:")}</span> <MD inline>{String(r.answer || "")}</MD></p>
+                      {r.explanation && <details><summary className="cursor-pointer text-slate-400">{t("解析")}</summary><div className="mt-1 text-slate-600"><MD>{r.explanation}</MD></div></details>}
+                      {r.feedback && <p className="text-slate-500">{r.feedback}</p>}
+                    </div>
+                  ) : <p className="mt-1 text-xs text-slate-400">{t("(未答)")}</p>}
+                </div>
+              );
+            })}
+            <div className="flex flex-wrap justify-center gap-2 pt-1">
+              <a className="btn-ghost" href="/upload-quiz">{t("再传一份卷子")}</a>
+              <a className="btn-ghost" href="/mistakes">{t("错题本")}</a>
+              <a className="btn-ghost" href="/">{t("回首页")}</a>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-5xl">{right === doneVals.length ? "🎉" : "💪"}</div>
+            <h1 className="text-2xl font-bold">{t("本轮完成:")}{right} / {doneVals.length}</h1>
+            <div className="flex gap-2 justify-center">
+              <button className="btn" onClick={loadQuestions}>{t("再来一轮")}</button>
+              <a className="btn-ghost" href="/mistakes">{t("错题本")}</a>
+              <a className="btn-ghost" href="/">{t("回首页")}</a>
+            </div>
+          </>
+        )}
       </div>
     );
   }
