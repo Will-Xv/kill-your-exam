@@ -48,42 +48,6 @@ function fmtTok(n) {
 }
 
 
-// 【给存量资料补索引】2026-08 之前上传的 PDF/图片没有 chunks,既不再被强制投喂、又检索不到 = 失联。
-// 先 GET 预览份数(不花钱),确认后再 POST 真跑(后台串行,token 记到各资料主人头上)。
-function BackfillIndex({ t }) {
-  const [info, setInfo] = React.useState(null);
-  const [busy, setBusy] = React.useState(false);
-  const [msg, setMsg] = React.useState("");
-  const load = () => fetch("/api/admin/backfill-index").then((r) => (r.ok ? r.json() : null)).then(setInfo).catch(() => {});
-  React.useEffect(() => { load(); }, []);
-  if (!info) return null;
-  const mb = Math.round((info.bytes || 0) / 1048576);
-  return (
-    <div className="card">
-      <h2 className="font-bold text-sm">🧩 {t("给存量资料补建检索索引")}</h2>
-      {info.total === 0 ? (
-        <p className="mt-1 text-xs text-stone-500">✅ {t("所有 PDF/图片都已建好索引,不用补。")}</p>
-      ) : (
-        <>
-          <p className="mt-1 text-xs text-stone-600">
-            {t("有 {n} 份资料还没有索引").replace("{n}", info.total)}（PDF {info.pdf} · {t("图片")} {info.image} · {mb} MB · {info.users} {t("位用户")}）
-          </p>
-          <p className="mt-1 text-[11px] text-stone-400">{t("它们是新规则上线前传的:现在既不会被强制投喂、也检索不到,等于失联。补建要把每份读一遍(一次性花费),之后每次调用都省。")}</p>
-          <button className="btn mt-2 py-2 text-sm" disabled={busy || info.running}
-            onClick={async () => {
-              if (!await confirmDialog(t("现在补建?会把这些资料各读一遍,产生一次性 token 花费(记在各自主人账上)。"))) return;
-              setBusy(true);
-              try { const d = await fetch("/api/admin/backfill-index", { method: "POST" }).then((r) => r.json());
-                setMsg(d.ok ? t("已在后台开始,完成后这里会显示 0 份。") : t("已经在跑了,别重复点。")); } catch { setMsg(t("启动失败")); }
-              setBusy(false); load();
-            }}>{info.running ? t("补建中…") : t("开始补建")}</button>
-          {msg && <p className="mt-1 text-xs text-amber-700">{msg}</p>}
-        </>
-      )}
-    </div>
-  );
-}
-
 export default function Admin() {
   const t = useT();
   const [data, setData] = useState(null);
@@ -106,7 +70,6 @@ export default function Admin() {
       <p className="text-xs text-stone-400">{t("出于隐私考虑,这里只显示使用频率,看不到任何人的学习内容。")}</p>
       <DevSwitcher t={t} />
       <DevAccount t={t} />
-      <BackfillIndex t={t} />
       {data.tokenAll && (
         <div className="card">
           <h2 className="font-bold text-sm">🔥 {t("Token 总消耗(全站)")}</h2>
