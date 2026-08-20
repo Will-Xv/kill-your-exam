@@ -131,6 +131,7 @@
 
 ## 十五之二、上传文件做题（`app/upload-quiz` · `app/api/quiz-upload`）
 - 独立入口「上传做题」(feature `quizupload`)。传一份带题目的文件(图片/PDF/文档)→`quiz-upload` 多模态(attachParts/File API)识别出**每道题**(题干/选项/qtype),**文件没给答案就让 AI 解出正确答案**(为了判分;区别于 bank_paste 只存真题不解题)→每道题 `embed`+`cosine` **语义就近绑一个叶子知识点**(匹配不到就绑最接近的)→入 `questions`(kp_id 设好、origin=upload、is_real=1)。
+- **多小问的大题不再拆开（2026-08）**：一道大题下带 (1)(2)(3) 小问时，AI 原先会把每个小问识别成**独立一题**，于是小问脱离了大题主干（「设 f(x)=…」、那段材料、那张图表）→ **题干丢失、根本没法作答**（Will 反馈）。提示词已明确：**大题主干＋全部小问合并进同一个 `stem`**，保留小问编号，`qtype` 取能覆盖整题的（通常 short），`answer`/`explanation` 按同样编号逐条列全。★各小问之间要求用**空行**分隔——`components/MD.js` 没启用 breaks 插件，Markdown 里单换行不生效、小问会挤成一坨；用空行即可正确分行，**无需改动全站渲染**（改 MD 影响面太大）。
 - **做完给整卷汇总（2026-08）**：上传做题只要识别出 **≥1 题**，全部做完后不再只显示「本轮完成 N/M」，而是像模拟考成绩页一样给**整卷回顾**：顶部得分（百分比＋对题数），下面逐题列出 ✓/✗、**你的作答**、**标准答案**、可折叠**解析**与 AI 点评；底部「再传一份卷子／错题本／回首页」。数据全部现成：`answers[qid]` 里存着每题的 `{sel,text,result}`（`next()` 时写入），`result` 含 `correct/score/answer/explanation/feedback`，无需额外请求。**仅 `mode=quiz` 走这个汇总**，自由练习/复习仍是原来的轻量结束页。
 - **改走练习页(2026-07)**:`/upload-quiz` 只上传+识别,拿到题 id 后跳 `/practice?mode=quiz&ids=<csv>`,把上传的题载进【练习页】复用全套体验(独立无杀手、追问/争论、草稿纸、手写、刷新恢复)。新增 `app/api/questions/byids`(按 id 顺序返回题);练习页 `mode=quiz` 分支走 byids、关预取、storeKey 含 ids 使刷新保留。掌握度仍靠 `/api/questions/answer` 的 `attempts.kp_id` 自动记进对应知识点。数学渲染:抽题提示词严禁把整句正文包进 $...$(否则 KaTeX 整段当公式),只用行内 $ 包公式本身+正确 LaTeX。
 - **重新识别/重新上传 + 去出题标(2026-07)**:quiz 模式"题目有问题"→两选项(重新识别上传的文件 / 重新上传文件)。`quiz_sessions` 存上传文件 File API parts(约48h)+题id,URL 带 `quiz=<sid>`;`quiz-upload` 支持 `reRecognize`(复用 parts 重跑、删掉未作答的旧题)。quiz 模式隐藏「换一批」「AI出题/真题」徽章。
