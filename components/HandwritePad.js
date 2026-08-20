@@ -129,6 +129,25 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     im.src = prev;
   }
 
+  useEffect(() => { setup(); }, []); // eslint-disable-line
+  useEffect(() => { try { setDbg(new URLSearchParams(window.location.search).get("pendebug") === "1"); } catch {} }, []);
+  useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} applyTouch(); }, [fingerScroll]);
+  useEffect(() => { applyTouch(); }, []);   // 首次挂载套用一次(JSX 已不再设 touchAction)
+
+  // 【笔上的原生按钮 = 临时橡皮擦】按 W3C Pointer Events 规范判断,不针对任何厂商:
+  //   buttons & 32 = 笔尾/橡皮头(Surface Pen 倒过来擦、Wacom 反转笔)
+  //   buttons & 2  = 笔杆上的侧键(三星 S Pen 按住侧键、多数主动笔)
+  // 命中任一就【临时】按橡皮走(松开即恢复原来选的笔/橡皮),不改用户选的工具。
+  // Apple Pencil 无按钮 → 两位都不会置位,行为不受影响。
+  function penErasing(e) {
+    if (!e) return false;
+    if (e.pointerType === "eraser") return true;             // 少数浏览器直接把橡皮头报成独立指针类型
+    if (e.pointerType !== "pen") return false;
+    const b = e.buttons || 0;
+    if ((b & 32) !== 0 || (b & 2) !== 0) return true;        // 32=笔尾/橡皮头,2=笔杆侧键
+    return btnEraseRef.current;                               // 落笔那一刻按钮就按着(有的浏览器只在 pointerdown 报一次)
+  }
+
   // 把主画布现状整幅复制进影子(初次载入、扩充、清空之后各调一次)
   function syncShadow() {
     try {
