@@ -41,6 +41,16 @@
 - **超大 PDF**(旧)：`lib/pdfSplit.js` 抽页(`extractPdfPages`)/拆片(`splitPdfBySize`)/页数(`pdfPageCount`),被 referenceResolve 与上面的拆页读复用。
 - **Chrome 采集扩展**（`extension/`）：从已登录学习站采内容（含图/音/PDF）进资料库，不碰密码；`app/api/ingest` + 采集令牌 `ingest_tokens`；Agent 模式可自动翻页采（只读、禁点提交/购买/删除）。**【网站入口与提示词已于 2026-07 下线】`app/collector` 页面已删除、设置页入口已移除、杀手的 browser_task 工具已删;扩展源码与后端接口保留,想重启只需把入口加回来。**
 
+## 四之二、省 token：普通 PDF/图片建索引 + 停止强制投喂全文（2026-08 · 成本治理）
+> **根因**：`lib/parse.js` 对 PDF/图片一律 `text:""`（故意不抽字，避免 pdf-parse 半吊子文字）→ 它们**一个 chunk 都没有**、RAG 永远检索不到 → 模型只能靠"每次调用强制附整份原件"看资料。而 **Gemini 对 PDF 按页计费（~258 token/页）**，一本 300 页教材 ≈ 7.7 万 token，**每次调用重复计一遍**。这才是账单爆炸主因（不是聊天）。
+- **① 上传时后台建索引**（`lib/pdfIndex.js`）：`indexPdfOutline`（普通 PDF：整份读**一次**，让 Gemini 按页分节输出 `起页-止页 | 要点`，落成多段 chunks，`heading_path='p:a-b'`）、`indexImageMaterial`（图片：多模态读成含图上文字/公式/图表含义的一段 chunk，`heading_path='img'`）；>45MB 仍走原 `indexBigPdf` 拆片。均在 `materialIngest` 后台跑，**每份资料一次性**成本，换掉此后每次调用的整本重复投喂。
+- **② 拆掉隐形炸弹**：`materialParts` 默认 `max` **20→0**（必须显式指定才附）；`mmOpts` **不再默认附整库**，只挂调用方明确给的 `extraParts`。此前任何调用方一不留神就把整个资料库塞进一次请求。
+- **③ 判题不附资料**：`questions/answer`、`mock/submit` 的 `mp=[]`——评分要点本就在提示里，附教材对判分零帮助。（mock 每道简答题原先都附一次，最狠。）
+- **④ 出题/讲解/追问/探索：只送 RAG 命中片段**，新增 `hitMediaParts(examId, hits, max)`——只有当**检索命中的那份资料本身是图片/音频**（听力题、看图讲解真需要原件）时才挂**那一两份**。
+- **⑤ 杀手不再每轮硬塞 3 份原件**：它有 `read_material`(按 id 读全文) / `query_knowledge_base`(检索) 两个工具，需要时**自己去取**——"模型主动看"只在有工具循环的杀手侧成立；出题/判题/讲解/追问是**单次调用 `tools=0`**，模型无法索要，所以那几处必须靠 RAG 喂到位。
+- **保留全量投喂的例外**：`buildKnowledgeTree`(`max:60`) 与 `augmentKnowledgeTree`(`max:8`) —— 建树/补树本就需要通读全部教材，且**每门考试仅一次**，故显式传 parts 保留。
+- **工具轮次上限 12→24**（`MAX_TOOL_ROUNDS`）：Will 要求**不许收紧**，为后续"工具改成模型语义搜索再调用"留余量。
+
 ## 五、知识点树 & 掌握度（`app/study`,`app/knowledge` · `lib/mastery.js`）
 - 个性化知识地图，按掌握度着色（mastered/ok/weak/unlearned）+ 资料覆盖点（🟢🟡⚪）。`knowledge_points`（含 parent_id 章节、sort、root_cause）。
 - **掌握度=理解而非对错**：`masteryMatrix(examId)` 共享 `attemptVal(a)` 把作答/简答推理/讨论/标记折算成证据，**近期加权**；`kpMasteryLevel`、`leafKpList`、`examSummary`（weak/rootCauseKps）。

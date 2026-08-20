@@ -34,11 +34,11 @@ async function gradeMock(user, exam, mockId, ids, marksMap, answers, attachments
         crossKp: { type: "array", items: { type: "object", properties: { kpId: { type: "integer" }, kind: { type: "string", enum: ["understanding", "misconception"] }, insight: { type: "string" } }, required: ["kpId", "kind"] } } }, required: ["score"] };
       let g;
       if (ap.length) {
-        const mp = await materialParts(exam.id, { max: 4 });
+        const mp = [];   // 【判题不附资料】同 questions/answer:评分要点已在提示里
         const res = await generate(null, { contents: [{ role: "user", parts: [{ text: gradePrompt }, ...ap, ...mp] }], jsonSchema: gradeSchema });
         g = JSON.parse(res.text);
       } else {
-        g = await generateJson(gradePrompt, gradeSchema, await mmOpts(exam.id, gradePrompt));
+        g = await generateJson(gradePrompt, gradeSchema);   // 【判题不附资料】原先 mmOpts 默认会挂最多 20 份整份原件,每道简答题一次
       }
       shortScore = Math.max(0, Math.min(100, g.score || 0)); correct = shortScore >= 60 ? 1 : 0;
       gradeCross = g.crossKp;

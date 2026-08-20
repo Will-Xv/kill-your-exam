@@ -1,7 +1,7 @@
 import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, attachParts, handSliceNote, draftAttachNote } from "@/lib/gemini";
-import { retrieve, ragBlock, materialParts } from "@/lib/rag";
+import { retrieve, ragBlock, materialParts, hitMediaParts } from "@/lib/rag";
 import { aiErrorResponse } from "@/lib/errors";
 import { learnerKpContext } from "@/lib/learnerContext";
 
@@ -48,7 +48,7 @@ ${learnerHist ? "【这位考生在此知识点上的历史(据此因材施教)�
     const system = (mode === "socratic" ? socraticSystem : discussSystem) + (extra ? `\n\n${extra}` : "");
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
     const ap = await attachParts(attachments);
-    const mp = await materialParts(exam.id, { max: 4 });
+    const mp = await hitMediaParts(exam.id, hits, 2);   // 【只挂命中的图/音频】文字要点走上面的 RAG 检索,不再无差别附整份原件
     if ((ap.length || mp.length) && contents.length) contents[contents.length - 1].parts = [{ text: contents[contents.length - 1].parts[0].text }, ...ap, ...mp];
     const res = await generate(null, { contents, system });
     const reply = res.text || "(未生成回复)";
