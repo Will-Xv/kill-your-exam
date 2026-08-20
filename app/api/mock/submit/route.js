@@ -1,3 +1,4 @@
+import { runAsUser } from "@/lib/reqctx";   // 后台判题产生的 token 归考生本人
 import db from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generateJson, generate, langInstruction, attachParts, handSliceNote } from "@/lib/gemini";
@@ -85,8 +86,8 @@ export async function POST(req) {
     // 标记为判题中 + 记录起点 → 后台判题(Railway 常驻进程,后台 promise 可存活)→ 立即返回,不让用户干等。
     // (若上一次判题卡死超过 STALE_MS,这里会重新触发一份,自愈。)
     db.prepare("UPDATE mock_exams SET status='grading', grade_started_at=datetime('now') WHERE id=?").run(mockId);
-    Promise.resolve().then(() => gradeMock(user, exam, mockId, ids, marksMap, answers, attachments))
-      .catch((e) => { try { db.prepare("UPDATE mock_exams SET status='failed' WHERE id=?").run(mockId); } catch {} });
+    runAsUser(user?.id, () => Promise.resolve().then(() => gradeMock(user, exam, mockId, ids, marksMap, answers, attachments))
+      .catch((e) => { try { db.prepare("UPDATE mock_exams SET status='failed' WHERE id=?").run(mockId); } catch {} }));
     return Response.json({ status: "grading", mockId });
   } catch (e) { return aiErrorResponse(e); }
 }
