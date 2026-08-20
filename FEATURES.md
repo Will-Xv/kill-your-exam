@@ -49,7 +49,7 @@
 - **④ 出题/讲解/追问/探索：只送 RAG 命中片段**，新增 `hitMediaParts(examId, hits)`——只有当**检索命中的那份资料本身是图片/音频**（听力题、看图讲解真需要原件）时才挂，**命中几份挂几份、不设条数上限**（Will：万一真需要很多呢）。天然上限是 `retrieve` 的 k（通常 4~6 条）且须 `kind∈{image,audio}`，不会失控。
 - **⑤ 杀手不再每轮硬塞 3 份原件**：它有 `read_material`(按 id 读全文) / `query_knowledge_base`(检索) 两个工具，需要时**自己去取**——"模型主动看"只在有工具循环的杀手侧成立；出题/判题/讲解/追问是**单次调用 `tools=0`**，模型无法索要，所以那几处必须靠 RAG 喂到位。
 - **保留全量投喂的例外**：`buildKnowledgeTree`(`max:60`) 与 `augmentKnowledgeTree`(`max:8`) —— 建树/补树本就需要通读全部教材，且**每门考试仅一次**，故显式传 parts 保留。
-- **⑥ 给存量资料补索引**（`lib/backfillIndex.js` · `/api/admin/backfill-index` · 管理面板按钮）：新规则上线【前】上传的 PDF/图片没有 chunks，会**既不被投喂、又检索不到 = 失联**。管理面板显示待补份数/大小/涉及用户（GET 只预览、不花钱），确认后 POST 后台**串行**补建。**幂等**：只处理当前 `chunks` 数为 0 的资料，重复跑不会重复花钱；**归属**：每份的 token 用 `runAsUser` 记到该资料所属考试的主人头上；完成后对相关考试跑 `afterMaterialsChanged` 重算资料覆盖度。
+- **⑥ 存量资料自动补索引**（`lib/backfillIndex.js` · 挂在 `lib/cron.js`，**无人工入口**）：新规则上线【前】上传的 PDF/图片没有 chunks，会**既不被投喂、又检索不到 = 失联**。故**应用启动 60 秒后自动扫一遍**，之后**每 6 小时**再扫，并兼顾【上传时建索引失败】的漏网（下一轮自动重试）。**幂等**：只挑当前 `chunks` 数为 0 的资料——补完后每轮扫描只是一句 SQL，不花钱，也不会重复计费；**串行**逐份补，不并发轰炸 API；**归属**：每份用 `runAsUser` 记到该资料所属考试的主人头上；收尾对相关考试跑 `afterMaterialsChanged` 重算覆盖度。进度看日志 `[BACKFILL]`。
 - **工具轮次上限 12→24**（`MAX_TOOL_ROUNDS`）：Will 要求**不许收紧**，为后续"工具改成模型语义搜索再调用"留余量。
 
 ## 五、知识点树 & 掌握度（`app/study`,`app/knowledge` · `lib/mastery.js`）
