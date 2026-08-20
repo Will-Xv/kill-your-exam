@@ -45,7 +45,7 @@ ${learnerKpContext(kp.id) || "(暂无历史记录)"}
     if (!contents.length) contents.push({ role: "user", parts: [{ text: "(开场:点出这个主题最值得琢磨的地方,然后邀请我就它提问)" }] });  // Gemini 需要至少一条用户消息,否则空 contents 会报错、误弹"API出问题"
     let ap = [];
     try { const { attachParts } = await import("@/lib/gemini"); ap = await attachParts(attachments); } catch {}
-    const mp = await hitMediaParts(exam.id, hits, 2);   // 【只挂命中的图/音频】文字要点走上面的 RAG 检索,不再无差别附整份原件
+    const mp = await hitMediaParts(exam.id, hits);   // 【只挂命中的图/音频】文字要点走上面的 RAG 检索,不再无差别附整份原件
     if ((ap.length || mp.length) && contents.length) contents[contents.length - 1].parts = [{ text: contents[contents.length - 1].parts[0].text }, ...ap, ...mp];
     const res = await generate(null, { contents, system });
     let reply = res.text || "(未生成回复)";

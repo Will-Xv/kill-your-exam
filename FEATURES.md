@@ -46,7 +46,7 @@
 - **① 上传时后台建索引**（`lib/pdfIndex.js`）：`indexPdfOutline`（普通 PDF：整份读**一次**，让 Gemini 按页分节输出 `起页-止页 | 要点`，落成多段 chunks，`heading_path='p:a-b'`）、`indexImageMaterial`（图片：多模态读成含图上文字/公式/图表含义的一段 chunk，`heading_path='img'`）；>45MB 仍走原 `indexBigPdf` 拆片。均在 `materialIngest` 后台跑，**每份资料一次性**成本，换掉此后每次调用的整本重复投喂。
 - **② 拆掉隐形炸弹**：`materialParts` 默认 `max` **20→0**（必须显式指定才附）；`mmOpts` **不再默认附整库**，只挂调用方明确给的 `extraParts`。此前任何调用方一不留神就把整个资料库塞进一次请求。
 - **③ 判题不附资料**：`questions/answer`、`mock/submit` 的 `mp=[]`——评分要点本就在提示里，附教材对判分零帮助。（mock 每道简答题原先都附一次，最狠。）
-- **④ 出题/讲解/追问/探索：只送 RAG 命中片段**，新增 `hitMediaParts(examId, hits, max)`——只有当**检索命中的那份资料本身是图片/音频**（听力题、看图讲解真需要原件）时才挂**那一两份**。
+- **④ 出题/讲解/追问/探索：只送 RAG 命中片段**，新增 `hitMediaParts(examId, hits)`——只有当**检索命中的那份资料本身是图片/音频**（听力题、看图讲解真需要原件）时才挂，**命中几份挂几份、不设条数上限**（Will：万一真需要很多呢）。天然上限是 `retrieve` 的 k（通常 4~6 条）且须 `kind∈{image,audio}`，不会失控。
 - **⑤ 杀手不再每轮硬塞 3 份原件**：它有 `read_material`(按 id 读全文) / `query_knowledge_base`(检索) 两个工具，需要时**自己去取**——"模型主动看"只在有工具循环的杀手侧成立；出题/判题/讲解/追问是**单次调用 `tools=0`**，模型无法索要，所以那几处必须靠 RAG 喂到位。
 - **保留全量投喂的例外**：`buildKnowledgeTree`(`max:60`) 与 `augmentKnowledgeTree`(`max:8`) —— 建树/补树本就需要通读全部教材，且**每门考试仅一次**，故显式传 parts 保留。
 - **工具轮次上限 12→24**（`MAX_TOOL_ROUNDS`）：Will 要求**不许收紧**，为后续"工具改成模型语义搜索再调用"留余量。
