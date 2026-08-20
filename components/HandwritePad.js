@@ -22,6 +22,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   const ctxRef = useRef(null);
   const drawing = useRef(false);
   const last = useRef(null);
+  const midRef = useRef(null);   // 上一个"中点":用中点+二次贝塞尔画,笔画才圆滑、不出折角
   const penSeen = useRef(false);
   const undoStack = useRef([]);
   const dirty = useRef(false);
@@ -222,7 +223,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     ring(e, tool === "eraser" || penErasing(e));
     beginStroke();
     try { rectRef.current = canvasRef.current.getBoundingClientRect(); } catch {}   // 整笔复用这次测量
-    drawing.current = true; last.current = pos(e);
+    drawing.current = true; last.current = pos(e); midRef.current = last.current;
     growBBox(last.current.x, last.current.y, tool === "eraser" || penErasing(e) ? ERASER_W : 5);
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch {}
   }
@@ -257,13 +258,31 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     if (!drawing.current) return;
     if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return;
     e.preventDefault();
-    const ctx = ctxRef.current; const p = pos(e);
-    const pressure = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
-    if (tool === "eraser" || penErasing(e)) { ctx.strokeStyle = "#ffffff"; ctx.lineWidth = ERASER_W; }
-    else { ctx.strokeStyle = "#111111"; ctx.lineWidth = 1.2 + pressure * 3.2; }
-    ctx.beginPath(); ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-    growBBox(last.current.x, last.current.y, ctx.lineWidth); growBBox(p.x, p.y, ctx.lineWidth);
-    last.current = p; dirty.current = true;
+    const ctx = ctxRef.current;
+    const erasing = tool === "eraser" || penErasing(e);
+    // 【取回被合并掉的采样点】浏览器每帧只派发一个 pointermove,但触控笔采样率 120~240Hz,
+    // 中间的点被打包在事件里 —— 不用 getCoalescedEvents() 取出来,一笔快写下去就只剩每帧一个点,
+    // lineTo 把它们连成长直线段(就是"笔画头尾被连成直线"的由来);主线程一卡掉帧,直线更长。
+    let samples = [e];
+    try { const co = e.getCoalescedEvents && e.getCoalescedEvents(); if (co && co.length) samples = co; } catch {}
+    for (const ev of samples) {
+      const p = pos(ev);
+      const pressure = ev.pressure && ev.pressure > 0 ? ev.pressure : 0.5;
+      if (erasing) { ctx.strokeStyle = "#ffffff"; ctx.lineWidth = ERASER_W; }
+      else { ctx.strokeStyle = "#111111"; ctx.lineWidth = 1.2 + pressure * 3.2; }
+      // 【中点二次曲线】以"上一个中点 → 本次中点"为一段,把上一个采样点当控制点:
+      // 相邻线段天然相切,不会出现折角,比直接 lineTo 顺滑得多。
+      const m = { x: (last.current.x + p.x) / 2, y: (last.current.y + p.y) / 2 };
+      ctx.beginPath();
+      ctx.moveTo(midRef.current.x, midRef.current.y);
+      ctx.quadraticCurveTo(last.current.x, last.current.y, m.x, m.y);
+      ctx.stroke();
+      growBBox(midRef.current.x, midRef.current.y, ctx.lineWidth);
+      growBBox(last.current.x, last.current.y, ctx.lineWidth);
+      growBBox(p.x, p.y, ctx.lineWidth);
+      midRef.current = m; last.current = p;
+    }
+    dirty.current = true;
   }
   // 【别再每抬一次笔就同步编码整张画布】toDataURL 是同步的,画布扩充后要编码上千万像素,
   // 每一笔结束都卡一下 —— 这就是"书写变迟钝"的主因。改成:
@@ -294,7 +313,17 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   // 笔【悬停进入】时就先锁死手势 —— touch-action 是在手势【开始那一刻】判定的,等 pointerdown 再设就晚了
   function hover(e) { if (e.pointerType === "pen" || e.pointerType === "eraser") { penSeen.current = true; applyTouch(); } }
   function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); emit(true); }   // 笔离开画布 → 立刻落定,别等防抖 // 笔/手指离开 -> 恢复该模式的手势
-  function up() { const wasDrawing = drawing.current; drawing.current = false; last.current = null; rectRef.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); if (wasDrawing) commitStroke(); emit(); }
+  function up() {
+    // 收尾:把"最后一个中点 → 最后一个采样点"这一小段补上,否则每笔末端会短一截
+    try {
+      if (drawing.current && ctxRef.current && last.current && midRef.current) {
+        const ctx = ctxRef.current;
+        ctx.beginPath(); ctx.moveTo(midRef.current.x, midRef.current.y); ctx.lineTo(last.current.x, last.current.y); ctx.stroke();
+        growBBox(last.current.x, last.current.y, ctx.lineWidth);
+      }
+    } catch {}
+    midRef.current = null;
+    const wasDrawing = drawing.current; drawing.current = false; last.current = null; rectRef.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); if (wasDrawing) commitStroke(); emit(); }
 
   function undo() {
     const s = undoStack.current.pop();
