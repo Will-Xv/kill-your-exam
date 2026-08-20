@@ -154,15 +154,14 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
   // 笔悬停/落笔时把画布 touch-action 临时设为 none(笔一定用于书写,不会被浏览器当成平移/滚动);笔离开再恢复
-  // 【touch-action 只由这里管,JSX 不许再设】以前 canvas 上有 style={{touchAction:...}},
-  // 而 penForceDraw() 又用 JS 直接改 canvas.style —— React 每重渲染一次就把 JS 设的值覆盖回去。
-  // 加上笔按钮状态/橡皮光圈/扩充计数带来的频繁重渲染,结果就是"写几笔之后笔开始滑屏"。
-  // 规则:【只要这个画板上用过笔,画布内一律 none】—— 笔在书写区内绝不能滑屏(要滑就到区域外滑)。
-  //       从没用过笔时才尊重"手指书写/手指滑动"开关。
+  // 【手指/笔的区分:靠 touch-action 的临时切换】笔一靠近(悬停或落笔)就把画布设成 none —— 笔写字、
+  // 绝不滑屏;笔离开再恢复成手指模式,手指照常滑页面。这套机制【本来就是好的】。
+  // ★真正的病:canvas 的 JSX 上也写过 style={{touchAction:...}},于是【React 每重渲染一次,
+  //   就把这里用 JS 设好的值覆盖回去】—— 本轮新增的笔按钮状态/橡皮光圈/扩充计数让重渲染变频繁,
+  //   笔就"写几笔之后开始滑屏"。修法只有一条:JSX 不许再设 touchAction,只由这里管。
   function applyTouch() {
     const c = canvasRef.current;
-    if (!c) return;
-    c.style.touchAction = penSeen.current ? "none" : (fingerScroll ? "manipulation" : "none");
+    if (c) c.style.touchAction = fingerScroll ? "manipulation" : "none";
   }
   function penForceDraw() { const c = canvasRef.current; if (c) c.style.touchAction = "none"; }
   function restoreTouch() { applyTouch(); }
@@ -211,7 +210,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   }
 
   function down(e) {
-    if (e.pointerType === "pen" || e.pointerType === "eraser") { penSeen.current = true; applyTouch(); if (!fingerScroll) setFingerScroll(true); } // 用过笔 → 画布内彻底禁止手势滚动
+    if (e.pointerType === "pen" || e.pointerType === "eraser") { penSeen.current = true; penForceDraw(); if (!fingerScroll) setFingerScroll(true); } // 一旦用笔,手指自动改为滚动页面
     if (e.pointerType === "touch" && (fingerScroll || penSeen.current)) return; // 手指用于滚动/防手掌误触,不当作书写
     if (e.pointerType === "pen" || e.pointerType === "eraser") {
       // 有的浏览器只在 pointerdown 的 button 里报一次侧键/橡皮头(之后 buttons 只剩 1),所以这里记下来
@@ -310,8 +309,8 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     emitTimer.current = setTimeout(doEmit, 400);
   }
   useEffect(() => () => { clearTimeout(emitTimer.current); }, []);
-  // 笔【悬停进入】时就先锁死手势 —— touch-action 是在手势【开始那一刻】判定的,等 pointerdown 再设就晚了
-  function hover(e) { if (e.pointerType === "pen" || e.pointerType === "eraser") { penSeen.current = true; applyTouch(); } }
+  // 笔【悬停进入】时就先切成"不可滑" —— touch-action 是在手势【开始那一刻】判定的,等 pointerdown 再设就晚了
+  function hover(e) { if (e.pointerType === "pen" || e.pointerType === "eraser") penForceDraw(); }
   function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); emit(true); }   // 笔离开画布 → 立刻落定,别等防抖 // 笔/手指离开 -> 恢复该模式的手势
   function up() {
     // 收尾:把"最后一个中点 → 最后一个采样点"这一小段补上,否则每笔末端会短一截
@@ -374,7 +373,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
           <button type="button" onClick={() => setFingerScroll(true)} className={`rounded-full px-2.5 py-1 transition ${fingerScroll ? "bg-amber-500 font-medium text-white" : "text-slate-500"}`}>✋ {t("手指滑动")}</button>
         </div>
         {penErase && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">🧽 {t("笔上的按钮按住中:临时橡皮")}</span>}
-        <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写。用过笔之后,画布【内】不再响应滑动(免得笔一碰就把页面滑走)——要滑页面请在画布外滑。笔上有按钮或橡皮头的,按住即可直接擦。")}</span>
+        <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面。笔上有按钮或橡皮头的,按住即可直接擦。")}</span>
       </div>
       <div className="relative">
         <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerEnter={hover} onPointerLeave={leave} onPointerCancel={leave}
