@@ -29,7 +29,13 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   const [penErase, setPenErase] = useState(false); // 笔上的按钮正被按住(临时橡皮)
   const penEraseRef = useRef(false);
   const btnEraseRef = useRef(false);       // 本次落笔期间按钮一直算按着(兼容只在 pointerdown 上报按钮的浏览器)
-  const ringRef = useRef(null);            // 橡皮大小光圈(直接改 DOM,不走 state——否则每次移动都重渲染,书写会卡)
+  const ringRef = useRef(null);
+  // 【只存改动的那一小块】撤销以前是整幅画布快照(扩到13格时一张54MB),所以只能存3步。
+  // 改法:用一张【影子画布】保存"上一笔结束时"的画面;书写时记录这一笔的【包围盒】,
+  // 抬笔时只把包围盒那一小块的【旧像素】压进撤销栈(一般几十~几百KB),再把新画面同步进影子。
+  // 于是每步代价与画布高度无关,25 步也才几 MB —— 不必再牺牲撤销步数。
+  const shadowRef = useRef(null);      // 离屏画布:上一笔结束时的画面
+  const bboxRef = useRef(null);        // 这一笔的包围盒(设备像素)            // 橡皮大小光圈(直接改 DOM,不走 state——否则每次移动都重渲染,书写会卡)
   const [dbg, setDbg] = useState(false);   // ?pendebug=1 打开:实时显示本机上报的指针参数,用来定位"笔上按钮没反应"
   const dbgRef = useRef(null);
   const [slots, setSlots] = useState(1);   // 当前是初始高度的几倍(1=没扩充过)
@@ -50,6 +56,14 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctxRef.current = ctx;
     heightRef.current = cssH;
+    // 影子画布跟着一起重建(尺寸必须与主画布一致,否则撤销的坐标会错位)
+    try {
+      const sh = shadowRef.current || (shadowRef.current = document.createElement("canvas"));
+      sh.width = canvas.width; sh.height = canvas.height;
+      const sc = sh.getContext("2d");
+      sc.setTransform(1, 0, 0, 1, 0, 0);
+      sc.fillStyle = "#ffffff"; sc.fillRect(0, 0, sh.width, sh.height);
+    } catch {}
   }
 
   function setup() {
@@ -66,6 +80,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         rebuild(cssW, BASE_H * n);
         setSlots(n);
         try { ctxRef.current.drawImage(im, 0, 0, cssW, natH); dirty.current = true; } catch {}
+        syncShadow();   // 影子要和主画布一致,否则第一次撤销会贴回空白
       };
       im.onerror = () => { rebuild(cssW, BASE_H); };
       im.src = initial;
@@ -85,14 +100,15 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     let prev = null;
     try { prev = canvas.toDataURL("image/png"); } catch {}
     const grow = () => { rebuild(cssW, oldH + BASE_H); setSlots((n) => n + 1); };
-    if (!prev) { grow(); emit(true); return; }
+    if (!prev) { grow(); syncShadow(); emit(true); return; }
     const im = new Image();
     im.onload = () => {
       grow();
       try { ctxRef.current.drawImage(im, 0, 0, cssW, oldH); } catch {}  // 原样贴回顶部,不缩放
+      syncShadow();   // ★画布尺寸变了、内容重贴过,影子必须重新对齐,否则扩充后第一次撤销会把内容擦成空白
       emit(true);
     };
-    im.onerror = () => { grow(); emit(true); };
+    im.onerror = () => { grow(); syncShadow(); emit(true); };
     im.src = prev;
   }
 
@@ -117,6 +133,19 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   // 【缓存画布位置】pointermove 每秒可达上百次,每次都 getBoundingClientRect 会强制浏览器重算布局。
   // 落笔时量一次、整笔复用(书写过程中画布不会移动);悬停时没缓存就实时量。
   const rectRef = useRef(null);
+  // 把主画布现状整幅复制进影子(初次载入、扩充、清空之后各调一次)
+  function syncShadow() {
+    try {
+      const c = canvasRef.current, sh = shadowRef.current;
+      if (!c || !sh) return;
+      if (sh.width !== c.width || sh.height !== c.height) { sh.width = c.width; sh.height = c.height; }
+      const sc = sh.getContext("2d");
+      sc.setTransform(1, 0, 0, 1, 0, 0);
+      sc.clearRect(0, 0, sh.width, sh.height);
+      sc.drawImage(c, 0, 0);
+    } catch {}
+  }
+
   function pos(e) {
     const r = rectRef.current || canvasRef.current.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -127,15 +156,45 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   // 【撤销栈按字节封顶,不按条数】以前固定存 25 张整画布快照。画布可以扩充到 13 格,
   // 一张 1600×8840 的快照就 54MB —— 25 张 = 1.3GB 常驻,GC 压力直接把书写拖卡。
   // 改成按总字节封顶(48MB),画布越高能存的张数越少,但至少保住 3 步撤销。
-  const UNDO_MAX_BYTES = 48 * 1024 * 1024;
-  function snapshot() {
+  const UNDO_MAX_STEPS = 30;              // 现在每步只存一小块,存 30 步也很轻
+  const UNDO_MAX_BYTES = 64 * 1024 * 1024; // 兜底:极端情况(整幅清空)也不让总量失控
+  function undoBytes() { return undoStack.current.reduce((n, p) => n + (p.data ? p.data.data.length : 0), 0); }
+  function pushUndo(patch) {
+    if (!patch) return;
+    undoStack.current.push(patch);
+    while (undoStack.current.length > UNDO_MAX_STEPS || (undoStack.current.length > 1 && undoBytes() > UNDO_MAX_BYTES)) undoStack.current.shift();
+  }
+  // 落笔:开始记这一笔的包围盒(设备像素)
+  function beginStroke() { bboxRef.current = null; }
+  function growBBox(x, y, w) {   // x,y 是 CSS 像素;w=当前笔宽
     try {
-      const c = canvasRef.current;
-      undoStack.current.push(c.getContext("2d").getImageData(0, 0, c.width, c.height));
-      const per = c.width * c.height * 4;
-      const maxN = Math.max(3, Math.floor(UNDO_MAX_BYTES / Math.max(1, per)));
-      while (undoStack.current.length > maxN) undoStack.current.shift();
+      const dpr = window.devicePixelRatio || 1;
+      const pad = (w / 2 + 2) * dpr;
+      const px = x * dpr, py = y * dpr;
+      const b = bboxRef.current;
+      if (!b) bboxRef.current = { x0: px - pad, y0: py - pad, x1: px + pad, y1: py + pad };
+      else { b.x0 = Math.min(b.x0, px - pad); b.y0 = Math.min(b.y0, py - pad); b.x1 = Math.max(b.x1, px + pad); b.y1 = Math.max(b.y1, py + pad); }
     } catch {}
+  }
+  // 抬笔:把包围盒那一小块的【旧像素】(来自影子画布)压栈,再把新画面同步进影子
+  function commitStroke() {
+    try {
+      const c = canvasRef.current, sh = shadowRef.current, b = bboxRef.current;
+      bboxRef.current = null;
+      if (!c || !sh || !b) return;
+      const x = Math.max(0, Math.floor(b.x0)), y = Math.max(0, Math.floor(b.y0));
+      const w = Math.min(c.width - x, Math.ceil(b.x1 - b.x0) + 1), h = Math.min(c.height - y, Math.ceil(b.y1 - b.y0) + 1);
+      if (w <= 0 || h <= 0) return;
+      const sc = sh.getContext("2d");
+      pushUndo({ x, y, data: sc.getImageData(x, y, w, h) });   // 旧像素
+      sc.setTransform(1, 0, 0, 1, 0, 0);
+      sc.clearRect(x, y, w, h);
+      sc.drawImage(c, x, y, w, h, x, y, w, h);                 // 影子跟上新画面
+    } catch {}
+  }
+  // 整幅性改动(清空)才存整幅
+  function snapshotFull() {
+    try { const c = canvasRef.current; pushUndo({ x: 0, y: 0, data: c.getContext("2d").getImageData(0, 0, c.width, c.height) }); } catch {}
   }
 
   function down(e) {
@@ -149,9 +208,10 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     setPenErase(penErasing(e));
     if (dbg) report(e);
     ring(e, tool === "eraser" || penErasing(e));
-    snapshot();
+    beginStroke();
     try { rectRef.current = canvasRef.current.getBoundingClientRect(); } catch {}   // 整笔复用这次测量
     drawing.current = true; last.current = pos(e);
+    growBBox(last.current.x, last.current.y, tool === "eraser" || penErasing(e) ? ERASER_W : 5);
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch {}
   }
   // 橡皮光圈跟随:eraser=是否处于橡皮状态(手动选的或笔上按钮按住的)
@@ -190,6 +250,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     if (tool === "eraser" || penErasing(e)) { ctx.strokeStyle = "#ffffff"; ctx.lineWidth = ERASER_W; }
     else { ctx.strokeStyle = "#111111"; ctx.lineWidth = 1.2 + pressure * 3.2; }
     ctx.beginPath(); ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    growBBox(last.current.x, last.current.y, ctx.lineWidth); growBBox(p.x, p.y, ctx.lineWidth);
     last.current = p; dirty.current = true;
   }
   // 【别再每抬一次笔就同步编码整张画布】toDataURL 是同步的,画布扩充后要编码上千万像素,
@@ -220,10 +281,23 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
   useEffect(() => () => { clearTimeout(emitTimer.current); }, []);
   function hover(e) { if (e.pointerType === "pen") penForceDraw(); } // 笔悬停进入 -> 立刻可书写
   function leave() { restoreTouch(); if (ringRef.current) ringRef.current.style.display = "none"; up(); emit(true); }   // 笔离开画布 → 立刻落定,别等防抖 // 笔/手指离开 -> 恢复该模式的手势
-  function up() { drawing.current = false; last.current = null; rectRef.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); emit(); }
+  function up() { const wasDrawing = drawing.current; drawing.current = false; last.current = null; rectRef.current = null; btnEraseRef.current = false; penEraseRef.current = false; setPenErase(false); if (wasDrawing) commitStroke(); emit(); }
 
-  function undo() { const s = undoStack.current.pop(); if (s) { canvasRef.current.getContext("2d").putImageData(s, 0, 0); if (!undoStack.current.length) dirty.current = false; emit(true); } }
-  function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshot(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; emit(true); }
+  function undo() {
+    const s = undoStack.current.pop();
+    if (!s) return;
+    try {
+      const c = canvasRef.current, ctx2 = c.getContext("2d");
+      ctx2.save(); ctx2.setTransform(1, 0, 0, 1, 0, 0);
+      ctx2.putImageData(s.data, s.x, s.y);           // putImageData 用设备像素坐标,不受 scale 影响
+      ctx2.restore();
+      const sh = shadowRef.current;
+      if (sh) { const sc = sh.getContext("2d"); sc.setTransform(1, 0, 0, 1, 0, 0); sc.putImageData(s.data, s.x, s.y); }
+    } catch {}
+    if (!undoStack.current.length) dirty.current = false;
+    emit(true);
+  }
+  function clear() { const c = canvasRef.current, ctx = ctxRef.current; snapshotFull(); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); dirty.current = false; syncShadow(); emit(true); }
 
   useImperativeHandle(ref, () => ({
     getImage() {
