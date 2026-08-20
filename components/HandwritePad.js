@@ -91,51 +91,43 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     }
   }
 
-  // 【扩充手写区域】纵向拉长一个初始高度,原有笔迹原样保留(先存图→重建→贴回顶部),次数不限。
-  // 扩充后 emit() 一次,让父层存下的草稿也是这张更高的图,刷新回来高度不会缩水。
-  function expand() {
+  // 【扩充手写区域】纵向加长一个初始高度。dir="down" 往下加(默认),dir="up" 往上加。
+  // 往上加时:新空白出现在【顶部】,原有笔迹整体下移一格 —— 所以贴回时要落在 y=BASE_H,
+  // 而且【撤销栈里已存的小块坐标也必须整体下移】,否则之后撤销会贴到错的位置。
+  // 次数上限 MAX_EXPAND 由上下两个方向【共用】。
+  function expand(dir = "down") {
     const canvas = canvasRef.current, wrap = wrapRef.current;
     if (!canvas || !wrap) return;
     if (slots > MAX_EXPAND) return;   // 已到顶(按钮此时也是禁用的),不再拉长
     const cssW = wrap.clientWidth;
     const oldH = heightRef.current;
+    const up = dir === "up";
     let prev = null;
     try { prev = canvas.toDataURL("image/png"); } catch {}
-    const grow = () => { rebuild(cssW, oldH + BASE_H); setSlots((n) => n + 1); };
+    const grow = () => {
+      rebuild(cssW, oldH + BASE_H);
+      setSlots((n) => n + 1);
+      if (up) {
+        // 内容整体下移一格 → 撤销栈里每一块的 y 也要下移同样的设备像素
+        const dpr = window.devicePixelRatio || 1;
+        const dy = Math.round(BASE_H * dpr);
+        undoStack.current = undoStack.current.map((pt) => ({ ...pt, y: pt.y + dy }));
+        // 视觉稳定:画布向下长高、笔迹跟着下移,页面同步下滚一格,看起来笔迹没动
+        try { window.scrollBy(0, BASE_H); } catch {}
+      }
+    };
     if (!prev) { grow(); syncShadow(); emit(true); return; }
     const im = new Image();
     im.onload = () => {
       grow();
-      try { ctxRef.current.drawImage(im, 0, 0, cssW, oldH); } catch {}  // 原样贴回顶部,不缩放
-      syncShadow();   // ★画布尺寸变了、内容重贴过,影子必须重新对齐,否则扩充后第一次撤销会把内容擦成空白
+      try { ctxRef.current.drawImage(im, 0, up ? BASE_H : 0, cssW, oldH); } catch {}   // 往上扩就贴到下半部分
+      syncShadow();   // ★画布尺寸变了、内容重贴过,影子必须重新对齐,否则第一次撤销会把内容擦成空白
       emit(true);
     };
     im.onerror = () => { grow(); syncShadow(); emit(true); };
     im.src = prev;
   }
 
-  useEffect(() => { setup(); }, []); // eslint-disable-line
-  useEffect(() => { try { setDbg(new URLSearchParams(window.location.search).get("pendebug") === "1"); } catch {} }, []);
-  useEffect(() => { try { localStorage.setItem("kye_finger_scroll", fingerScroll ? "1" : "0"); } catch {} applyTouch(); }, [fingerScroll]);
-  useEffect(() => { applyTouch(); }, []);   // 首次挂载套用一次(JSX 已不再设 touchAction)
-
-  // 【笔上的原生按钮 = 临时橡皮擦】按 W3C Pointer Events 规范判断,不针对任何厂商:
-  //   buttons & 32 = 笔尾/橡皮头(Surface Pen 倒过来擦、Wacom 反转笔)
-  //   buttons & 2  = 笔杆上的侧键(三星 S Pen 按住侧键、多数主动笔)
-  // 命中任一就【临时】按橡皮走(松开即恢复原来选的笔/橡皮),不改用户选的工具。
-  // Apple Pencil 无按钮 → 两位都不会置位,行为不受影响。
-  function penErasing(e) {
-    if (!e) return false;
-    if (e.pointerType === "eraser") return true;             // 少数浏览器直接把橡皮头报成独立指针类型
-    if (e.pointerType !== "pen") return false;
-    const b = e.buttons || 0;
-    if ((b & 32) !== 0 || (b & 2) !== 0) return true;        // 32=笔尾/橡皮头,2=笔杆侧键
-    return btnEraseRef.current;                               // 落笔那一刻按钮就按着(有的浏览器只在 pointerdown 报一次)
-  }
-
-  // 【缓存画布位置】pointermove 每秒可达上百次,每次都 getBoundingClientRect 会强制浏览器重算布局。
-  // 落笔时量一次、整笔复用(书写过程中画布不会移动);悬停时没缓存就实时量。
-  const rectRef = useRef(null);
   // 把主画布现状整幅复制进影子(初次载入、扩充、清空之后各调一次)
   function syncShadow() {
     try {
@@ -361,6 +353,20 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
     reset() { clear(); undoStack.current = []; }
   }));
 
+  // 上下两个扩充键共用这一个渲染,免得改一处漏一处
+  const ExpandBtn = ({ dir }) => {
+    const atCap = slots > MAX_EXPAND;
+    const up = dir === "up";
+    return (
+      <button type="button" onClick={() => expand(dir)} disabled={atCap}
+        title={atCap ? t("页面扩充到顶了,试试其他方式提交吧,手写的答案可以和其他提交方式的答案一起被看到")
+                     : (up ? t("写不下了?点一下向上加一块空白,已写的内容不会动") : t("写不下了?点一下向下加一块空白,已写的内容不会动"))}
+        className={`w-full rounded-xl border border-dashed py-1.5 text-sm font-medium sm:w-auto sm:px-4 ${atCap ? "border-slate-200 text-slate-400" : "border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}>
+        {up ? "⤒" : "⤓"} {up ? t("向上扩充") : t("向下扩充")}{slots > 1 ? ` ×${slots}` : ""}
+      </button>
+    );
+  };
+
   return (
     <div ref={wrapRef} className="mt-2">
       <div className="mb-1 flex flex-wrap items-center gap-2 text-sm">
@@ -375,6 +381,10 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
         {penErase && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">🧽 {t("笔上的按钮按住中:临时橡皮")}</span>}
         <span className="text-xs text-slate-400">{t("触控笔/手写板/鼠标书写;用笔时手指可滑动页面")}</span>
       </div>
+      {/* 【向上扩充】写到顶部还想往上补内容时用;点它新空白加在上面,已写的整体下移 */}
+      <div className="mb-1.5 flex flex-wrap items-center gap-2">
+        <ExpandBtn dir="up" />
+      </div>
       <div className="relative">
         <canvas ref={canvasRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerEnter={hover} onPointerLeave={leave} onPointerCancel={leave}
           onContextMenu={(e) => e.preventDefault()}   /* 按住笔杆侧键时别弹右键菜单 */
@@ -387,9 +397,7 @@ const HandwritePad = forwardRef(function HandwritePad({ initial, onChange }, ref
       {/* 【扩充键放画布下方】写到底部时上面的工具栏早滚出屏幕了,笔就停在这儿,直接点就能往下续。 */}
       {dbg && <p ref={dbgRef} className="mt-1 rounded bg-slate-900 px-2 py-1 font-mono text-[11px] text-emerald-300">{t("用笔碰一下画布看这里的数值")}</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={expand} disabled={slots > MAX_EXPAND}
-          title={slots > MAX_EXPAND ? t("页面扩充到顶了,试试其他方式提交吧,手写的答案可以和其他提交方式的答案一起被看到") : t("写不下了?点一下向下加一块空白,已写的内容不会动")}
-          className={`w-full rounded-xl border border-dashed py-2 text-sm font-medium sm:w-auto sm:px-4 ${slots > MAX_EXPAND ? "border-slate-200 text-slate-400" : "border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}>⤓ {t("扩充手写区域")}{slots > 1 ? ` ×${slots}` : ""}</button>
+        <ExpandBtn dir="down" />
         {slots > MAX_EXPAND && <span className="text-xs text-amber-700">{t("页面扩充到顶了,试试其他方式提交吧,手写的答案可以和其他提交方式的答案一起被看到")}</span>}
       </div>
     </div>
