@@ -136,6 +136,11 @@ export default function Mock() {
   const [mockRoot, setMockRoot] = useState(null);
   const [gradeErr, setGradeErr] = useState(false);
   const [started, setStarted] = useState(0);
+  // 【限时】蓝图早就算好了考试时长(durationMin),API 也一直在返回、还存进了库,
+  // 但考试时一秒都没计时 —— 对"全真模拟"是硬伤。这里把它用起来。
+  const [durationMin, setDurationMin] = useState(null);
+  const [nowTick, setNowTick] = useState(0);        // 每秒跳一次,驱动计时显示
+  const [finishedAt, setFinishedAt] = useState(0);  // 交卷时刻,用于成绩页显示用时
   const hydrated = useRef(false);
   const saveTimer = useRef(null);
 
@@ -147,7 +152,7 @@ export default function Mock() {
         attachRef.current = { ...(s.atts || {}) };
         restoredDrafts.current = s.drafts || {};
         draftsRef.current = { ...(s.drafts || {}) };
-        setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0);
+        setMockId(s.mockId); setQs(s.qs); setAnswers(s.answers || {}); setStarted(s.started || 0); setDurationMin(s.durationMin ?? null); setFinishedAt(s.finishedAt || 0);
         if (s.stage === "done") { setScore(s.score || null); setResults(s.results || null); }
         setStage(s.stage);
         if (s.stage === "grading") pollGrading(s.mockId);   // 关掉页面又回来:继续轮询判题结果
@@ -158,10 +163,10 @@ export default function Mock() {
 
   function persist() {
     if (!hydrated.current) return;
-    if ((stage === "running" || stage === "done" || stage === "grading") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, atts: attachRef.current, drafts: draftsRef.current, score, results, ts: Date.now() });
+    if ((stage === "running" || stage === "done" || stage === "grading") && qs.length) idbSet(KEY, { stage, mockId, qs, answers, started, durationMin, finishedAt, atts: attachRef.current, drafts: draftsRef.current, score, results, ts: Date.now() });
     else idbDel(KEY);
   }
-  useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, score, results]); // eslint-disable-line
+  useEffect(() => { persist(); }, [stage, mockId, qs, answers, started, durationMin, finishedAt, score, results]); // eslint-disable-line
   useEffect(() => {
     if (stage !== "done") return;
     fetch("/api/diagnostic").then((r) => (r.ok ? r.json() : null)).then(setMockDiag).catch(() => {});
@@ -182,6 +187,16 @@ export default function Mock() {
   const [pickIds, setPickIds] = useState([]);
   const [pickReq, setPickReq] = useState("");
   useEffect(() => { fetch("/api/mock/bank").then((r) => r.json()).then((d) => setBank(d)).catch(() => {}); }, []);
+  useEffect(() => {
+    if (stage !== "running") return;
+    const iv = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, [stage]);
+  // 用时/剩余,给下面的顶栏和成绩页共用
+  const elapsedSec = started ? Math.max(0, Math.floor(((finishedAt || nowTick || Date.now()) - started) / 1000)) : 0;
+  const leftSec = durationMin ? durationMin * 60 - elapsedSec : null;
+  const fmtSec = (n) => `${Math.floor(Math.abs(n) / 60)}:${String(Math.abs(n) % 60).padStart(2, "0")}`;
+
   function scheduleAttSave() {
     if (!hydrated.current) return;
     clearTimeout(saveTimer.current);
@@ -195,7 +210,7 @@ export default function Mock() {
       if (opts && opts.materialIds && opts.materialIds.length) { payload.materialIds = opts.materialIds; payload.request = opts.request || ""; }
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!d || !Array.isArray(d.questions) || !d.questions.length) throw new Error(d && d.error ? d.error : t("组卷失败:没有拿到题目"));
-      attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setStage("running"); setStarted(Date.now());
+      attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setDurationMin(d.durationMin || null); setFinishedAt(0); setStage("running"); setStarted(Date.now());
     } catch (e) {
       let msg = String((e && e.message) || e || "");
       try { const j = JSON.parse(msg); if (j && j.error) msg = j.error; } catch {}
@@ -206,6 +221,7 @@ export default function Mock() {
   }
   async function submit() {
     if (!await confirmDialog(t("确定交卷?"))) return;
+    setFinishedAt(Date.now());
     setBusy(true);
     try {
       const d = await aiFetch("/api/mock/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mockId, answers, attachments: attachRef.current }) });
@@ -363,6 +379,9 @@ function stripLabel(op, i) {
             <p className="text-5xl font-bold my-2">{score.pct}%</p>
             {score.totalMarks ? <p className="text-amber-100 text-lg font-semibold">{score.gotMarks} / {score.totalMarks} {t("分")}</p> : null}
             <p className="text-amber-100 text-sm">{score.got} / {score.total} {t("题")}</p>
+            {started && finishedAt ? (
+              <p className="mt-1 text-xs text-amber-100/90">⏱️ {t("用时")} {fmtSec(elapsedSec)}{durationMin ? `（${t("限时")} ${durationMin} ${t("分钟")}${elapsedSec > durationMin * 60 ? "·" + t("已超时") : ""}）` : ""}</p>
+            ) : null}
           </div>
         )}
         {score && (
@@ -409,7 +428,18 @@ function stripLabel(op, i) {
   return (
     <div className="space-y-3 md:mt-14 pb-4">
       <div className="sticky top-0 md:top-14 z-10 bg-stone-50 py-2 flex items-center justify-between gap-2">
-        <span className="text-sm text-stone-500">{t("已答")} {answered}/{qs.length}</span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm text-stone-500">{t("已答")} {answered}/{qs.length}</span>
+          {/* 【计时】有真实时长就倒计时(最后5分钟变橙、超时变红并显示超了多久);没有时长就只显示已用时。
+              ★超时【不自动交卷】——那是破坏性动作,主人可能正写着最后一题;只醒目提示,由他自己决定。 */}
+          {leftSec != null ? (
+            <span className={`text-sm font-semibold tabular-nums ${leftSec < 0 ? "text-red-600" : leftSec < 300 ? "text-amber-600" : "text-stone-600"}`}>
+              ⏱️ {leftSec < 0 ? `${t("已超时")} ${fmtSec(leftSec)}` : fmtSec(leftSec)}
+            </span>
+          ) : started ? (
+            <span className="text-sm tabular-nums text-stone-500">⏱️ {fmtSec(elapsedSec)}</span>
+          ) : null}
+        </div>
         <div className="flex items-center gap-3">
           {/* 【退出】误触开考后必须能出来:未交卷的状态存在 IndexedDB 里,不给出口就会一直被恢复、彻底卡死 */}
           <button className="text-xs text-stone-500 underline hover:text-red-600" onClick={quitMock}>{t("退出本次模拟考")}</button>
