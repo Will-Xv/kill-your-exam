@@ -2,6 +2,7 @@ import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate, langInstruction, attachParts, handSliceNote, draftAttachNote } from "@/lib/gemini";
 import { retrieve, ragBlock, materialParts, hitMediaParts } from "@/lib/rag";
+import { lazyLookup } from "@/lib/lazyLookup";
 import { aiErrorResponse } from "@/lib/errors";
 import { learnerKpContext } from "@/lib/learnerContext";
 
@@ -18,10 +19,12 @@ export async function POST(req) {
     const body = JSON.parse(q.body), ans = JSON.parse(q.answer);
     const kp = q.kp_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(q.kp_id)?.title : "";
     const hits = await retrieve(exam.id, `${kp} ${body.stem}`, 4);
+    // 【懒加载补救】只有检索没命中时才多花一次很便宜的调用让模型自己挑资料;命中良好时返回空串、零开销
+    const rescue = await lazyLookup(exam.id, `${kp} ${body.stem}`, hits, user.lang);
     const learnerHist = q.kp_id ? learnerKpContext(q.kp_id) : "";
 
     const LANGN = ["中文","English","français","español","русский","العربية","Bahasa Indonesia"][["zh","en","fr","es","ru","ar","id"].indexOf(user.lang)] || "中文";
-    const ctxBlock = `题目背景(考生看不到你这段):\n知识点:${kp}\n题目:${body.stem}\n${body.options?.length ? "选项:" + body.options.join(" | ") : ""}\n参考答案:${ans.answer}\n参考解析:${ans.explanation}\n考生的作答:${userAnswer || "(空)"}\n${learnerHist ? "\n【这位考生在此知识点上的历史(据此因材施教,别重复他已懂的、优先戳他之前的误区)】\n" + learnerHist + "\n" : ""}${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
+    const ctxBlock = `题目背景(考生看不到你这段):\n知识点:${kp}\n题目:${body.stem}\n${body.options?.length ? "选项:" + body.options.join(" | ") : ""}\n参考答案:${ans.answer}\n参考解析:${ans.explanation}\n考生的作答:${userAnswer || "(空)"}\n${learnerHist ? "\n【这位考生在此知识点上的历史(据此因材施教,别重复他已懂的、优先戳他之前的误区)】\n" + learnerHist + "\n" : ""}${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : (rescue ? "" : "(资料库无相关内容,凭知识回答并提醒可能需要核实)")}${rescue}`;
     const socraticSystem = `你是一位【苏格拉底式导师】,就【这一道题】把考生教到真懂——不替他做、不直接讲答案,而是用【一连串启发式反问】一步步引导他自己想通。\n原则:①先问后教,尽量用问题引导、少直接下结论,实在卡死才给最小提示;②每次只问一个小问题,顺着他的回答走;③答对一步就明确肯定"对,因为…"再往下引,答错就温和点出、用更简单的反问把他拉回正轨,绝不羞辱;④始终以事实/正解为准,绝不为鼓励把错的说成对的;⑤只围绕这道题。考生若说的是本该找『杀手』(Ask Killer)办的事(建/改/删考试或子考试、改界面布局或挪功能、问网站怎么用/有哪些功能、规划学习计划、布置任务、开关某功能等),【别自己处理】,明确告诉他去找『杀手』(点右下角 💬 或进「问问杀手」)说。若考生还没说话,先抛出【第一个最基础的启发式问题】,别一上来讲概念。简洁,用${LANGN}回复。\n\n${ctxBlock}`;
     const discussSystem = `你正在就某一道练习题和考生讨论。你可以解释答案与解析、回答追问,也可以在考生指出你判分/解析确有错误时【修正】你的评价。
 但你必须严守以下原则(这是最重要的):
@@ -40,7 +43,7 @@ ${body.options?.length ? "选项:" + body.options.join(" | ") : ""}
 参考答案:${ans.answer}
 参考解析:${ans.explanation}
 考生的作答:${userAnswer || "(空)"}
-${learnerHist ? "【这位考生在此知识点上的历史(据此因材施教)】\n" + learnerHist + "\n" : ""}${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : "(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
+${learnerHist ? "【这位考生在此知识点上的历史(据此因材施教)】\n" + learnerHist + "\n" : ""}${hits.length ? "相关资料(优先据此):\\n" + ragBlock(hits) : (rescue ? "" : "(资料库无相关内容,凭知识回答并提醒可能需要核实)")}${rescue}`;
 
     // ★追问【是会影响成绩的】:讨论结束的 finalize 会据这段对话修订判分/掌握度/标签。
     // 所以切片说明用计分口径;并明确告诉模型附件里的草稿是演算过程、不是作答,不能拿它判对错。

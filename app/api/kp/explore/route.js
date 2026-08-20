@@ -2,6 +2,7 @@ import db, { inScope } from "@/lib/db";
 import { requireUser, unauthorized, forbidden } from "@/lib/auth";
 import { generate } from "@/lib/gemini";
 import { retrieve, ragBlock, materialParts, hitMediaParts } from "@/lib/rag";
+import { lazyLookup } from "@/lib/lazyLookup";
 import { learnerKpContext } from "@/lib/learnerContext";
 import { recordCrossKp } from "@/lib/mastery";
 import { aiErrorResponse } from "@/lib/errors";
@@ -20,6 +21,8 @@ export async function POST(req) {
     if (!kp || !exam || !inScope(exam.id, kp.exam_id)) return forbidden();
     const chapter = kp.parent_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.parent_id)?.title : "";
     const hits = await retrieve(exam.id, `${chapter} ${kp.title}`, 5);
+    // 【懒加载补救】仅在检索没命中时触发,命中良好则零开销
+    const rescue = await lazyLookup(exam.id, `${chapter} ${kp.title}`, hits, user.lang);
     const LANGN = ["中文", "English", "français", "español", "русский", "العربية", "Bahasa Indonesia"][["zh", "en", "fr", "es", "ru", "ar", "id"].indexOf(user.lang)] || "中文";
 
     const system = `你是一位【以学生主动探索为中心(topic-first)】的导师,正带考生自由钻研这一个知识点。这【不是】普通答疑,而是一种学习法:让考生围着这个主题【自己发问、自己联想】,你顺着他的好奇心走,同时【实时判断他到底懂多深】,并据此【自适应】地切换教法。
@@ -39,7 +42,7 @@ export async function POST(req) {
 【这位考生在本知识点上的历史(考生看不到你这段;用它来因材施教:别重复他已懂的、优先戳他之前的误区、别问他早答对过的东西)】
 ${learnerKpContext(kp.id) || "(暂无历史记录)"}
 
-知识背景(考生看不到你这段):${hits.length ? "\n相关资料(优先据此):\n" + ragBlock(hits) : "\n(资料库无相关内容,凭知识回答并提醒可能需要核实)"}`;
+知识背景(考生看不到你这段):${hits.length ? "\n相关资料(优先据此):\n" + ragBlock(hits) : (rescue ? "" : "\n(资料库无相关内容,凭知识回答并提醒可能需要核实)")}${rescue}`;
 
     const contents = (history || []).map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] }));
     if (!contents.length) contents.push({ role: "user", parts: [{ text: "(开场:点出这个主题最值得琢磨的地方,然后邀请我就它提问)" }] });  // Gemini 需要至少一条用户消息,否则空 contents 会报错、误弹"API出问题"
