@@ -13,7 +13,9 @@ const genSchema = { type: "object", properties: { questions: { type: "array", it
   qtype: { type: "string", enum: ["single", "multi", "judge", "fill", "short", "perform"] }, stem: { type: "string" },
   options: { type: "array", items: { type: "string" } }, answer: { type: "string" }, explanation: { type: "string" }, difficulty: { type: "integer" }, audioId: { type: "integer" }, listenScript: { type: "string" }, ttsLang: { type: "string" },
   perform: { type: "object", properties: { captureType: { type: "string", enum: ["audio", "video"] }, mediaMaterialId: { type: "integer" }, analyzeAudio: { type: "string", enum: ["music", "recorded", "both"] }, countdownSec: { type: "integer" }, autoStopAfterMediaSec: { type: "integer" }, rubric: { type: "array", items: { type: "string" } }, instructions: { type: "string" } } }
-}, required: ["qtype", "stem", "difficulty"] } } }, required: ["questions"] };
+}, required: ["qtype", "stem", "answer", "difficulty"] } } }, required: ["questions"] };
+// ★answer 必须放进 required:下面收题时是 `if (!q.answer) continue` 硬性要求它,
+//   schema 里却曾经没写 → 模型一旦漏填,题会被【静默丢光】,对外表现成"AI 返回了空结果"(Will 反馈小测一直失败的真因)。
 
 const performSchema = { type: "object", properties: { questions: { type: "array", items: { type: "object", properties: {
   qtype: { type: "string", enum: ["perform"] }, stem: { type: "string" }, difficulty: { type: "integer" },
@@ -25,7 +27,7 @@ const onlineSchema = { type: "object", properties: {
     qtype: { type: "string", enum: ["single", "multi", "judge", "fill", "short"] }, stem: { type: "string" },
     options: { type: "array", items: { type: "string" } }, answer: { type: "string" }, explanation: { type: "string" },
     sourceUrl: { type: "string" }, isReal: { type: "boolean" }, hasAnswer: { type: "boolean" }
-  }, required: ["qtype", "stem", "sourceUrl", "isReal", "hasAnswer"] } },
+  }, required: ["qtype", "stem", "answer", "sourceUrl", "isReal", "hasAnswer"] } },
   note: { type: "string", description: "若该知识点必须借助图像/音频才能考、纯文字无法呈现,在此说明;否则留空" }
 }, required: ["found"] };
 
@@ -144,7 +146,7 @@ ${performBlock}
         genPrompt = (otherNote ? `【考生补充要求 · 优先遵守】${otherNote}\n` : "") + `为「${exam.name}」出 ${genCount} 道练习题,考察「${kp.title}」(章节:${chapter})。题型按这门考试的性质来定。
 ${hits.length ? "必须依据以下资料:\n" + ragBlock(hits) : "无资料支撑,只出保守的基本概念题,不要编造具体数字或条款。"}
 考试档案摘要:${dossier.slice(0, 1500)}${qaAnswers ? "\n考生背景:" + qaAnswers : ""}${overallSnip ? "\n考生整体画像(跨所有考试):" + overallSnip : ""}
-single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标准答案;short写评分要点;explanation解释;difficulty 1~3。选项(options)里【只写选项内容本身,不要再带 "A." "B." 之类的序号/字母前缀】(前端会自动编号,写了会重复)。
+single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标准答案;short写评分要点;explanation解释;difficulty 1~3。★【每道题的 answer 都不能空】——没有答案就没法给考生判分,那道题会被直接丢掉。选项(options)里【只写选项内容本身,不要再带 "A." "B." 之类的序号/字母前缀】(前端会自动编号,写了会重复)。
 数学公式必须用【标准 LaTeX】写、并用 $...$ 包裹,而且【务必带上反斜杠命令】——例如极限写 $\lim_{h\to 0}$、分数写 $\frac{a}{b}$、根号写 $\sqrt{x}$、希腊字母写 $\theta$。★【绝对不要】把命令的反斜杠去掉写成 lim、frac、to、theta 这种裸词(那样会渲染成乱码)。
 严禁答题技巧/应试策略题、考试规则事务题(这些归考前准备)。【重要】若「${kp.title}」其实是考务/报名/评分标准/考试流程/机考纸笔/防作弊/注意事项之类事务性内容,请【忽略它】,改出这门考试真正要考的知识/技能题;这类内容归考前准备,绝不作为练习题。${audioMats.length ? `\n【听力题·必须挂音频】本考试有音频素材(可选 id:${audioList})。出听力题时,必须在该题 body 填 "audioId"=对应音频素材的数字 id(考生练习时会先播放它再作答),题干可写「听录音后...」,答案严格依据音频内容;同一段音频可出多套不同题。` : "\n【听力题·用你自己写的原创听力材料】本考试没有现成音频。若要出听力题,请【自己原创一段听力短文/对话】放进该题 body 的 listenScript 字段(【绝不照抄任何真题原文】),并填 ttsLang=该听力语言的 BCP-47 代码(英语 en-US、中文 zh-CN 等);题目考对这段原创材料的理解。练习时 app 会用语音合成朗读 listenScript、考生听后作答——所以【不要】把 listenScript 内容抄进 stem(抄进去就不是听力了)。不需要听力的知识点正常出文字题。"}${mparts.length ? "\n有图片原件时可出看图题(题干注明「见附件」,答案依据附件)。" : ""}${performBlock}
 ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、不要高度相似。${lessons ? "\n【避免已知毛病】\n" + lessons : ""}` + (mparts.length ? `\n考生资料库中的图片/PDF/音频原件已作为附件提供——【重点看与「${kp.title}」相关的页与示意图/图表】,可据此出「看图/读图」题(题干注明「见附件」,答案依据附件)。` : "") + langRule;
@@ -175,8 +177,11 @@ ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、�
       }
       const refs = JSON.stringify(hits.map((h) => ({ chunk_id: h.id, filename: h.filename, heading: h.heading_path })));
       const genQs = [];
+      const _raw = (out.questions || []).length;
+      let _dropped = 0;
+      if (!_raw && !genErr) genErr = "模型返回了 0 道题(不是报错,是它这次什么都没生成)";
       for (const q of (out.questions || [])) {
-        if (!q.stem) continue;
+        if (!q.stem) { _dropped++; continue; }
         if (q.qtype === "perform") {
           const p = q.perform || {};
           const cap = p.captureType === "video" ? "video" : "audio"; const aa = p.analyzeAudio || (cap === "video" && p.mediaMaterialId ? "music" : "recorded");
@@ -195,11 +200,12 @@ ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、�
           genQs.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
           continue;
         }
-        if (!q.answer) continue;
+        if (!q.answer) { _dropped++; continue; }   // 缺答案就没法判分,只能丢——但要记下来,别无声
         const info = insQ.run(exam.id, kp.id, q.qtype, JSON.stringify({ stem: q.stem, options: q.options || [], audioId: q.audioId || null, listenScript: q.listenScript || null, ttsLang: q.ttsLang || null }),
           JSON.stringify({ answer: q.answer, explanation: q.explanation }), q.difficulty || 2, sourceType, refs, "generated", "ai", null, 0);
         genQs.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));
       }
+      if (_raw && !genQs.length && !genErr) genErr = `模型出了 ${_raw} 道题,但${_dropped} 道都缺【答案/题干】被丢弃了(schema 已要求 answer,若仍出现请把这句发给开发者)`;
       return [...onlineQs, ...genQs];
     };
 
