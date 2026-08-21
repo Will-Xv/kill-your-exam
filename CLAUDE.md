@@ -98,7 +98,14 @@ v12 报告里三条最严重的"杀手嘴上说了、实际没做"——查到�
 - 改完提示词【先跑 `npm run check`】(= `scripts/check-prompts.sh` → `scripts/lint-quotes.mjs`),过了再 `npm run build`。★注意:【不能靠 `node --check`】——它因 JS 正则/除号歧义,在整文件里会【漏掉】'双引号被中文提前截断'这类错(单测抓得到、整文件抓不到,build 的 SWC 才报)。lint-quotes.mjs 是专门的词法扫描:跟踪 "/'/` 串与注释,双引号串闭合后紧跟中文字符=提前截断,精确且不误报反引号模板/注释。
 
 ## 部署
-- build-gated push:本地 `npm run build` 通过后才 push 到 GitHub(Railway 自动部署)。
+- **代码知识图谱 graphify(2026-08,Will 引入)**:`pip install graphifyy --break-system-packages`,CLI 在 `~/.local/bin/graphify`(记得加 PATH)。
+  建图:`graphify update . --no-cluster` —— **tree-sitter 本地 AST 解析、不调 LLM、零 token**,本仓库约 40 秒出 1884 节点 / 6646 边(321 文件)。产物在 `graphify-out/`(已加 .gitignore,随时可重建、别入库)。
+  **最该用的三条**:
+  · `graphify affected "materialParts()" --depth 1` —— 【改/删之前先问谁在用】,直接列出 caller 与 file:L。本轮多次靠 grep 一个个翻的活,它一条命令给全。
+  · `graphify god-nodes --top 12` —— 架构枢纽(本仓库前几名:`unauthorized()` 251 边、`requireUser()` 169、`db` 134、`useT()` 120),动这些等于牵一发动全身。
+  · `graphify query "<问题>"` / `path A B` / `explain X` —— 拿图回答,不用满仓库 grep。
+  ★**边界(别指望它做它做不到的事)**:①它只为【找得到定义】的符号建节点,所以**抓不到"用了但从没声明"**——本轮三次"build 绿灯、运行时炸"(非法 JSX、少括号、整块误删 `setup()`/`penErasing`)它一个都拦不住,**改完仍必须 `git diff` 复看删了什么**;②React 组件里的内层函数(定义在组件函数体内的 `penErasing`/`commitStroke` 等)不进图;③JSX 属性引用(`onClick={adopt}`)不算边,所以对 `components/` 做"死代码"判断会大量误报,**只在 `lib/` 用、且必须再 grep 复核**。
+- build-gated push- build-gated push:本地 `npm run build` 通过后才 push 到 GitHub(Railway 自动部署)。
 - **push 认证(2026-08 改为 SSH,不会再过期)**:remote 已切成 `git@github.com:Will-Xv/kill-your-exam.git`。原来的 HTTPS+PAT 方案**已弃用**——classic PAT 有有效期,2026-08-20 当天就到期失效过一次(推了一上午后突然 `Invalid username or token`)。**接续会话若 push 失败**:先 `ssh -T git@github.com` 看是否还认得(应回 `Hi Will-Xv!`)。沙箱是临时的,密钥不在就从 workspace 文档 `_ssh-key-私存勿上传/` 里拷回来:`cp` 到 `~/.ssh/`、`chmod 600 私钥`,再写 `~/.ssh/config`(Host github.com / IdentityFile ~/.ssh/id_ed25519 / IdentitiesOnly yes / StrictHostKeyChecking accept-new),并 `ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts`。公钥已加在 Will 的 GitHub 账号里,**不需要重新生成、也不用再让他去加一次**。★私钥同样**绝不入库**;仓库与全部历史目前干净(已 `grep`/`git log -S` 验过无 `ghp_`/`github_pat_`/密钥串)。旧的 `_github-push-token-私存勿上传.txt` 里那个 PAT 已失效,留着仅作历史,不要再用。
 - ⚠️ 无凭据时 `origin/main` 跟踪引用可能是**过期的**(fetch 不到)——判断远端状态前先确保能 fetch,否则会像 2026-07 那次一样把老节点当真远端、误以为分叉。
 - 原生依赖(需系统库的,如 node-canvas)在 Railway 跑不了——避免;纯 JS 依赖(如 pdf-lib)可用。
