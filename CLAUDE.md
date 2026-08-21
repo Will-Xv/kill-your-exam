@@ -99,7 +99,7 @@ v12 报告里三条最严重的"杀手嘴上说了、实际没做"——查到�
 
 ## 部署
 - build-gated push:本地 `npm run build` 通过后才 push 到 GitHub(Railway 自动部署)。
-- **push 认证**:remote 是 HTTPS,需 token 才能推。token 绝不入库(CLAUDE.md/任何仓库文件都不能存,否则 push 即公开泄露+被 GitHub 吊销)。真实 token 私存在 workspace 文档 `_github-push-token-私存勿上传.txt`(不是仓库、不会被 push)。接续会话若 `git push` 报 "could not read Username" = 认证没带过来:去那个文件照里面的 `git remote set-url origin https://Will-Xv:<token>@github.com/...` 重配一次即可,别再误判成"仓库分叉/工作没上线"。
+- **push 认证(2026-08 改为 SSH,不会再过期)**:remote 已切成 `git@github.com:Will-Xv/kill-your-exam.git`。原来的 HTTPS+PAT 方案**已弃用**——classic PAT 有有效期,2026-08-20 当天就到期失效过一次(推了一上午后突然 `Invalid username or token`)。**接续会话若 push 失败**:先 `ssh -T git@github.com` 看是否还认得(应回 `Hi Will-Xv!`)。沙箱是临时的,密钥不在就从 workspace 文档 `_ssh-key-私存勿上传/` 里拷回来:`cp` 到 `~/.ssh/`、`chmod 600 私钥`,再写 `~/.ssh/config`(Host github.com / IdentityFile ~/.ssh/id_ed25519 / IdentitiesOnly yes / StrictHostKeyChecking accept-new),并 `ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts`。公钥已加在 Will 的 GitHub 账号里,**不需要重新生成、也不用再让他去加一次**。★私钥同样**绝不入库**;仓库与全部历史目前干净(已 `grep`/`git log -S` 验过无 `ghp_`/`github_pat_`/密钥串)。旧的 `_github-push-token-私存勿上传.txt` 里那个 PAT 已失效,留着仅作历史,不要再用。
 - ⚠️ 无凭据时 `origin/main` 跟踪引用可能是**过期的**(fetch 不到)——判断远端状态前先确保能 fetch,否则会像 2026-07 那次一样把老节点当真远端、误以为分叉。
 - 原生依赖(需系统库的,如 node-canvas)在 Railway 跑不了——避免;纯 JS 依赖(如 pdf-lib)可用。
 - 部署后要用**新标签页**验证(旧副本会缓存)。
