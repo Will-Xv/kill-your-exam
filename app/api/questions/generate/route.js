@@ -8,6 +8,7 @@ import { aiErrorResponse, AiError } from "@/lib/errors";
 import { resolveExamLang } from "@/lib/examlang";
 import { difficultyHint } from "@/lib/memory";
 import { generateQuestionsForKp } from "@/lib/generators";   // 小测:每个知识点各出一道
+import { USER_ORIGINS } from "@/lib/questionBank";
 import { findAndStoreMusic, alignStemToMusic } from "@/lib/music";
 
 const genSchema = { type: "object", properties: { questions: { type: "array", items: { type: "object", properties: {
@@ -72,7 +73,7 @@ export async function POST(req) {
       // 真题(is_real)和必考原题(must_include)例外,可以直接抽。freshFrom 用来放行"刚为这个点生成的新题"。
       const pick = (id, freshFrom = null) => db.prepare(`SELECT * FROM questions WHERE exam_id IN (SELECT id FROM exams WHERE id=? OR id=(SELECT exam_id FROM knowledge_points WHERE id=?)) AND kp_id=? AND flagged=0
         ${excl.length ? "AND id NOT IN (" + excl.join(",") + ")" : ""}
-        AND (is_real=1 OR must_include=1 OR origin='fixed'${freshFrom != null ? " OR id > " + Number(freshFrom) : ""})
+        AND (is_real=1 OR must_include=1 OR origin IN ${USER_ORIGINS}${freshFrom != null ? " OR id > " + Number(freshFrom) : ""})
         AND id NOT IN (SELECT question_id FROM attempts) ORDER BY is_real DESC, RANDOM() LIMIT 1`).get(exam.id, id, id);
       const got = new Map();
       for (const id of ids) { const q = pick(id); if (q) got.set(id, q); }          // 有真题就直接用(秒开)

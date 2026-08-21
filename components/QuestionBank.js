@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
+// 题从哪来的:三条路都进这个面板,但要能一眼看出是哪条(以前只显示手动录入的那条,别的路进不来 —— 已修)
+const SRC = { fixed: "我录入/摘自资料", upload: "上传做题" };
 
 export default function QuestionBank({ t }) {
   const [list, setList] = useState(null);
@@ -69,11 +71,12 @@ export default function QuestionBank({ t }) {
 
       <div className="space-y-1">
         <p className="text-xs text-stone-400">{t("共 {n} 道").replace("{n}", list.length)}{list.some((q) => q.must) ? ` · ${t("必出")} ${list.filter((q) => q.must).length}` : ""}</p>
-        {list.length === 0 && <p className="text-sm text-stone-400">{t("还没有题库题。")}</p>}
+        {list.length === 0 && <p className="text-sm text-stone-400">{t("还没有题库题。上传的资料【不会】自动抄题(那要花钱读原件);想把资料里的题收进来,去模拟考页点「做这几份里的原题」,摘出来的题会自动进这里。")}</p>}
         {list.map((q) => (
           <div key={q.id} className="flex items-start gap-2 border-b border-stone-100 py-1 text-sm">
             <span className="shrink-0 rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-500">{t(QT[q.qtype] || q.qtype)}</span>
             <span className="min-w-0 flex-1 line-clamp-2">{q.stem}{q.must ? " ⭐" : ""}</span>
+            {SRC[q.origin] && <span className="shrink-0 text-[10px] text-stone-400">{t(SRC[q.origin])}</span>}
             <button className="shrink-0 text-xs text-amber-700" disabled={busy} onClick={() => post({ action: "must", id: q.id, on: !q.must })}>{q.must ? t("取消必出") : t("设为必出")}</button>
             <button className="shrink-0 text-xs text-red-500" disabled={busy} onClick={() => post({ action: "delete", id: q.id })}>{t("删除")}</button>
           </div>
