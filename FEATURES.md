@@ -236,7 +236,9 @@
 ## 数据表总览（db.js 内 45 张 + `feature_registry`/`ui_events`(建于 uilab)≈47）
 users · sessions · settings · exams · documents · materials · chunks · knowledge_points · explanations · questions · attempts · insights · review_queue · daily_plans · mock_exams · notes · memory_facts · learning_modes · checkpoints · agent_lessons · gen_lessons · chat_runs/chat_messages/chat_files/chat_pending/chat_summary · browser_jobs · ingest_tokens · inbox · feedback · bug_reports · leaderboard 相关 taunts · push_subscriptions · brick_flags · **lang_transfer · lang_contrast · plan_snapshots · practical_tasks · task_progress · task_test_appeals · custom_modes · custom_mode_results · recipes · recipe_versions · recipe_phase_state**（粗体=本轮新增)。另有 `feature_registry`(uiRegistry)、`ui_events`(uiPlacement) 建于其它模块。
 
-## 砖头目录（37，已发布对全体开放）
+## 砖头目录（39，已发布对全体开放）
+- **`exam_set_completed`（2026-08）**：标记考试为【已完成】或取消（`done` 布尔，`examId` 省略=当前考试）。语义与界面按钮一致：只写 `exams.completed_at`，**不改 status、不切走、不删数据**——考试照样能选能练能查，只是不再显示倒计时、也不再因临近而抢占今日任务优先级，**随时可撤销**；改动前打 checkpoint。已是该状态时直接返回「本来就是，没有改动」，不做无谓写入。
+- **`exam_map_mastery_to_family`（2026-08）**：把**子考试**的掌握度语义映射进家族知识树（母考试＋同家族其它考试）。★**会改数据，必须主人明确同意后才调**——`exam_set_completed` 在完成子考试时只会**提示**杀手去问，不自动执行。非子考试直接返回 `not_sub_exam`。
 exam_list/create/set_parent/unset_parent/match_kps/copy_kps/copy_questions/set_aggregate/tree/promote_weak/provision/gen_status/merge/split/integrity_check · bank_list/set_closed/paste/add/set_must/delete · diagnose_root_cause/config · resolve_reference_list · plan_review/plan_compare · study_map · where_to_start · lang_background_set/lang_transfer_analyze/lang_transfer_predict · arena_play · create_custom_mode/list_custom_modes/generate_custom_modes · assign_practical_task/list_practical_tasks。
 
 ---
