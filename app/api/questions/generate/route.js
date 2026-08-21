@@ -68,21 +68,25 @@ export async function POST(req) {
       const ids = kpIds.map(Number).filter(Number.isFinite)
         .filter((n) => { const k = db.prepare("SELECT exam_id FROM knowledge_points WHERE id=?").get(n); return k && inScope(exam.id, k.exam_id); });
       if (!ids.length) return Response.json({ error: estr(user?.lang, "这些知识点不在当前考试里") }, { status: 400 });
-      const pick = (id) => db.prepare(`SELECT * FROM questions WHERE exam_id IN (SELECT id FROM exams WHERE id=? OR id=(SELECT exam_id FROM knowledge_points WHERE id=?)) AND kp_id=? AND flagged=0
+      // 【只复用真题】小测要考"这个点最该考的那道",题库里攒的 AI 旧题是以前随机出的,不拿来充数;
+      // 真题(is_real)和必考原题(must_include)例外,可以直接抽。freshFrom 用来放行"刚为这个点生成的新题"。
+      const pick = (id, freshFrom = null) => db.prepare(`SELECT * FROM questions WHERE exam_id IN (SELECT id FROM exams WHERE id=? OR id=(SELECT exam_id FROM knowledge_points WHERE id=?)) AND kp_id=? AND flagged=0
         ${excl.length ? "AND id NOT IN (" + excl.join(",") + ")" : ""}
-        AND id NOT IN (SELECT question_id FROM attempts) ORDER BY (is_real) DESC, RANDOM() LIMIT 1`).get(exam.id, id, id);
+        AND (is_real=1 OR must_include=1${freshFrom != null ? " OR id > " + Number(freshFrom) : ""})
+        AND id NOT IN (SELECT question_id FROM attempts) ORDER BY is_real DESC, RANDOM() LIMIT 1`).get(exam.id, id, id);
       const got = new Map();
-      for (const id of ids) { const q = pick(id); if (q) got.set(id, q); }          // 先用题库里现成的(秒开)
+      for (const id of ids) { const q = pick(id); if (q) got.set(id, q); }          // 有真题就直接用(秒开)
       const missing = ids.filter((id) => !got.has(id));
       if (missing.length) {
-        // 缺的【并行】生成,别一个个等(小测最多十来个点,几个并发调用可接受)
+        // 缺的【并行】现出,别一个个等(小测最多十来个点,几个并发调用可接受)
+        const before = db.prepare("SELECT COALESCE(MAX(id),0) m FROM questions").get().m;
         await Promise.all(missing.map(async (id) => {
           const kpRow = db.prepare("SELECT * FROM knowledge_points WHERE id=?").get(id);
           if (!kpRow) return;
           const kpExam = kpRow.exam_id === exam.id ? exam : db.prepare("SELECT * FROM exams WHERE id=?").get(kpRow.exam_id);
-          try { await generateQuestionsForKp(kpExam || exam, kpRow, 1, user.lang); } catch {}
+          try { await generateQuestionsForKp(kpExam || exam, kpRow, 1, user.lang, { representative: true }); } catch {}
         }));
-        for (const id of missing) { const q = pick(id); if (q) got.set(id, q); }
+        for (const id of missing) { const q = pick(id, before); if (q) got.set(id, q); }
       }
       const list = ids.map((id) => got.get(id)).filter(Boolean);
       if (!list.length) return Response.json({ questions: [], note: estr(user?.lang, "这次没能出成题,请稍后再试一次。"), _via: "spread-empty" });
