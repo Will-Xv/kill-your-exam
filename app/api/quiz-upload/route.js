@@ -55,6 +55,13 @@ export async function POST(req) {
 - answerFromFile: 答案是不是【文件里本来就给了】——文件里给了标准答案就 true;文件没给、是你自己解出来的就 false。
 ${text ? "文本内容:\n" + String(text).slice(0, 12000) : "题目在随附的文件里(图片/PDF),请多模态识读。"}` + langInstruction(user.lang);
 
+    // 【来源留痕】题库面板要能显示"这道题来自上传做题的哪份文件";重新识别时沿用上次记下的文件名。
+    let srcName = "";
+    try {
+      srcName = sess ? String(sess.filenames || "") : (Array.isArray(attachments) ? attachments.map((a) => a && a.name).filter(Boolean).join("、") : "");
+    } catch {}
+    const srcRefs = JSON.stringify([{ via: "quiz-upload", filename: srcName.slice(0, 200) }]);
+
     const out = await generateJson(prompt, schema, { contents: [{ role: "user", parts: [{ text: prompt }, ...parts] }] });
     const list = Array.isArray(out.questions) ? out.questions : [];
 
@@ -89,7 +96,7 @@ ${text ? "文本内容:\n" + String(text).slice(0, 12000) : "题目在随附的�
       try {
         const ansOrigin = q.answerFromFile ? "provided" : "ai";   // provided=文件里给的, ai=AI解出的
         const info = db.prepare("INSERT INTO questions(exam_id,kp_id,qtype,body,answer,difficulty,source_type,source_refs,origin,answer_origin,is_real) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-          .run(exam.id, kpId, qtype, body, answer, 2, "material", "[]", "upload", ansOrigin, 1);
+          .run(exam.id, kpId, qtype, body, answer, 2, "material", srcRefs, "upload", ansOrigin, 1);
         const kpTitle = kpId ? (db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kpId)?.title || "") : "";
         created.push({ id: info.lastInsertRowid, qtype, stem, options: Array.isArray(q.options) ? q.options : [], kpId, kpTitle });
       } catch {}
@@ -100,8 +107,8 @@ ${text ? "文本内容:\n" + String(text).slice(0, 12000) : "题目在随附的�
     if (sess) {
       db.prepare("UPDATE quiz_sessions SET question_ids_json=? WHERE id=?").run(JSON.stringify(ids), sess.id);
     } else {
-      const info = db.prepare("INSERT INTO quiz_sessions(exam_id,user_id,parts_json,question_ids_json) VALUES(?,?,?,?)")
-        .run(exam.id, user.id, JSON.stringify(parts), JSON.stringify(ids));
+      const info = db.prepare("INSERT INTO quiz_sessions(exam_id,user_id,parts_json,question_ids_json,filenames) VALUES(?,?,?,?,?)")
+        .run(exam.id, user.id, JSON.stringify(parts), JSON.stringify(ids), srcName.slice(0, 200));
       sessionId = info.lastInsertRowid;
     }
     return Response.json({ ok: true, count: created.length, questions: created, sessionId });

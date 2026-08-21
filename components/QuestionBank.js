@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 
 const QT = { single: "单选", multi: "多选", judge: "判断", fill: "填空", short: "简答" };
-// 题从哪来的:三条路都进这个面板,但要能一眼看出是哪条(以前只显示手动录入的那条,别的路进不来 —— 已修)
-const SRC = { fixed: "我录入/摘自资料", upload: "上传做题" };
+// 题从哪来的:三条路都进这个面板,而且要标到【具体哪份文件】——
+// 这样在模拟考「做原题」里勾文件时,一眼就知道那份文件对应题库里的哪些题。
+const VIA = { material: "资料", upload: "上传做题", manual: "手动录入" };
 
 export default function QuestionBank({ t }) {
   const [list, setList] = useState(null);
@@ -76,7 +77,9 @@ export default function QuestionBank({ t }) {
           <div key={q.id} className="flex items-start gap-2 border-b border-stone-100 py-1 text-sm">
             <span className="shrink-0 rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-500">{t(QT[q.qtype] || q.qtype)}</span>
             <span className="min-w-0 flex-1 line-clamp-2">{q.stem}{q.must ? " ⭐" : ""}</span>
-            {SRC[q.origin] && <span className="shrink-0 text-[10px] text-stone-400">{t(SRC[q.origin])}</span>}
+            <span className="shrink-0 max-w-[9rem] truncate text-[10px] text-stone-400" title={q.src?.filename || ""}>
+              {t(VIA[q.src?.via] || "手动录入")}{q.src?.filename ? " · " + q.src.filename : ""}
+            </span>
             <button className="shrink-0 text-xs text-amber-700" disabled={busy} onClick={() => post({ action: "must", id: q.id, on: !q.must })}>{q.must ? t("取消必出") : t("设为必出")}</button>
             <button className="shrink-0 text-xs text-red-500" disabled={busy} onClick={() => post({ action: "delete", id: q.id })}>{t("删除")}</button>
           </div>
