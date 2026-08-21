@@ -109,6 +109,7 @@ export async function POST(req) {
     const chapter = kp.parent_id ? db.prepare("SELECT title FROM knowledge_points WHERE id=?").get(kp.parent_id)?.title : "";
     const insQ = db.prepare("INSERT INTO questions(exam_id,kp_id,qtype,body,answer,difficulty,source_type,source_refs,origin,answer_origin,source_url,is_real) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
     let honesty = "";
+    let genErr = "";   // 出题时 AI 真正报的错(用于如实告诉主人,而不是笼统说"抽风")
     const need = count - results.length;
 
     const genMore = async (opts = {}) => {
@@ -148,7 +149,15 @@ single/multi给4选项、answer写字母;judge写"对"/"错"(中文);fill写标�
 严禁答题技巧/应试策略题、考试规则事务题(这些归考前准备)。【重要】若「${kp.title}」其实是考务/报名/评分标准/考试流程/机考纸笔/防作弊/注意事项之类事务性内容,请【忽略它】,改出这门考试真正要考的知识/技能题;这类内容归考前准备,绝不作为练习题。${audioMats.length ? `\n【听力题·必须挂音频】本考试有音频素材(可选 id:${audioList})。出听力题时,必须在该题 body 填 "audioId"=对应音频素材的数字 id(考生练习时会先播放它再作答),题干可写「听录音后...」,答案严格依据音频内容;同一段音频可出多套不同题。` : "\n【听力题·用你自己写的原创听力材料】本考试没有现成音频。若要出听力题,请【自己原创一段听力短文/对话】放进该题 body 的 listenScript 字段(【绝不照抄任何真题原文】),并填 ttsLang=该听力语言的 BCP-47 代码(英语 en-US、中文 zh-CN 等);题目考对这段原创材料的理解。练习时 app 会用语音合成朗读 listenScript、考生听后作答——所以【不要】把 listenScript 内容抄进 stem(抄进去就不是听力了)。不需要听力的知识点正常出文字题。"}${mparts.length ? "\n有图片原件时可出看图题(题干注明「见附件」,答案依据附件)。" : ""}${performBlock}
 ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、不要高度相似。${lessons ? "\n【避免已知毛病】\n" + lessons : ""}` + (mparts.length ? `\n考生资料库中的图片/PDF/音频原件已作为附件提供——【重点看与「${kp.title}」相关的页与示意图/图表】,可据此出「看图/读图」题(题干注明「见附件」,答案依据附件)。` : "") + langRule;
       }
-      const genPromise = generateJson(genPrompt, genSchemaUse, mparts.length ? { contents: [{ role: "user", parts: [{ text: genPrompt }, ...mparts] }] } : {}).catch(() => ({ questions: [] }));
+      // 【别再静默吞错】原先是 .catch(() => ({questions:[]})) —— 任何异常(AI 报错/配额/超时/我们自己的代码 bug)
+      // 都会被伪装成"没出成题",连一行日志都没有,于是主人只看到"AI 抽风"、我们也无从查起(Will 反馈小测一直失败,
+      // 就卡在这一步查不下去)。现在:原因记进 genErr、打日志,并如实带回前端。
+      const genPromise = generateJson(genPrompt, genSchemaUse, mparts.length ? { contents: [{ role: "user", parts: [{ text: genPrompt }, ...mparts] }] } : {})
+        .catch((e) => {
+          genErr = String((e && e.message) || e || "unknown");
+          try { console.error(`[generate] AI 出题失败 exam=${exam.id} kp=${kp && kp.id} reason=${genErr}`); } catch {}
+          return { questions: [] };
+        });
       // 联网仿真是「锦上添花」的补充题:用超时兜底,别让慢的联网搜索拖住整次出题(主模型出的题该秒回就秒回)
       const withTimeout = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r({ found: [], note: "", timedOut: true }), ms))]);
       const onlinePromise = (perfOn || opts.noOnline) ? Promise.resolve({ found: [], note: "" }) : withTimeout(searchOnline(exam, kp, chapter, need, langRule).catch(() => ({ found: [], note: "" })), 8000);
@@ -213,7 +222,9 @@ ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、�
     if (!results.length) {
       const emptyMsg = honesty || (perfOn
         ? "这个知识点要用录音/录像作答,这次没出成题,请点「换一批」再试。"
-        : "这次没能出成题(多半是 AI 生成临时抽风)。请点「换一批」重试一下;若一直不行,跟杀手说一声。");
+        : (genErr
+            ? `这次没能出成题——AI 那边报的错是:${genErr}。这不是你的操作问题;点「换一批」可再试一次,若一直是同一个错就把这句话发给杀手/开发者。`
+            : "这次没能出成题(AI 返回了空结果)。请点「换一批」重试一下;若一直不行,跟杀手说一声。"));
       return Response.json({ questions: [], note: emptyMsg, _via: "empty", _ms: Date.now() - _t0 });
     }
     return Response.json({ questions: results.slice(0, count).map(pub), kp: { id: kp.id, title: kp.title }, note: honesty || null, _via: (_log("generated"), "generated"), _ms: Date.now() - _t0 });
