@@ -32,7 +32,7 @@ export async function POST(req) {
       qtype: { type: "string", enum: ["single", "multi", "judge", "fill", "short"] },
       stem: { type: "string" }, options: { type: "array", items: { type: "string" } },
       answer: { type: "string" }, explanation: { type: "string" }, answerFromFile: { type: "boolean" }
-    }, required: ["qtype", "stem", "answer"] } } }, required: ["questions"] };
+    }, required: ["qtype", "stem", "answer", "explanation"] } } }, required: ["questions"] };
 
     const prompt = `这是用户上传的一份【题目】文件/文本。请【识别出里面的每一道题】,一道不漏、也不要凭空增加。
 
@@ -51,7 +51,7 @@ export async function POST(req) {
 - stem: 题干原文,尽量一字不差(可去掉题号)。【必须是正常文字、单词之间保留空格】。数学用行内 $...$ 只包【公式本身】、且用正确 LaTeX(\\sqrt{}、^、\\frac{}{});【绝对不要把整句话或普通单词包进 $...$】——否则整段会挤成一坨公式。示例:好=「Find the mass above the cone $z=\\sqrt{x^2+y^2}$」;坏=「$Find the mass above the cone z=sqrt(x^2+y^2)$」。
 - options: 选择题的每个选项内容(不要带 "A." 前缀);判断/填空/简答留空数组。
 - answer: 【这道题的正确答案】。文件给了答案就照抄;【文件没给答案,你要自己把题解出来给出正确答案】(单/多选写字母如 "A"/"AC";判断写"对"/"错";填空/简答写正确答案原文)。这是为了之后给用户判分,所以 answer 绝不能空。
-- explanation: 简短解析(有就照抄,没有就补一句为什么)。
+- explanation: 简短解析,每道题都要有(原文有就照抄,没有就自己补;选择题要说明正确项为什么对、其他项错在哪)。
 - answerFromFile: 答案是不是【文件里本来就给了】——文件里给了标准答案就 true;文件没给、是你自己解出来的就 false。
 ${text ? "文本内容:\n" + String(text).slice(0, 12000) : "题目在随附的文件里(图片/PDF),请多模态识读。"}` + langInstruction(user.lang);
 

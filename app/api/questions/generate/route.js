@@ -7,6 +7,7 @@ import { generateJson, searchWeb, langInstruction, examLangInstruction, LANG_NAM
 import { aiErrorResponse, AiError } from "@/lib/errors";
 import { resolveExamLang } from "@/lib/examlang";
 import { difficultyHint } from "@/lib/memory";
+import { generateQuestionsForKp } from "@/lib/generators";   // 小测:每个知识点各出一道
 import { findAndStoreMusic, alignStemToMusic } from "@/lib/music";
 
 const genSchema = { type: "object", properties: { questions: { type: "array", items: { type: "object", properties: {
@@ -53,12 +54,41 @@ async function searchOnline(exam, kp, chapter, count, langRule) {
 export async function POST(req) {
   try {
     const _t0 = Date.now();
-    let { kpId, count = 5, reuse = true, exclude = [], kpIds } = await req.json();
+    let { kpId, count = 5, reuse = true, exclude = [], kpIds, spread } = await req.json();
     const _log = (via) => { try { console.error(`[generate] via=${via} ms=${Date.now() - _t0} exam=${exam?.id} kp=${kpId}`); } catch {} };
     const excl = (Array.isArray(exclude) ? exclude : []).map(Number).filter(Number.isFinite);
     let { user, exam } = await requireUser();
     if (!user) return unauthorized();
     if (!exam) return Response.json({ error: "no exam" }, { status: 400 });
+    // 【小测:横跨多个知识点,每点一道,一次给全】(spread=true)
+    // 为什么单独一条路:普通练习是"无限出题",所以从 kpIds 里【随机挑一个】、一次出 5 道、还先出两道让人快点开始;
+    // 但小测是【一份固定的卷子】——说了"3 个知识点·约 6 分钟"就该是 3 道、每点一道、一次给齐,
+    // 不能出成"5 道全在一个点上",也不该先给两道再慢慢补(那是给无限练习用的加速策略,放这儿只会让人以为出错了)。
+    if (spread && Array.isArray(kpIds) && kpIds.length) {
+      const ids = kpIds.map(Number).filter(Number.isFinite)
+        .filter((n) => { const k = db.prepare("SELECT exam_id FROM knowledge_points WHERE id=?").get(n); return k && inScope(exam.id, k.exam_id); });
+      if (!ids.length) return Response.json({ error: estr(user?.lang, "这些知识点不在当前考试里") }, { status: 400 });
+      const pick = (id) => db.prepare(`SELECT * FROM questions WHERE exam_id IN (SELECT id FROM exams WHERE id=? OR id=(SELECT exam_id FROM knowledge_points WHERE id=?)) AND kp_id=? AND flagged=0
+        ${excl.length ? "AND id NOT IN (" + excl.join(",") + ")" : ""}
+        AND id NOT IN (SELECT question_id FROM attempts) ORDER BY (is_real) DESC, RANDOM() LIMIT 1`).get(exam.id, id, id);
+      const got = new Map();
+      for (const id of ids) { const q = pick(id); if (q) got.set(id, q); }          // 先用题库里现成的(秒开)
+      const missing = ids.filter((id) => !got.has(id));
+      if (missing.length) {
+        // 缺的【并行】生成,别一个个等(小测最多十来个点,几个并发调用可接受)
+        await Promise.all(missing.map(async (id) => {
+          const kpRow = db.prepare("SELECT * FROM knowledge_points WHERE id=?").get(id);
+          if (!kpRow) return;
+          const kpExam = kpRow.exam_id === exam.id ? exam : db.prepare("SELECT * FROM exams WHERE id=?").get(kpRow.exam_id);
+          try { await generateQuestionsForKp(kpExam || exam, kpRow, 1, user.lang); } catch {}
+        }));
+        for (const id of missing) { const q = pick(id); if (q) got.set(id, q); }
+      }
+      const list = ids.map((id) => got.get(id)).filter(Boolean);
+      if (!list.length) return Response.json({ questions: [], note: estr(user?.lang, "这次没能出成题,请稍后再试一次。"), _via: "spread-empty" });
+      return Response.json({ questions: list.map(pub), _via: (_log("spread"), "spread"), _ms: Date.now() - _t0, spread: true, wanted: ids.length });
+    }
+
     // 自由练习按任务日期锚定的一组知识点:没指定单个 kp 时,从这组里随机取一个出题(多批覆盖整组),严格按锚定的知识点练。
     if (!kpId && Array.isArray(kpIds) && kpIds.length) {
       const valid = kpIds.map(Number).filter((n) => { if (!Number.isFinite(n)) return false; const k = db.prepare("SELECT exam_id FROM knowledge_points WHERE id=?").get(n); return k && inScope(exam.id, k.exam_id); });

@@ -1,7 +1,7 @@
 "use client";
 // 【小测卡片】学习页和模拟考页【共用这一份】——两边永远是同一件事、同一套口径,
 // 要改就改这里,别在某一边另写一套(参考 dailyLabels.js 的做法)。
-// 做的事:横跨各章抽几个知识点,一次连着做完(/practice?kps=...),几分钟摸清底子,结果记进掌握度。
+// 做的事:横跨各章抽几个知识点,每个点各出一道,一次连着做完(/practice?mode=quick&kps=...),几分钟摸清底子,结果记进掌握度。
 // ★历史坑(已修):①抽样以前【只在做题数<6 时才算】,做过几道题小测就永久消失、全站找不到;
 //                ②以前不是一整场小测,只是几个链到单个知识点的小标签,点一个进一个;
 //                ③同卡里原本还有"推荐学的单元(该从哪开始)",会把小测顶掉 —— 已按 Will 要求整块删除。
@@ -50,7 +50,7 @@ export default function DiagnosticCard({ showMockLink = true, defaultMinutes = 1
         ))}
         {showMockLink && start.suggestMock && <a href="/mock" className="rounded-full bg-amber-100 px-2.5 py-0.5 text-amber-700 ring-1 ring-amber-300">🎯 {t("最全面:做一次模拟考")}</a>}
       </div>
-      <a href={`/practice?kps=${ids.join(",")}&fresh=1`}
+      <a href={`/practice?mode=quick&kps=${ids.join(",")}&fresh=1`}
         className="mt-2 block rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-700">
         ▶ {t("开始小测")}（{ids.length} {t("个知识点")}·{t("约")} {qt?.minutes || ids.length * 2} {t("分钟")}）
       </a>

@@ -95,12 +95,20 @@ function PracticeInner() {
     if (qParam) { const d = await aiFetch(`/api/questions/get?id=${Number(qParam)}`); return { questions: d.question ? [d.question] : [], note: "" }; }
     if (mode === "review") { const d = await aiFetch("/api/review"); return { questions: d.questions || [], note: "" }; }
     if (mode === "quiz" && idsParam) { const d = await aiFetch(`/api/questions/byids?ids=${encodeURIComponent(idsParam)}`); return { questions: d.questions || [], note: "" }; }
+    // 小测:一份【固定的卷子】—— 抽到几个知识点就出几道题、每个点各一道、一次给齐。
+    // 不走下面那条无限练习的路(那条会从这组点里随机挑一个、连出 5 道,还先给两道让人早点开始;
+    // 放在小测里既对不上"N 个知识点"的说法,也会让人以为出题出漏了)。
+    if (mode === "quick" && kpsParam) {
+      const ids = kpsParam.split(",").map(Number).filter(Boolean);
+      const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpIds: ids, spread: true, exclude }) });
+      return { questions: d.questions || [], note: d.note || "" };
+    }
     const d = await aiFetch("/api/questions/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kpId: kpParam ? Number(kpParam) : undefined, kpIds: kpsParam ? kpsParam.split(",").map(Number).filter(Boolean) : undefined, count: 5, exclude }) });
     return { questions: d.questions || [], note: d.note || "" };
   }
   // 后台预取下一批(在用户做题时就同时把下一批找好,换一批/再来一轮时零等待)。exclude=当前屏上的题,保证预取到的是新题。
   function prefetchNext(excludeIds = []) {
-    if (mode === "review" || mode === "quiz") return;
+    if (mode === "review" || mode === "quiz" || mode === "quick") return;
     prefetched.current = null;
     fetchBatch(excludeIds).then((b) => { if (b.questions.length) prefetched.current = b; }).catch(() => {});
   }
@@ -320,7 +328,7 @@ function PracticeInner() {
     const doneVals = Object.values(done); const right = doneVals.filter(Boolean).length;
     // 【上传做题:做完给一份整卷汇总】和模拟考的成绩页一个意思 —— 一次看完每道题对错、
     // 自己写的是什么、标准答案与解析。数据都是现成的:answers[qid] 里存着每题的 {sel,text,result}。
-    const isQuiz = mode === "quiz" && questions.length >= 1;
+    const isQuiz = (mode === "quiz" || mode === "quick") && questions.length >= 1;
     return (
       <div className={isQuiz ? "space-y-3 md:mt-14 pb-4" : "mt-16 text-center space-y-4"}>
         {isQuiz ? (

@@ -12,6 +12,25 @@ import { aiErrorResponse } from "@/lib/errors";
 import { nowStamp } from "@/lib/devtime";
 import { setReqUser } from "@/lib/reqctx";
 
+// 存量题目里有很多没写解析(以前 explanation 是选填,选择题尤其常被模型省掉)。
+// 交卷时若发现缺解析,就现补一条并【写回题库】——只补一次,之后这道题谁做都直接有。
+async function ensureExplanation(q, ans) {
+  if (ans.explanation && String(ans.explanation).trim()) return ans.explanation;
+  if (q.qtype === "perform") return ans.explanation || "";
+  try {
+    const body = JSON.parse(q.body || "{}");
+    const opts = (body.options || []).length ? `\n选项:${(body.options || []).map((o, i) => String.fromCharCode(65 + i) + ". " + o).join("  ")}` : "";
+    const exam = db.prepare("SELECT * FROM exams WHERE id=?").get(q.exam_id);
+    const uid = exam?.user_id;
+    const lang = uid ? db.prepare("SELECT lang FROM users WHERE id=?").get(uid)?.lang : null;
+    const txt = await generate(`为下面这道题写一条简短解析(2~4 句)。题目:${body.stem || ""}${opts}\n标准答案:${ans.answer || ""}\n要求:说明答案为什么对;是选择题的话,再点出其他选项错在哪。只输出解析正文,不要复述题目。${langInstruction(lang)}`);
+    const clean = String(txt || "").trim();
+    if (!clean) return "";
+    db.prepare("UPDATE questions SET answer=? WHERE id=?").run(JSON.stringify({ ...ans, explanation: clean }), q.id);
+    return clean;
+  } catch { return ""; }
+}
+
 export async function POST(req) {
   try {
     const { questionId, userAnswer, mode = "practice", attachments, dontKnow } = await req.json();
@@ -30,7 +49,7 @@ export async function POST(req) {
       updateReviewQueue(questionId, false);
       let autoTriggersDK = null; try { autoTriggersDK = await onAnswer(user.id, q.exam_id, { correct: false, kpId: q.kp_id, questionId }); } catch {}
       maybeAutoUpdateOverall(user);
-      return Response.json({ attemptId: ins.lastInsertRowid, correct: false, score: 0, dontKnow: true, autoTriggers: autoTriggersDK, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real });
+      return Response.json({ attemptId: ins.lastInsertRowid, correct: false, score: 0, dontKnow: true, autoTriggers: autoTriggersDK, answer: ans.answer, explanation: await ensureExplanation(q, ans), source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real });
     }
     if (q.qtype === "short") {
       const kpList = leafKpList(q.exam_id);
@@ -94,7 +113,7 @@ ${handSliceNote(attachments)}
     } catch {}
     const masteryUpdates = gradeCross ? recordCrossKp(q.exam_id, questionId, gradeCross, q.kp_id) : [];
     maybeAutoUpdateOverall(user); // 里程碑时后台刷新整体画像
-    return Response.json({ attemptId: ins.lastInsertRowid, correct: !!correct, score, feedback, answer: ans.answer, explanation: ans.explanation, source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real, masteryUpdates, autoTriggers });
+    return Response.json({ attemptId: ins.lastInsertRowid, correct: !!correct, score, feedback, answer: ans.answer, explanation: await ensureExplanation(q, ans), source_type: q.source_type, source_refs: q.source_refs, origin: q.origin || "generated", answer_origin: q.answer_origin || "ai", source_url: q.source_url || null, is_real: !!q.is_real, masteryUpdates, autoTriggers });
   } catch (e) {
     return aiErrorResponse(e);
   }
