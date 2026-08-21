@@ -99,7 +99,11 @@ v12 报告里三条最严重的"杀手嘴上说了、实际没做"——查到�
 
 ## 部署
 - **代码知识图谱 graphify(2026-08,Will 引入)**:`pip install graphifyy --break-system-packages`,CLI 在 `~/.local/bin/graphify`(记得加 PATH)。
-  建图:`graphify update . --no-cluster` —— **tree-sitter 本地 AST 解析、不调 LLM、零 token**,本仓库约 40 秒出 1884 节点 / 6646 边(321 文件)。产物在 `graphify-out/`(已加 .gitignore,随时可重建、别入库)。
+  **★图谱现在会自动跟着代码走(2026-08,Will 要求)**:已执行 `graphify hook install`,在本仓库 `.git/hooks/` 装了 post-commit / post-checkout,
+  **每次 commit 之后自动增量重建 `graphify-out/graph.json`**(仍是本地 AST、零 token、只在有代码文件改动时才跑;空提交、rebase/merge 中途、只改 graphify-out 时都会自己跳过)。
+  所以图谱默认就是新的,可以随手 `affected`/`god-nodes`/`query`,不必先手动 update。
+  ⚠️**沙箱是临时的**:接续会话如果 `.git/hooks/post-commit` 不在了,重跑一次 `graphify hook install` 即可(命令在 `~/.local/bin`,记得 `export PATH="$PATH:$HOME/.local/bin"`)。
+  手动建图:`graphify update . --no-cluster` —— **tree-sitter 本地 AST 解析、不调 LLM、零 token**,本仓库约 40 秒出 1884 节点 / 6646 边(321 文件)。产物在 `graphify-out/`(已加 .gitignore,随时可重建、别入库)。
   **最该用的三条**:
   · `graphify affected "materialParts()" --depth 1` —— 【改/删之前先问谁在用】,直接列出 caller 与 file:L。本轮多次靠 grep 一个个翻的活,它一条命令给全。
   · `graphify god-nodes --top 12` —— 架构枢纽(本仓库前几名:`unauthorized()` 251 边、`requireUser()` 169、`db` 134、`useT()` 120),动这些等于牵一发动全身。
