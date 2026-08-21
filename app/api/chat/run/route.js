@@ -22,7 +22,10 @@ export async function GET(req) {
       if (staleSec != null && staleSec > 120) {
         // 这条会直接落库成聊天消息,必须按用户语言生成(P5-2:错误层文案以前一律写死中文)
         const _msg = tUser(user && user.lang, "(连接中断了,请重试)");
-        db.prepare("UPDATE chat_runs SET status='error', reply=?, updated_at=datetime('now') WHERE id=? AND status='running'").run(_msg, run.id);
+        const upd = db.prepare("UPDATE chat_runs SET status='error', reply=?, updated_at=datetime('now') WHERE id=? AND status='running'").run(_msg, run.id);
+        // ★把这条也【落库成聊天消息】:否则这一轮在刷新后连痕迹都不剩,主人只会看到自己的问题悬在那儿没人理。
+        // 用 changes 判断,保证并发下只写一次。
+        if (upd.changes > 0) { try { db.prepare("INSERT INTO chat_messages(exam_id,role,content) VALUES(?,?,?)").run(-user.id, "model", _msg); } catch {} }
         run.status = "error"; run.reply = _msg;
       }
     } catch {}

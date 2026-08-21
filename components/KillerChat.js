@@ -107,10 +107,30 @@ export default function KillerChat({ embedded = false }) {
       if (d.runId) startPolling(d.runId);
       else { setBusy(false); setMessages((m) => [...m, { role: "tool_note", content: t("没能开始:") + (d.error || t("未知原因")) }]); }
     } catch (e) {
-      setMessages((m) => m.slice(0, -1)); setInput(text); setBusy(false);
+      // 【发送失败绝不把主人的话删掉】以前这里 setMessages(m => m.slice(0,-1)) 把刚发的那条气泡撤掉,
+      // 而 network / ai-error 又【连原因都不说】—— 部署重启正好造成 network,于是主人看到的就是
+      // "我的问题凭空消失了"(Will 2026-08 反馈)。现在:气泡留着、标成【没发出去】、给一个重发按钮,
+      // 并且【一定说明原因】。这也符合本项目"绝不静默失败"的规矩。
+      setBusy(false);
       const msg = String((e && e.message) || e || "");
-      if (msg !== "ai-error" && msg !== "network") setMessages((m) => [...m, { role: "tool_note", content: t("发送失败:") + msg }]);
+      const why = msg === "network" ? t("网络断了或服务器正在重启") : msg === "ai-error" ? t("AI 接口出错") : msg;
+      setMessages((m) => {
+        const n = [...m];
+        for (let i = n.length - 1; i >= 0; i--) {
+          if (n[i].role === "user") { n[i] = { ...n[i], failed: true, failReason: why, raw: text }; break; }
+        }
+        return n;
+      });
     }
+  }
+
+  // 【重发】把失败标记去掉,原样再发一次(不改主人打的字)
+  async function retryFailed(idx) {
+    if (busy || pending) return;
+    const m0 = messages[idx];
+    if (!m0 || !m0.failed) return;
+    setMessages((m) => m.filter((_, i) => i !== idx));
+    await send(m0.raw || m0.content);
   }
 
   async function clearChat() {
@@ -158,7 +178,19 @@ export default function KillerChat({ embedded = false }) {
             ))}
           </div>
         )}
-        {messages.map((m, i) => <ChatMsg key={i} role={m.role} content={m.content} />)}
+        {messages.map((m, i) => (
+          <div key={i}>
+            <ChatMsg role={m.role} content={m.content} />
+            {/* 没发出去的那条:留着原文 + 说清原因 + 一键重发,绝不悄悄抹掉 */}
+            {m.failed && (
+              <div className="mt-1 flex flex-wrap items-center justify-end gap-2 text-xs text-rose-600">
+                <span>⚠️ {t("没发出去")}{m.failReason ? `:${m.failReason}` : ""}</span>
+                <button className="rounded-full bg-rose-600 px-3 py-1 font-semibold text-white disabled:opacity-50"
+                  disabled={busy || !!pending} onClick={() => retryFailed(i)}>{t("重发")}</button>
+              </div>
+            )}
+          </div>
+        ))}
         {genExams.map((e) => (
           <div key={"gen" + e.id} className="card border-amber-200 bg-amber-50/70 text-sm">
             <p className="font-semibold text-amber-900">🛠️ {t("正在后台创建考试")}:{e.name}</p>
