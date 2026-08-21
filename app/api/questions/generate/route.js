@@ -8,6 +8,7 @@ import { aiErrorResponse, AiError } from "@/lib/errors";
 import { resolveExamLang } from "@/lib/examlang";
 import { difficultyHint } from "@/lib/memory";
 import { generateQuestionsForKp } from "@/lib/generators";   // 小测:每个知识点各出一道
+import { buildFigures } from "@/lib/figures";
 import { USER_ORIGINS } from "@/lib/questionBank";
 import { findAndStoreMusic, alignStemToMusic } from "@/lib/music";
 
@@ -28,7 +29,8 @@ const onlineSchema = { type: "object", properties: {
   found: { type: "array", items: { type: "object", properties: {
     qtype: { type: "string", enum: ["single", "multi", "judge", "fill", "short"] }, stem: { type: "string" },
     options: { type: "array", items: { type: "string" } }, answer: { type: "string" }, explanation: { type: "string" },
-    sourceUrl: { type: "string" }, isReal: { type: "boolean" }, hasAnswer: { type: "boolean" }
+    sourceUrl: { type: "string" }, isReal: { type: "boolean" }, hasAnswer: { type: "boolean" },
+    imageUrl: { type: "string", description: "这道题【必须配图】才能做时,填一张公开可直连的图片网址(.png/.jpg 结尾那种直链)。找不到就【别出这道题】,也别填占位地址。" }
   }, required: ["qtype", "stem", "answer", "sourceUrl", "isReal", "hasAnswer"] } },
   note: { type: "string", description: "若该知识点必须借助图像/音频才能考、纯文字无法呈现,在此说明;否则留空" }
 }, required: ["found"] };
@@ -43,7 +45,9 @@ async function searchOnline(exam, kp, chapter, count, langRule) {
     const out = await generateJson(
       `下面是关于「${exam.name} - ${kp.title}」的联网搜索结果,用来了解这门考试【真实的题型、难度和出题风格】。请【据此自己出最多 ${count} 道原创练习题】,贴合真实考试的题型与考点。
 - 【版权 · 必须遵守】不要逐字照搬受版权保护的官方真题/题库原文(如剑桥雅思、官方样题等),也不要只做个别词替换套壳;只借鉴其题型和风格,题目文字必须完全由你自己原创。
-- ${hasAudio ? "若某题需要音频,请在 body 里挂上音频素材 id。" : "本考试没有可播放的音频/图片素材:【不要】出任何需要听录音、看地图、看图才能作答的题(听力填空、地图题、看图题等)——没有音频/图片就是无效题;改出纯文字也能作答的题。"}
+- ${hasAudio ? "若某题需要音频,请在 body 里挂上音频素材 id。" : "本考试没有可播放的音频素材:【不要】出任何需要听录音才能作答的题。"}
+- 【要配图的题】现在可以配图了,但只有一条路:imageUrl 填一张【公开可直连的图片网址】(.png/.jpg 直链),系统会把它下载下来存住。
+  ★找不到这样的直链,就【干脆别出这道需要图的题】——出一道说"见图"却没有图的题,对考生是纯粹的浪费。占位地址、示意链接、网页地址一律不要填。
 - single/multi 给 4 个选项、answer 写字母;fill/short 给标准答案/评分要点;explanation 写解析。sourceUrl 填参考来源网址(可留空)。isReal 一律填 false(这些是原创题),hasAnswer 填 true。
 数学公式必须用【标准 LaTeX】写、并用 $...$ 包裹,而且【务必带上反斜杠命令】——例如极限写 $\lim_{h\to 0}$、分数写 $\frac{a}{b}$、根号写 $\sqrt{x}$、希腊字母写 $\theta$。★【绝对不要】把命令的反斜杠去掉写成 lim、frac、to、theta 这种裸词(那样会渲染成乱码)。
 搜索结果:\n${s.text.slice(0, 6000)}` + (langRule || ""),
@@ -205,7 +209,10 @@ ${difficultyHint(user.id, exam.id)}\n【防泄题】组内不得答案泄露、�
       const onlineQs = [];
       for (const q of (online.found || [])) {
         if (!q.stem || !q.answer) continue;
-        const info = insQ.run(exam.id, kp.id, q.qtype, JSON.stringify({ stem: q.stem, options: q.options || [], audioId: q.audioId || null, listenScript: q.listenScript || null, ttsLang: q.ttsLang || null }),
+        // 联网题要配图的话,把它给的直链【下载下来存住】——绝不把外链塞进题目(那迟早变死链)。下不动就当这题没图。
+        let figures = [];
+        if (q.imageUrl) { try { figures = await buildFigures(exam.id, null, [{ url: q.imageUrl, alt: "" }], `kp${kp.id}`); } catch {} }
+        const info = insQ.run(exam.id, kp.id, q.qtype, JSON.stringify({ stem: q.stem, options: q.options || [], figures, audioId: q.audioId || null, listenScript: q.listenScript || null, ttsLang: q.ttsLang || null }),
           JSON.stringify({ answer: q.answer, explanation: q.explanation || "" }), 2, "web", "[]",
           "online", "ai", q.sourceUrl || null, 0); // 原创仿真题,非逐字真题
         onlineQs.push(db.prepare("SELECT * FROM questions WHERE id=?").get(info.lastInsertRowid));

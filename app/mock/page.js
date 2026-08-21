@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
 import SourceConfidence from "@/components/SourceConfidence";
 import MD from "@/components/MD";
+import QFigure from "@/components/QFigure";
 import { safeCut } from "@/lib/mdcut";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import HandwritePad from "@/components/HandwritePad";
@@ -90,6 +91,7 @@ function ReviewBlock({ q, t, idx, ua, atts, res, letters, onRevised }) {
     <div className={`card ${res ? (res.correct ? "border-amber-400 bg-amber-50" : "border-red-300 bg-red-50") : ""}`}>
       <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}{res?.marks != null && <span> · {res.earned != null ? res.earned : (res.correct ? res.marks : 0)}/{res.marks} {t("分")}</span>} {res && <span className={res.correct ? "text-amber-700" : "text-red-600"}>· {res.correct ? t("✓ 答对了") : t("✗ 不对")}</span>}</p>
       <MD className="font-medium prose-zh">{q.body.stem}</MD>
+      <QFigure figures={q.body.figures} />
       {isChoice ? (
         <div className="mt-2 space-y-1.5">
           {options.map((op, i) => {
@@ -477,6 +479,7 @@ function stripLabel(op, i) {
           <div key={q.id} className="card">
             <p className="text-xs text-stone-400 mb-1">{idx + 1} · {t(QTYPE[q.qtype])}</p>
             <MD className="font-medium prose-zh">{q.body.stem}</MD>
+            <QFigure figures={q.body.figures} />
             {q.body.audioId && <div className="mt-3"><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
             {/* 草稿纸最上面(所有题,含选择题) */}
             <DraftPad q={q} t={t} initial={restoredDrafts.current[q.id]} onDraft={setDraft} />

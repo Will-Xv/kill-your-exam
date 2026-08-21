@@ -9,6 +9,7 @@ import { useAiFetch } from "@/components/AiErrorDialog";
 import { useT } from "@/components/I18n";
 import SourceBadge from "@/components/SourceBadge";
 import MD from "@/components/MD";
+import QFigure from "@/components/QFigure";
 import { filesToAttachments } from "@/lib/attach";
 import DropZone from "@/components/DropZone";
 
@@ -347,7 +348,7 @@ function PracticeInner() {
                 <div key={qq.id} className={`card py-3 ${ok ? "border-emerald-200" : "border-rose-200"}`}>
                   <div className="flex items-start gap-2">
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${ok ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>{i + 1} {ok ? "✓" : "✗"}</span>
-                    <div className="min-w-0 flex-1 text-sm"><MD inline>{qq.body?.stem || ""}</MD></div>
+                    <div className="min-w-0 flex-1 text-sm"><MD inline>{qq.body?.stem || ""}</MD><QFigure figures={qq.body?.figures} /></div>
                   </div>
                   {r ? (
                     <div className="mt-2 space-y-1 text-xs">
@@ -458,6 +459,7 @@ function PracticeInner() {
       </div>
       <div className="card">
         <MD className="font-medium prose-zh">{q.body.stem}</MD>
+        <QFigure figures={q.body.figures} />
         {q.body.audioId && <div className="mt-3"><div className="mb-1 text-xs text-slate-500">🎧 {t("先听录音,再作答(可反复播放)")}</div><audio controls preload="metadata" className="w-full" src={`/api/materials/raw?id=${q.body.audioId}`} /></div>}
         {q.body.listenScript && (
           <div className="mt-3 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
