@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useT } from "@/components/I18n";
 import SourceConfidence from "@/components/SourceConfidence";
 import MD from "@/components/MD";
+import { safeCut } from "@/lib/mdcut";
 import { useAiFetch } from "@/components/AiErrorDialog";
 import HandwritePad from "@/components/HandwritePad";
 import DropZone from "@/components/DropZone";
@@ -426,9 +427,9 @@ function stripLabel(op, i) {
         {mockRoot && (
           <div className="card border-rose-300 bg-rose-50">
             <h2 className="font-bold text-rose-800">🔍 {t("根因诊断")}</h2>
-            {mockRoot.summary && <p className="mt-1 text-sm font-semibold text-[#5a2d0c]">{mockRoot.summary}</p>}
-            {mockRoot.rootCauses?.length > 0 && <div className="mt-2 space-y-1">{mockRoot.rootCauses.map((r, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium">{(r.title || "").slice(0, 40)}</span>{r.why ? <span className="text-stone-500"> — {r.why.slice(0, 80)}</span> : ""}</div>)}</div>}
-            {mockRoot.avoidance?.avoiding && <div className="mt-2 rounded-xl bg-stone-100 px-3 py-1.5 text-xs text-stone-600">{mockRoot.avoidance.detail}</div>}
+            {mockRoot.summary && <div className="mt-1 text-sm font-semibold text-[#5a2d0c]"><MD inline>{mockRoot.summary}</MD></div>}
+            {mockRoot.rootCauses?.length > 0 && <div className="mt-2 space-y-1">{mockRoot.rootCauses.map((r, i) => <div key={i} className="rounded-xl bg-white/70 px-3 py-1.5 text-xs"><span className="font-medium"><MD inline>{safeCut(r.title, 40)}</MD></span>{r.why ? <span className="text-stone-500"> — <MD inline>{safeCut(r.why, 80)}</MD></span> : ""}</div>)}</div>}
+            {mockRoot.avoidance?.avoiding && <div className="mt-2 rounded-xl bg-stone-100 px-3 py-1.5 text-xs text-stone-600"><MD inline>{mockRoot.avoidance.detail}</MD></div>}
             <a href="/study" className="mt-2 inline-block text-xs font-semibold text-rose-700 underline">{t("去看根因知识点")} →</a>
           </div>
         )}

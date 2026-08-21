@@ -3,6 +3,7 @@ import { alertDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
 import { useAiFetch } from "@/components/AiErrorDialog";
+import MD from "@/components/MD";
 
 const SRC = { l1_negative: "母语负迁移", l2_negative: "二外/其他外语负迁移", target_internal: "目标语内部混淆", careless: "粗心/笔误" };
 const SRC_COLOR = { l1_negative: "bg-rose-500", l2_negative: "bg-orange-500", target_internal: "bg-sky-500", careless: "bg-stone-400" };
@@ -78,7 +79,7 @@ export default function LangTransferPage() {
                 <div className="h-2 rounded-full bg-stone-100"><div className={`h-2 rounded-full ${SRC_COLOR[k]}`} style={{ width: `${(n / total) * 100}%` }} /></div>
               </div>
             ))}
-            {(d.recent || []).length > 0 && <div className="mt-2 border-t border-stone-100 pt-2 space-y-1">{d.recent.slice(0, 6).map((r, i) => <div key={i} className="text-xs text-stone-600"><span className={`mr-1 inline-block rounded px-1 text-[10px] text-white ${SRC_COLOR[r.source]}`}>{t(SRC[r.source] || r.source)}</span>{r.note}</div>)}</div>}
+            {(d.recent || []).length > 0 && <div className="mt-2 border-t border-stone-100 pt-2 space-y-1">{d.recent.slice(0, 6).map((r, i) => <div key={i} className="text-xs text-stone-600"><span className={`mr-1 inline-block rounded px-1 text-[10px] text-white ${SRC_COLOR[r.source]}`}>{t(SRC[r.source] || r.source)}</span><MD inline>{r.note}</MD></div>)}</div>}
           </div>
         ) : <p className="mt-2 text-xs text-stone-500">{t("还没有归因数据。做几道语言题、答错后点「分析我的错题」,我会判断每个错误来自哪门语言的迁移。")}</p>}
       </div>
@@ -91,11 +92,11 @@ export default function LangTransferPage() {
             <tbody>
               {d.contrast.map((c, i) => (
                 <tr key={i} className="border-t border-stone-100 align-top">
-                  <td className="py-1 pr-2 font-medium">{c.kind === "positive" ? "🟢 " : ""}{c.concept}</td>
-                  <td className="py-1 pr-2 text-stone-500">{c.native || "—"}</td>
-                  <td className="py-1 pr-2 text-stone-500">{c.l2 || "—"}</td>
-                  <td className="py-1 pr-2 font-semibold text-sky-700">{c.target || "—"}</td>
-                  <td className="py-1 text-rose-600">{c.pitfall || "—"}</td>
+                  <td className="py-1 pr-2 font-medium">{c.kind === "positive" ? "🟢 " : ""}<MD inline>{c.concept}</MD></td>
+                  <td className="py-1 pr-2 text-stone-500"><MD inline>{c.native || "—"}</MD></td>
+                  <td className="py-1 pr-2 text-stone-500"><MD inline>{c.l2 || "—"}</MD></td>
+                  <td className="py-1 pr-2 font-semibold text-sky-700"><MD inline>{c.target || "—"}</MD></td>
+                  <td className="py-1 text-rose-600"><MD inline>{c.pitfall || "—"}</MD></td>
                 </tr>
               ))}
             </tbody>
@@ -112,9 +113,9 @@ export default function LangTransferPage() {
         </div>
         {pred && (
           <div className="mt-3 space-y-2 text-xs">
-            {(pred.negatives || []).length > 0 && <div><div className="font-bold uppercase tracking-wide text-rose-700">⚠️ {t("负迁移陷阱")}</div>{pred.negatives.map((x, i) => <div key={i} className="mt-1 rounded-lg bg-rose-50 px-2 py-1"><span className="font-medium">{x.point}</span>{x.from ? <span className="text-stone-500"> · {t("来自")}{x.from}</span> : ""}{x.why ? <div className="text-stone-500">{x.why}</div> : null}</div>)}</div>}
-            {(pred.positives || []).length > 0 && <div><div className="font-bold uppercase tracking-wide text-emerald-700">🟢 {t("可借力的正迁移")}</div>{pred.positives.map((x, i) => <div key={i} className="mt-1 rounded-lg bg-emerald-50 px-2 py-1"><span className="font-medium">{x.point}</span>{x.from ? <span className="text-stone-500"> · {t("来自")}{x.from}</span> : ""}{x.why ? <div className="text-stone-500">{x.why}</div> : null}</div>)}</div>}
-            {pred.tip && <div className="rounded-lg bg-sky-50 px-2 py-1 text-sky-800">💡 {pred.tip}</div>}
+            {(pred.negatives || []).length > 0 && <div><div className="font-bold uppercase tracking-wide text-rose-700">⚠️ {t("负迁移陷阱")}</div>{pred.negatives.map((x, i) => <div key={i} className="mt-1 rounded-lg bg-rose-50 px-2 py-1"><span className="font-medium"><MD inline>{x.point}</MD></span>{x.from ? <span className="text-stone-500"> · {t("来自")}{x.from}</span> : ""}{x.why ? <div className="text-stone-500"><MD inline>{x.why}</MD></div> : null}</div>)}</div>}
+            {(pred.positives || []).length > 0 && <div><div className="font-bold uppercase tracking-wide text-emerald-700">🟢 {t("可借力的正迁移")}</div>{pred.positives.map((x, i) => <div key={i} className="mt-1 rounded-lg bg-emerald-50 px-2 py-1"><span className="font-medium"><MD inline>{x.point}</MD></span>{x.from ? <span className="text-stone-500"> · {t("来自")}{x.from}</span> : ""}{x.why ? <div className="text-stone-500"><MD inline>{x.why}</MD></div> : null}</div>)}</div>}
+            {pred.tip && <div className="rounded-lg bg-sky-50 px-2 py-1 text-sky-800">💡 <MD inline>{pred.tip}</MD></div>}
           </div>
         )}
       </div>

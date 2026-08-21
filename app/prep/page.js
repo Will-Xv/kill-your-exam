@@ -50,7 +50,7 @@ export default function Prep() {
       {prep.knowledgeCheck && (
         <div className="card border-amber-200">
           <h2 className="font-bold text-amber-900">📖 {t("知识性考前自测")}</h2>
-          <div className="mt-2 rounded-xl bg-amber-50 p-3 text-sm text-slate-700 whitespace-pre-wrap">{prep.knowledgeCheck.summary}</div>
+          <div className="mt-2 rounded-xl bg-amber-50 p-3 text-sm text-slate-700"><MD>{prep.knowledgeCheck.summary}</MD></div>
           <div className="mt-3 space-y-3">
             {(prep.knowledgeCheck.questions || []).map((q, i) => {
               const RE = { weak: t("薄弱"), unreviewed: t("未复习"), key: t("重点"), likely: t("大概率考") };
@@ -60,7 +60,7 @@ export default function Prep() {
                   <MD className="text-sm font-medium mt-0.5">{q.stem}</MD>
                   {q.options?.length > 0 && <ul className="mt-1 text-sm text-slate-600">{q.options.map((o, j) => <li key={j}>{o}</li>)}</ul>}
                   <button className="text-xs text-amber-700 underline mt-1" onClick={() => setReveal({ ...reveal, ["k" + i]: !reveal["k" + i] })}>{reveal["k" + i] ? t("隐藏答案") : t("看答案")}</button>
-                  {reveal["k" + i] && <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.answer}<br /><span className="text-slate-600">{q.explanation}</span></p>}
+                  {reveal["k" + i] && <div className="text-sm mt-1"><b>{t("参考答案:")}</b><MD inline>{q.answer}</MD><div className="text-slate-600"><MD inline>{q.explanation}</MD></div></div>}
                 </div>
               );
             })}
@@ -82,7 +82,7 @@ export default function Prep() {
                 <MD className="text-sm font-medium mt-0.5">{q.stem}</MD>
                 {q.options?.length > 0 && <ul className="mt-1 text-sm text-slate-600">{q.options.map((o, j) => <li key={j}>{o}</li>)}</ul>}
                 <button className="text-xs text-amber-700 underline mt-1" onClick={() => setReveal({ ...reveal, [i]: !reveal[i] })}>{reveal[i] ? t("隐藏答案") : t("看答案")}</button>
-                {reveal[i] && <p className="text-sm mt-1"><b>{t("参考答案:")}</b>{q.answer}<br /><span className="text-slate-600">{q.explanation}</span></p>}
+                {reveal[i] && <div className="text-sm mt-1"><b>{t("参考答案:")}</b><MD inline>{q.answer}</MD><div className="text-slate-600"><MD inline>{q.explanation}</MD></div></div>}
               </div>
             ))}
           </div>

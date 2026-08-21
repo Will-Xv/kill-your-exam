@@ -138,7 +138,7 @@ function StudyInner() {
             {insights.map((x) => (
               <div key={x.id} className="text-sm flex gap-2">
                 <span className={x.kind === "gap" ? "badge-model" : "badge-material"}>{x.kind === "gap" ? t("薄弱") : t("理解到位")}</span>
-                <span className="text-slate-600">{x.text}</span>
+                <span className="text-slate-600"><MD inline>{x.text}</MD></span>
               </div>
             ))}
           </div>

@@ -62,7 +62,7 @@ function BugCard({ b, t, reload }) {
             {!!(s.selected || []).length && <p className="text-xs text-stone-500">{t("选择")}: {(s.selected || []).join(", ")}</p>}
             {s.grade && (s.grade.error
               ? <p className="text-xs mt-1 text-red-600">{t("AI判分")}: ⚠️ {t("失败")} · {s.grade.error}</p>
-              : <p className="text-xs mt-1">{t("AI判分")}: {s.grade.correct != null ? (s.grade.correct ? "✓ " : "✗ ") : ""}{s.grade.score != null ? s.grade.score + t("分") : ""}{s.grade.feedback ? " · " + s.grade.feedback : ""}</p>)}
+              : <p className="text-xs mt-1">{t("AI判分")}: {s.grade.correct != null ? (s.grade.correct ? "✓ " : "✗ ") : ""}{s.grade.score != null ? s.grade.score + t("分") : ""}{s.grade.feedback ? <> · <MD inline>{s.grade.feedback}</MD></> : ""}</p>)}
             {!s.grade && <p className="text-xs mt-1 text-stone-400">{t("(没有判分记录)")}</p>}
           </div>
           {imgs.map((a) => <div key={a.i}><p className="text-xs text-stone-500">{a.name}</p><img src={`/api/admin/bug-att?bug=${b.id}&i=${a.i}`} alt={a.name} className="w-full rounded-lg border border-stone-200 bg-white" /></div>)}
@@ -111,7 +111,7 @@ function BugCard({ b, t, reload }) {
           {!!(s.discuss || []).length && (
             <div className="rounded-lg bg-slate-50 p-2">
               <p className="text-stone-500 text-xs mb-1">💬 {t("追问/争论记录")}</p>
-              {s.discuss.map((m, i) => <div key={i} className="text-xs mb-1"><b>{m.role === "user" ? t("用户") : "AI"}:</b> {m.content}</div>)}
+              {s.discuss.map((m, i) => <div key={i} className="text-xs mb-1"><b>{m.role === "user" ? t("用户") : "AI"}:</b> <MD inline>{m.content}</MD></div>)}
             </div>
           )}
         </div>

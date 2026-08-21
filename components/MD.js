@@ -1,6 +1,7 @@
 "use client";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";   // 表格/删除线/任务列表:GFM 扩展,不装这个 react-markdown 根本不认表格
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 
@@ -86,16 +87,39 @@ function restoreCode(s, store) {
   return s.replace(/\u0000C(\d+)\u0000/g, (m, i) => (store[Number(i)] != null ? store[Number(i)] : m));
 }
 
+// 【保护表格不被下面的预处理搅烂】(2026-08,Will 反馈"表格显示不出来")
+// 表格坏掉有两个原因,缺一不可地都要修:
+//   ① 根子上没装 remark-gfm —— 表格不是 CommonMark 语法,不装就只能原样吐出满屏竖线(已在上面装好);
+//   ② 就算装了,本文件的预处理还会把它拆散:
+//      · blockify 里 /\s+---\s+/ 会把【带空格写的分隔行】"| --- | --- |" 当成水平分隔线,一行炸成好几段;
+//      · wrapBareRuns 的字符类里含 "|",表格行只要出现 ^ 或 _ 或反斜杠命令,整行连竖线一起被包进 $...$。
+// 所以这里先把整块表格遮起来,等所有预处理跑完再原样放回。
+// 取舍:遮起来的部分不做"裸 LaTeX 自动补 $"(那个正则正是元凶);表格里已经写好的 $...$ 照常渲染,
+//       \( \) 也会归一成 $,足够应付出题模型的写法。
+function protectTables(s) {
+  const store = [];
+  s = s.replace(/(?:^|\n)((?:[ \t]*\|[^\n]*\|[ \t]*(?:\n|$)){2,})/g, (m, tbl) => {
+    store.push(tbl.replace(/\\\(/g, "$").replace(/\\\)/g, "$"));
+    return "\n\n\u0000T" + (store.length - 1) + "\u0000\n\n";
+  });
+  return { s, store };
+}
+function restoreTables(s, store) {
+  return s.replace(/\u0000T(\d+)\u0000/g, (m, i) => (store[Number(i)] != null ? "\n" + store[Number(i)] : m));
+}
+
 const KATEX_OPTS = { strict: false, throwOnError: false, errorColor: "#9a7b4f", maxExpand: 1000 };
 
 export default function MD({ children, className = "", inline = false }) {
   let raw = String(children ?? "").replace(/\\r\\n|\\n(?![a-zA-Z])/g, "  \n"); // AI 偶尔输出字面量 \n,转成真正的换行
   const { s: _masked, store: _codeStore } = protectCode(raw);
-  let s = codeNotMath(_masked);
+  const { s: _noTbl, store: _tblStore } = protectTables(_masked);
+  let s = codeNotMath(_noTbl);
   s = blockify(s);
   s = autoMath(s);
   s = unwrapProseMath(s);
   s = balanceDelims(s);
+  s = restoreTables(s, _tblStore);
   s = restoreCode(s, _codeStore);
   const linkRenderer = ({ href, children }) => {
     const h = typeof href === "string" ? href : "";
@@ -109,11 +133,23 @@ export default function MD({ children, className = "", inline = false }) {
   // 代码块/行内代码:长行【自动换行】,别横向溢出被裁掉(手机上尤其明显)
   const preRenderer = ({ children, ...props }) => <pre {...props} className="my-2 overflow-x-auto rounded-lg bg-stone-100/80 p-2.5 text-[13px] leading-snug" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</pre>;
   const codeRenderer = ({ children, className, ...props }) => <code {...props} className={className} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</code>;
-  const comps = inline ? { a: linkRenderer, code: codeRenderer, p: ({ children }) => <>{children}</> } : { a: linkRenderer, pre: preRenderer, code: codeRenderer };
-  const Wrapper = inline ? "span" : "div";
+  // 表格:默认没有任何边框,挤成一坨看不出行列;宽表在手机上要能横向滚动而不是撑破页面。
+  const tableRenderer = ({ children }) => (
+    <div className="my-2 -mx-1 overflow-x-auto"><table className="w-full min-w-[18rem] border-collapse text-[13px] leading-snug">{children}</table></div>
+  );
+  const thRenderer = ({ children, style }) => <th style={style} className="border border-stone-300/70 bg-stone-100/80 px-2 py-1 text-left font-semibold">{children}</th>;
+  const tdRenderer = ({ children, style }) => <td style={style} className="border border-stone-200 px-2 py-1 align-top">{children}</td>;
+  const tableComps = { table: tableRenderer, th: thRenderer, td: tdRenderer };
+  // 【有表格就不能用 inline】追问回复、题目解析这些【最容易出表格】的地方,调用方写的都是 <MD inline>,
+  // 而 inline 会把整段塞进 <span> —— <table> 嵌在 <span> 里是非法 HTML,浏览器会把它拽出去、样式全丢。
+  // 所以这里自动判断:这段文字里只要有表格(protectTables 遮到了东西),就【降级成块级渲染】,
+  // 调用方一个字都不用改。没有表格时 inline 行为完全不变(不换行、不生成 <p>)。
+  const useInline = inline && _tblStore.length === 0;
+  const comps = useInline ? { a: linkRenderer, code: codeRenderer, p: ({ children }) => <>{children}</> } : { a: linkRenderer, pre: preRenderer, code: codeRenderer, ...tableComps };
+  const Wrapper = useInline ? "span" : "div";
   return (
     <Wrapper className={className}>
-      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, KATEX_OPTS]]} components={comps}>{s}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, KATEX_OPTS]]} components={comps}>{s}</ReactMarkdown>
     </Wrapper>
   );
 }

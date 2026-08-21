@@ -54,7 +54,7 @@ export default function Tour() {
         {mode === "whatsnew" && <p className="mb-1 text-xs font-bold tracking-wide text-amber-600">✨ {t("新功能上线")}</p>}
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-50 to-amber-50 text-4xl">{s.icon}</div>
         <h2 className="mt-4 text-xl font-black">{s.title}</h2>
-        <p className="mt-2 text-slate-600">{s.body}</p>
+        <p className="mt-2 text-slate-600"><MD>{s.body}</MD></p>
 
         {s.lang && (
           <div className="mt-4">

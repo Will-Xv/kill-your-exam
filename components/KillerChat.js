@@ -200,7 +200,7 @@ export default function KillerChat({ embedded = false }) {
         {pending && pending.kind === "plan" && (
           <div className="card border-amber-300 bg-amber-50/70">
             <p className="text-sm font-semibold text-amber-900">📋 {t("杀手拟好了执行计划,同意就开始,或说说要改哪里:")}</p>
-            {pending.plan?.summary && <p className="text-sm text-amber-800 mt-1">{pending.plan.summary}</p>}
+            {pending.plan?.summary && <div className="text-sm text-amber-800 mt-1"><MD inline>{pending.plan.summary}</MD></div>}
             <ol className="mt-2 space-y-1 text-sm list-decimal list-inside">
               {(pending.plan?.steps || []).map((st, i) => <li key={i}><b><MD inline>{st.title}</MD></b>{st.detail ? <> — <MD inline>{st.detail}</MD></> : null}</li>)}
             </ol>
@@ -250,7 +250,7 @@ export default function KillerChat({ embedded = false }) {
               {plan && (
                 <div className="rounded-xl bg-amber-50 p-2 ring-1 ring-amber-200">
                   <p className="text-xs font-bold text-amber-800">📋 {t("执行计划")}</p>
-                  {plan.summary && <p className="text-xs text-amber-700 mt-0.5">{plan.summary}</p>}
+                  {plan.summary && <div className="text-xs text-amber-700 mt-0.5"><MD inline>{plan.summary}</MD></div>}
                   <ol className="mt-1 space-y-0.5 text-xs text-slate-600 list-decimal list-inside">
                     {(plan.steps || []).map((st, i) => <li key={i}><b><MD inline>{st.title}</MD></b>{st.detail ? <> — <MD inline>{st.detail}</MD></> : null}</li>)}
                   </ol>

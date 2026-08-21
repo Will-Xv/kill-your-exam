@@ -3,6 +3,7 @@ import { confirmDialog, alertDialog } from "@/components/ui/dialog";
 import { useT } from "@/components/I18n";
 import { useEffect, useState } from "react";
 import { useUploader } from "@/components/UploadProvider";
+import MD from "@/components/MD";
 
 export default function Materials() {
   const t = useT();
@@ -105,10 +106,10 @@ export default function Materials() {
             smap.err ? <p className="mt-2 text-xs text-stone-400">{t("生成失败,稍后再试。")}</p>
             : !smap.map ? <p className="mt-2 text-xs text-stone-400">{t("至少要2份资料才能生成地图。")}</p>
             : (<div className="mt-3 space-y-3 text-sm">
-                {smap.map.summary && <div className="rounded-xl bg-amber-50 px-3 py-2 font-semibold text-[#5a2d0c]">{smap.map.summary}</div>}
-                {smap.map.order?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-emerald-700">{t("建议学习顺序")}</div><ol className="mt-1 list-decimal pl-5 text-stone-700">{smap.map.order.map((o, i) => <li key={i}><span className="font-medium">{o.material}</span>{o.why ? <span className="text-stone-500"> — {o.why}</span> : ""}</li>)}</ol></div>}
-                {smap.map.redundant?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("重复(留一份就够)")}</div>{smap.map.redundant.map((r, i) => <div key={i} className="mt-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs">{(r.materials || []).join(" · ")}{r.note ? <span className="text-stone-500"> — {r.note}</span> : ""}</div>)}</div>}
-                {smap.map.complementary?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-sky-700">{t("互补搭配")}</div>{smap.map.complementary.map((r, i) => <div key={i} className="mt-1 rounded-xl bg-sky-50 px-3 py-1.5 text-xs">{(r.materials || []).join(" + ")}{r.note ? <span className="text-stone-500"> — {r.note}</span> : ""}</div>)}</div>}
+                {smap.map.summary && <div className="rounded-xl bg-amber-50 px-3 py-2 font-semibold text-[#5a2d0c]"><MD>{smap.map.summary}</MD></div>}
+                {smap.map.order?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-emerald-700">{t("建议学习顺序")}</div><ol className="mt-1 list-decimal pl-5 text-stone-700">{smap.map.order.map((o, i) => <li key={i}><span className="font-medium">{o.material}</span>{o.why ? <span className="text-stone-500"> — <MD inline>{o.why}</MD></span> : ""}</li>)}</ol></div>}
+                {smap.map.redundant?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-rose-700">{t("重复(留一份就够)")}</div>{smap.map.redundant.map((r, i) => <div key={i} className="mt-1 rounded-xl bg-rose-50 px-3 py-1.5 text-xs">{(r.materials || []).join(" · ")}{r.note ? <span className="text-stone-500"> — <MD inline>{r.note}</MD></span> : ""}</div>)}</div>}
+                {smap.map.complementary?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-sky-700">{t("互补搭配")}</div>{smap.map.complementary.map((r, i) => <div key={i} className="mt-1 rounded-xl bg-sky-50 px-3 py-1.5 text-xs">{(r.materials || []).join(" + ")}{r.note ? <span className="text-stone-500"> — <MD inline>{r.note}</MD></span> : ""}</div>)}</div>}
                 {smap.map.groups?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-stone-500">{t("按主题分组")}</div>{smap.map.groups.map((g, i) => <div key={i} className="mt-1 rounded-xl bg-stone-50 px-3 py-1.5 text-xs"><span className="font-medium">{g.topic}</span>：{(g.materials || []).join("、")}</div>)}</div>}
                 {smap.map.gaps?.length > 0 && <div><div className="text-xs font-bold uppercase tracking-wide text-amber-700">{t("还缺资料的主题")}</div><ul className="mt-1 list-disc pl-5 text-stone-600">{smap.map.gaps.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
               </div>)
@@ -186,7 +187,7 @@ export default function Materials() {
           <h2 className="font-semibold text-sm mb-1">{t("资料收集清单")}({done}/{checklist.length})</h2>
           {checklist.map((c, i) => c.item === OTHER ? null : c.kind === "qa" ? (
             <div key={i} className="py-1.5 border-b border-slate-100 last:border-0">
-              <p className="text-sm">{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">— {t("直接回答")}</span></p>
+              <div className="text-sm">{c.priority === "must" ? "🔴 " : ""}<MD inline>{c.item}</MD> <span className="text-xs text-slate-400">— {t("直接回答")}</span></div>
               <div className="mt-1 flex gap-2">
                 <input className="input py-2 text-sm" value={c.answer || ""} onChange={(e) => setAnswer(i, e.target.value)} onBlur={() => saveAnswer(i)} placeholder={c.why} />
                 {c.done && <span className="text-amber-600 text-sm self-center">✓</span>}
@@ -195,7 +196,7 @@ export default function Materials() {
           ) : (
             <label key={i} className="flex items-start gap-2 text-sm py-1.5 cursor-pointer border-b border-slate-100 last:border-0">
               <input type="checkbox" checked={!!c.done} onChange={() => toggleCheck(i)} className="mt-1" />
-              <span className={c.done ? "line-through text-slate-400" : ""}>{c.priority === "must" ? "🔴 " : ""}{c.item} <span className="text-xs text-slate-400">({t("上传文件")})</span></span>
+              <span className={c.done ? "line-through text-slate-400" : ""}>{c.priority === "must" ? "🔴 " : ""}<MD inline>{c.item}</MD> <span className="text-xs text-slate-400">({t("上传文件")})</span></span>
             </label>
           ))}
         </div>

@@ -354,7 +354,7 @@ function PracticeInner() {
                       <p><span className="text-slate-400">{t("你的作答:")}</span> <span className={ok ? "text-emerald-700" : "text-rose-700"}>{mine || t("(未答)")}</span>{r.score != null && (qq.qtype === "short" || qq.qtype === "fill") ? ` · ${r.score}${t("分")}` : ""}</p>
                       <p><span className="text-slate-400">{t("标准答案:")}</span> <MD inline>{String(r.answer || "")}</MD></p>
                       {r.explanation && <details><summary className="cursor-pointer text-slate-400">{t("解析")}</summary><div className="mt-1 text-slate-600"><MD>{r.explanation}</MD></div></details>}
-                      {r.feedback && <p className="text-slate-500">{r.feedback}</p>}
+                      {r.feedback && <div className="text-slate-500"><MD inline>{r.feedback}</MD></div>}
                     </div>
                   ) : <p className="mt-1 text-xs text-slate-400">{t("(未答)")}</p>}
                 </div>
@@ -466,7 +466,7 @@ function PracticeInner() {
               <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={() => playScript(q.body.listenScript, q.body.ttsLang)}>▶️ {t("播放录音")}</button>
               <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={() => { try { window.speechSynthesis?.cancel(); } catch {} }}>■ {t("停止")}</button>
             </div>
-            {!!result && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">{t("查看听力原文")}</summary><p className="mt-1 whitespace-pre-line">{q.body.listenScript}</p></details>}
+            {!!result && <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer">{t("查看听力原文")}</summary><div className="mt-1"><MD>{q.body.listenScript}</MD></div></details>}
           </div>
         )}
         <div className="mt-2 border-t border-slate-100 pt-2">

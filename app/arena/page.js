@@ -291,7 +291,7 @@ function VideoAssess({ launch, t, onBack }) {
       <div className="card">
         <h1 className="text-xl font-black">{launch.emoji} {launch.title}</h1>
         {launch.winDesc && <p className="mt-1 text-sm text-stone-600">🎯 {launch.winDesc}</p>}
-        {launch.spec && <p className="mt-1 whitespace-pre-wrap text-xs text-stone-500">{launch.spec}</p>}
+        {launch.spec && <div className="mt-1 text-xs text-stone-500"><MD>{launch.spec}</MD></div>}
       </div>
       <div className="card">
         <p className="text-sm font-medium">{t("录一段视频,提交后 AI 按要求评分")}</p>
@@ -300,7 +300,7 @@ function VideoAssess({ launch, t, onBack }) {
         {res && (res.err ? <p className="mt-2 text-xs text-rose-600">{t("提交失败,请重试")}</p> : (
           <div className={`mt-3 rounded-xl px-3 py-2 ${res.win ? "bg-emerald-50" : "bg-stone-50"}`}>
             <div className="text-lg font-bold">{res.win ? "🏆 " : ""}{res.score} {t("分")}</div>
-            <p className="mt-1 text-sm text-stone-600">{res.feedback}</p>
+            <div className="mt-1 text-sm text-stone-600"><MD>{res.feedback}</MD></div>
           </div>
         ))}
       </div>

@@ -327,7 +327,7 @@ export default function HomeClient({ initialLeaderboard = null, initialIsDev = f
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="text-xs font-bold uppercase tracking-wide text-rose-700">🔍 {t("根因诊断")}</div>
-              <p className="mt-0.5 text-sm font-semibold text-[#5a2d0c]">{daily.rootCauseBanner.summary}</p>
+              <div className="mt-0.5 text-sm font-semibold text-[#5a2d0c]"><MD inline>{daily.rootCauseBanner.summary}</MD></div>
               {daily.rootCauseBanner.markedCount > 0 && <p className="mt-0.5 text-xs text-rose-700/80">{t("已在掌握度矩阵标出根因知识点")}（{daily.rootCauseBanner.markedCount}）</p>}
             </div>
             <button onClick={dismissDiag} title={t("知道了")} className="shrink-0 text-sm text-rose-400 hover:text-rose-600">✕</button>

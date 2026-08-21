@@ -8,18 +8,7 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/components/I18n";
 import MD from "@/components/MD";
-
-// 截断但不切坏 LaTeX:切点落在公式中间就补齐到闭合 $,补不到就把半截公式丢掉。
-function safeCut(str, n) {
-  const x = String(str || "");
-  if (x.length <= n) return x;
-  let c = x.slice(0, n);
-  if (((c.match(/\$/g) || []).length % 2) === 1) {
-    const nxt = x.indexOf("$", c.length);
-    c = nxt >= 0 ? x.slice(0, nxt + 1) : c.replace(/\$[^$]*$/, "");
-  }
-  return c + "…";
-}
+import { safeCut } from "@/lib/mdcut";
 
 // showMockLink:在模拟考页上就没必要再挂"去做模拟考"的链接了(人已经在那儿)。
 export default function DiagnosticCard({ showMockLink = true, defaultMinutes = 10 }) {

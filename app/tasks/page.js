@@ -265,7 +265,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
         </>
       ) : (
         <>
-          {ms.evidenceHint && <p className="mt-1 text-xs text-stone-500">📎 {t("要交的证据")}: {ms.evidenceHint}</p>}
+          {ms.evidenceHint && <div className="mt-1 text-xs text-stone-500">📎 {t("要交的证据")}: <MD inline>{ms.evidenceHint}</MD></div>}
           <textarea value={evi} onChange={(e) => setEvi(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" placeholder={t("贴上你的成果/发现/输出/截图说明…")} />
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <label className="btn-ghost cursor-pointer px-3 py-1.5 text-sm" title={t("上传图片/文件/拍照作答")}>📎 {t("拍照/上传文件")}
@@ -278,7 +278,7 @@ function Milestone({ task, idx, ms, judge0, prog, onGraded, aiFetch, t }) {
           <button onClick={submit} disabled={busy === "submit"} className="btn mt-2 px-3 py-1.5 text-sm">{busy === "submit" ? t("审阅中…") : t("提交成果")}</button>
         </>
       )}
-      {prog && prog.feedback && <div className="mt-2 rounded-lg bg-stone-50 px-3 py-1.5 text-xs text-stone-600">{prog.feedback}</div>}
+      {prog && prog.feedback && <div className="mt-2 rounded-lg bg-stone-50 px-3 py-1.5 text-xs text-stone-600"><MD>{prog.feedback}</MD></div>}
     </div>
   );
 }

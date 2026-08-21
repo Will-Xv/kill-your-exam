@@ -35,7 +35,7 @@ export default function Blueprint() {
       {bp && (
         <>
           <div className="card">
-            <p className="text-sm">{bp.overview}</p>
+            <div className="text-sm"><MD>{bp.overview}</MD></div>
             <div className="mt-2 flex flex-wrap gap-3 text-sm text-stone-600">
               {bp.totalQuestions ? <span>📝 {bp.totalQuestions} {t("题")}</span> : null}
               {bp.totalMarks ? <span>🎯 {t("总分")} {bp.totalMarks}</span> : null}

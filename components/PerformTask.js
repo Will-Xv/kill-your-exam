@@ -192,7 +192,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
   return (
     <div className="card space-y-3">
       <MD className="font-medium prose-zh">{body.stem}</MD>
-      {body.instructions && <p className="text-sm text-slate-600 whitespace-pre-line">{String(body.instructions).replace(/\\r\\n|\\n(?![a-zA-Z])/g, "\n")}</p>}
+      {body.instructions && <div className="text-sm text-slate-600"><MD>{body.instructions}</MD></div>}
       {body.rubric?.length > 0 && <p className="text-xs text-slate-500">🎯 {t("评分维度:")}{body.rubric.join(" · ")}</p>}
       <p className="text-[11px] text-amber-700">⚠️ {t("AI 辅助点评,仅供练习参考,不代表专业评委的权威评分。")}</p>
       <p className="text-[11px] text-slate-500">🔎 {isVideo
@@ -252,7 +252,7 @@ export default function PerformTask({ q, onNext, mediaSrcOverride, gradeUrl, dev
                 <div key={i}>
                   <div className="flex justify-between text-xs"><span className="font-medium text-stone-700">{d.name}</span><span className={d.score < 60 ? "text-rose-600 font-semibold" : d.score < 75 ? "text-amber-600" : "text-emerald-600"}>{d.score}</span></div>
                   <div className="h-1.5 rounded-full bg-stone-200"><div className={`h-1.5 rounded-full ${d.score < 60 ? "bg-rose-500" : d.score < 75 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${Math.max(0, Math.min(100, d.score))}%` }} /></div>
-                  {d.comment ? <div className="mt-0.5 text-[11px] text-stone-500">{d.comment}</div> : null}
+                  {d.comment ? <div className="mt-0.5 text-[11px] text-stone-500"><MD inline>{d.comment}</MD></div> : null}
                 </div>
               ))}
             </div>
