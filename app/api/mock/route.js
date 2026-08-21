@@ -1,5 +1,5 @@
 import db, { ownScope, scopeSql } from "@/lib/db";
-import { composeFromMaterials } from "@/lib/mockFromMaterials";
+import { composeFromMaterials, extractPaperFromMaterials } from "@/lib/mockFromMaterials";
 import { estr } from "@/lib/i18nServer";
 import { requireUser, unauthorized } from "@/lib/auth";
 import { ensureBlueprint, composeFromBlueprint, getBlueprint } from "@/lib/blueprint";
@@ -20,6 +20,19 @@ export async function POST(req) {
   // 题目总数照蓝图来:前端不再写死 20。真题模式也用蓝图的 totalQuestions 作为目标题数。
   let count = Number(body.count) || 0;
   if (!count) { const _bp = getBlueprint(exam.id); count = (_bp && _bp.totalQuestions) || 20; }
+
+  // 【做原题】主人勾了资料 + 选了"做原题":把这几份卷子里现成的题原样搬出来做(不新编)
+  if (materialIds && materialIds.length && body.paperOnly) {
+    const r = await extractPaperFromMaterials(exam, user, { materialIds, request: body.request || "", count: 0 });
+    if (r.error === "no_material") return Response.json({ error: estr(user?.lang, "请先选择要从哪些资料出题。") }, { status: 400 });
+    if (r.error === "no_question") {
+      // 如实说:是"这些文件里没有现成题目",不是"出题失败"。别糊弄成一份 AI 编的卷子。
+      const notReady = (r.failed || []).some((f) => f.why === "not_ready");
+      return Response.json({ error: estr(user?.lang, notReady ? "这几份资料还在处理中,等它处理完再来做原题。" : "这几份资料里没有找到现成的题目(像是讲义/笔记而不是卷子)。想做题的话,可以改用「按这几份资料出新题」。") }, { status: 400 });
+    }
+    if (r.error) return Response.json({ error: estr(user?.lang, "出题失败,请稍后再试。") }, { status: 500 });
+    return Response.json(r);
+  }
 
   // 【按指定资料出卷】主人勾了资料就走这条:只依据这几份资料出题,并可附带对出题 AI 的要求
   if (materialIds && materialIds.length) {

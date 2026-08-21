@@ -186,6 +186,8 @@ export default function Mock() {
   const [pickOpen, setPickOpen] = useState(false);
   const [pickIds, setPickIds] = useState([]);
   const [pickReq, setPickReq] = useState("");
+  const [isOriginal, setIsOriginal] = useState(false);   // 这套卷子是不是【原题】(从资料里原样摘的)
+  const [paperInfo, setPaperInfo] = useState(null);
   useEffect(() => { fetch("/api/mock/bank").then((r) => r.json()).then((d) => setBank(d)).catch(() => {}); }, []);
   useEffect(() => {
     if (stage !== "running") return;
@@ -207,10 +209,10 @@ export default function Mock() {
     setBusy(true); setErr("");
     try {
       const payload = { count: 20, realOnly };
-      if (opts && opts.materialIds && opts.materialIds.length) { payload.materialIds = opts.materialIds; payload.request = opts.request || ""; }
+      if (opts && opts.materialIds && opts.materialIds.length) { payload.materialIds = opts.materialIds; payload.request = opts.request || ""; if (opts.paperOnly) payload.paperOnly = true; }
       const d = await aiFetch("/api/mock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!d || !Array.isArray(d.questions) || !d.questions.length) throw new Error(d && d.error ? d.error : t("组卷失败:没有拿到题目"));
-      attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setDurationMin(d.durationMin || null); setFinishedAt(0); setStage("running"); setStarted(Date.now());
+      attachRef.current = {}; restoredAtts.current = {}; draftsRef.current = {}; restoredDrafts.current = {}; setAnswers({}); setScore(null); setResults(null); setMockId(d.mockId); setQs(d.questions); setIsOriginal(!!d.original); setPaperInfo(d.original ? { files: d.files || [], perFile: d.perFile || [], extra: d.extra || 0 } : null); setDurationMin(d.durationMin || null); setFinishedAt(0); setStage("running"); setStarted(Date.now());
     } catch (e) {
       let msg = String((e && e.message) || e || "");
       try { const j = JSON.parse(msg); if (j && j.error) msg = j.error; } catch {}
@@ -313,13 +315,22 @@ function stripLabel(op, i) {
                   </label>
                 ))}
             </div>
-            <p className="mt-2 text-xs font-semibold text-[#5b431f]">{t("对出题的要求(可留空)")}</p>
+            <p className="mt-2 text-xs font-semibold text-[#5b431f]">{t("对挑题/出题的要求(可留空)")}</p>
             <textarea className="input mt-1 w-full text-xs" rows={2} value={pickReq} onChange={(e) => setPickReq(e.target.value)}
-              placeholder={t("例如:只出计算题;侧重第三章;难度偏高;多出简答")} />
+              placeholder={t("例如:只要计算题;只挑第三章;难度偏高;多出简答")} />
+            {/* 两条路分清楚:做原题=把卷子里现成的题原样搬出来做;出新题=照着资料另编一套。
+                原题只解析一次就存进题库,之后再选同一份文件是零等待、也是同一批题。 */}
             <button className="btn mt-2 w-full py-2 text-sm" disabled={busy || !pickIds.length}
-              onClick={() => start(false, { materialIds: pickIds, request: pickReq })}>
-              {busy ? t("组卷中…") : `${t("用这")}${pickIds.length}${t("份资料出卷")}`}
+              onClick={() => start(false, { materialIds: pickIds, request: pickReq, paperOnly: true })}>
+              {busy ? t("组卷中…") : `📄 ${t("做这 {n} 份里的原题").replace("{n}", pickIds.length)}`}
             </button>
+            <button className="btn-ghost mt-1.5 w-full py-2 text-sm" disabled={busy || !pickIds.length}
+              onClick={() => start(false, { materialIds: pickIds, request: pickReq })}>
+              {busy ? t("组卷中…") : `✨ ${t("按这 {n} 份资料出新题").replace("{n}", pickIds.length)}`}
+            </button>
+            <p className="mt-1.5 text-[11px] leading-snug text-stone-500">
+              {t("「原题」= 把这些文件里现成的题一字不差搬出来做(讲义类文件里没有题,会直接告诉你);「新题」= 照着资料内容另出一套。")}
+            </p>
           </div>
         )}
         <a className="btn-ghost text-sm" href="/mock/blueprint">📋 {t("考试蓝图(结构/分值/时长)")}</a>
@@ -345,6 +356,15 @@ function stripLabel(op, i) {
     if (!await confirmDialog(t("退出本次模拟考?这次的作答会丢弃,不计成绩。"))) return;
     restart();
   }
+
+  // 【标明这是原题】做原题和做AI出的题,心态和参考价值完全不同,必须让人一眼看见。
+  const originBadge = isOriginal ? (
+    <div className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs text-emerald-800 ring-1 ring-emerald-200">
+      📄 <b>{t("原题")}</b> · {t("题目一字不差取自你选的资料")}
+      {paperInfo && paperInfo.files && paperInfo.files.length ? `（${paperInfo.files.join("、")}）` : ""}
+      {paperInfo && paperInfo.extra > 0 ? "　" + t("这些文件里另有 {n} 道题没排进这套卷子").replace("{n}", paperInfo.extra) : ""}
+    </div>
+  ) : null;
 
   if (stage === "grading") {
     return (
@@ -412,6 +432,7 @@ function stripLabel(op, i) {
             <a href="/study" className="mt-2 inline-block text-xs font-semibold text-rose-700 underline">{t("去看根因知识点")} →</a>
           </div>
         )}
+        {originBadge}
         <h2 className="font-bold px-1 pt-2">{t("作答回顾")}</h2>
         {qs.map((q, idx) => (
           <ReviewBlock key={q.id} q={q} t={t} idx={idx} ua={answers[q.id]} atts={attachRef.current[q.id]} res={resMap[q.id]} letters={letters} onRevised={rescoreMock} />
@@ -446,6 +467,7 @@ function stripLabel(op, i) {
           <button className="btn py-2 text-sm" onClick={submit} disabled={busy}>{busy ? t("批改中…") : t("交卷")}</button>
         </div>
       </div>
+      {originBadge}
       {qs.map((q, idx) => {
         const isChoice = ["single", "multi", "judge"].includes(q.qtype);
         const options = q.qtype === "judge" ? ["对", "错"] : q.body.options || [];
